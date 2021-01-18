@@ -1,0 +1,15 @@
+include make.inc
+ 
+MYSRC= $(wildcard $(SRCDIR)/$(SUB)/*.c)
+MYTMP= $(patsubst %.c,%.o, $(MYSRC))
+MYOBJ= $(patsubst $(SRCDIR)/$(SUB)%,$(OBJDIR)%, $(MYTMP))
+all: $(MYOBJ)
+ 
+ 
+$(MYOBJ): $(OBJDIR)/%.o: $(SRCDIR)/$(SUB)/%.c
+    $(CC) -c  $< -o $@
+ 
+clean:
+    rm -f $(MYOBJ)
+ 
+submit:
