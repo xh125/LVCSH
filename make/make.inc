@@ -8,7 +8,7 @@ CMODE = release
 COMPILER = intel
 
 # path
-PROJECT_HOME = ./
+PROJECT_HOME = ..
 SRCDIR = $(PROJECT_HOME)/src
 OBJDIR = $(PROJECT_HOME)/obj_$(COMPILER)/$(CMODE)
 MODDIR = $(PROJECT_HOME)/mod
