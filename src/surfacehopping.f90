@@ -121,7 +121,28 @@ module surfacehopping
     
   end subroutine init_normalmode_coordinate_velocity
   
-
+  !=============================================!
+  != init dynamical varibale                   =!
+  !=============================================!  
+  subroutine init_dynamical_variable(nq,nmodes,ph_l,c_nk,ee,pp,ww)
+    use parameters, only : init_band,init_ik
+    implicit none
+    integer,intent(in) :: nq,nmodes
+    real(kind=dp),intent(in) :: ph_l(nmodes,nq)
+    
+    complex(kind=dpc),intent(out) :: c_nk(nmodes,nq)
+    
+    c_nk = 0.0d0
+    c_nk(init_band,init_ik) = 1.0d0
+    call calculate_eigen_energy_state(nq,nmodes,ph_l,ee,pp)
+    
+    
+  end subroutine init_dynamical_variable
+  
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !% calculate eigenenergy and eigenstate %!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  
   function bolziman(womiga,temp)
     use kinds ,only : dp
     implicit none

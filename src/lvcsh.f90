@@ -31,7 +31,6 @@ program lvcsh
   use readinput,only      : get_inputfile,treat_parameters
   use readscf,only        : readpwscf_out
   use readphout,only      : readph_out
-  use readepw,only        : readepwout
   use parameters, only    : scfoutname,phoutname,epwoutname,temp
   use hamiltonian,only    : set_H0
   use randoms,only        : init_random_seed
@@ -69,6 +68,7 @@ program lvcsh
     !==================! 
     !!得到简正坐标的初始位置phQ/sqrt(hbar/(2*wqv))和速度phP /sqrt(hbar/(2*wqv))
     call init_normalmode_coordinate_velocity(nqtotf,nmodes,phQ,phP,wf,temp)
+    call init_dynamical_variable()
     
 !    call dia_syH(nbasis,H0,E,P)
 !    call set_HH(nfreem,nbasis,phQ,H0,Hep,HH)

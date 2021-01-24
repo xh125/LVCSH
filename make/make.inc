@@ -1,9 +1,5 @@
-# Compiler mode
+# Compiler mode   # options: release, debug
 CMODE = release             
-# options:
-# release,
-# debug
-
 #compiler   # options:gnu,pgi,intel
 COMPILER = intel
 
@@ -68,9 +64,12 @@ CFLAGS =
 OFLAG  = -O2
 DEBUG  = -O0
 
+# DFLAGS  = precompilation options (possible arguments to -D and -U)
+#           used by the C compiler and preprocessor
+
 # LIB dir 这里加入必要的库和路径
-LIBDIR= #-L$(BLASDIR) -L$(LAPACKDIR) 
-LIBS   =  # 
+LIBDIR =  
+LIBS   = 
 
 #MKL libraries
 MKL_PATH    = ${MKLROOT}/lib/intel64
@@ -89,3 +88,29 @@ GENCODE_ARCH    := -gencode=arch=compute_30,code=\"sm_30,compute_30\" \
                    -gencode=arch=compute_72,code=\"sm_72,compute_72\"
 
 MPI_INC    = $(I_MPI_ROOT)/include64/
+
+# compilation rules
+
+.SUFFIXES :
+.SUFFIXES : .o .c .f .f90 .h .fh
+
+# most fortran compilers can directly preprocess c-like directives: use
+# 	$(MPIF90) $(F90FLAGS) -c $<
+# if explicit preprocessing by the C preprocessor is needed, use:
+#	$(CPP) $(CPPFLAGS) $< -o $*.F90
+#	$(MPIF90) $(F90FLAGS) -c $*.F90 -o $*.o
+# remember the tabulator in the first column !!!
+
+.f90.o:
+	$(MPIF90) $(F90FLAGS) -c $<
+
+# .f.o and .c.o: do not modify
+
+.f.o:
+	$(F77) $(FFLAGS) -c $<
+
+.c.o:
+	$(CC) $(CFLAGS)  -c $<
+
+.h.fh:
+	$(CPP) $(CPPFLAGS) $< -o $*.fh

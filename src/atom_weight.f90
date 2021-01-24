@@ -1,4 +1,4 @@
-module atom_weight
+module atomweight
   use kinds, only : dp
   implicit none
   
@@ -39,3 +39,4 @@ module atom_weight
     atom_weight = weights(atom_number)
     return
   end function atom_weight
+end module atomweight
