@@ -21,8 +21,7 @@ program lvcsh
   !! Author: HuaXie
   !! Version: v0.1.1
   !! License: GNU
-  !!=================================================================================================
-  
+  !!=================================================================================================  
   use mkl_service
   use omp_lib
   use constants,only      : maxlen
@@ -31,13 +30,15 @@ program lvcsh
   use readinput,only      : get_inputfile,treat_parameters
   use readscf,only        : readpwscf_out
   use readphout,only      : readph_out
+  use readepw,only        : readepwout
   use parameters, only    : scfoutname,phoutname,epwoutname,temp
-  use hamiltonian,only    : set_H0
+  use hamiltonian,only    : set_H0_nk,e,p
   use randoms,only        : init_random_seed
   use surfacehopping,only : iaver,naver,phQ,phP,&
-                            allocatesh,init_normalmode_coordinate_velocity
+                            allocatesh,init_normalmode_coordinate_velocity,c_nk,w,&
+                            init_dynamical_variable
   use elph2,only          : wf,nqtotf
-  use phdisp,only         : ph_configuration
+  use phdisp,only         : ph_configuration,ph_lqv,ph_l,ph_p
   use modes,only          : nmodes
   use io      ,only       : stdout
   implicit none
@@ -51,7 +52,7 @@ program lvcsh
   call readph_out(phoutname)
   call readepwout(epwoutname)
   call treat_parameters()
-  call set_H0()
+  call set_H0_nk()
   call ph_configuration(nqtotf,nmodes,wf,temp)
   call init_random_seed()
   if(lsetthreads) call set_mkl_threads(mkl_threads)
@@ -66,9 +67,11 @@ program lvcsh
     !==================!
     != initialization =!
     !==================! 
-    !!得到简正坐标的初始位置phQ/sqrt(hbar/(2*wqv))和速度phP /sqrt(hbar/(2*wqv))
-    call init_normalmode_coordinate_velocity(nqtotf,nmodes,phQ,phP,wf,temp)
-    call init_dynamical_variable()
+    !!得到简正坐标的初始位置ph_l=phQ/sqrt(hbar/(2*wqv))和速度ph_p=phP /sqrt(hbar/(2*wqv))
+    call init_normalmode_coordinate_velocity(nqtotf,nmodes,ph_l,ph_p,wf,temp)
+    call init_dynamical_variable(nqtotf,nmodes,ph_l,c_nk,e,p,w)
+    
+    
     
 !    call dia_syH(nbasis,H0,E,P)
 !    call set_HH(nfreem,nbasis,phQ,H0,Hep,HH)

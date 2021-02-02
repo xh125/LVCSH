@@ -34,7 +34,7 @@ module readepw
   !! Temporary g-vertex for each pool
   !real(kind=dp),allocatable :: epmatq(:,:,:,:,:)
   real(kind=dp) :: ebndmax,ebndmin
-  real(kind=dp),allocatable :: Enk(:,:),Emkq(:,:)
+  real(kind=dp),allocatable :: E_nk(:,:),E_mkq(:,:)
   
   contains
   
@@ -47,7 +47,7 @@ module readepw
     integer :: unitepwout
     integer :: ipol,ik_,ibnd_,jbnd_,nu_
     real(kind=dp) :: xiq(3)
-    !real(kind=dp) :: enk,emkq
+    !real(kind=dp) :: E_nk,E_mkq
     integer :: ierr
     !! error status
     
@@ -110,10 +110,10 @@ module readepw
     nbndfst = ibndmax-ibndmin + 1
     allocate(etf_all(nbndfst,nkqtotf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating etf_all',1)
-    allocate(Enk(nbndfst,nktotf),stat=ierr)
-    if(ierr /=0) call errore("readepw",'Error allocating Enk',1)
-    allocate(Emkq(nbndfst,nktotf),stat=ierr)
-    if(ierr /=0) call errore("readepw",'Error allocating Emkq',1)
+    allocate(E_nk(nbndfst,nktotf),stat=ierr)
+    if(ierr /=0) call errore("readepw",'Error allocating E_nk',1)
+    allocate(E_mkq(nbndfst,nktotf),stat=ierr)
+    if(ierr /=0) call errore("readepw",'Error allocating E_mkq',1)
     allocate(epcq(nbndfst,nbndfst,nktotf,nmodes,nqtotf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating epmatq',1)
   
@@ -145,10 +145,10 @@ module readepw
               !nu, ryd2ev * ekk, ryd2ev * ekq, ryd2mev * wf(nu, iq), ryd2mev * epc(ibnd, jbnd, nu, ik)
               read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
                    etf_all(ibnd,ikk),etf_all(jbnd,ikq),wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
-              Enk(ibnd,ik) = etf_all(ibnd,ikk)
-              Emkq(jbnd,kqmap(ik,iq)) = etf_all(jbnd,ikq)
+              E_nk(ibnd,ik) = etf_all(ibnd,ikk)
+              E_mkq(jbnd,kqmap(ik,iq)) = etf_all(jbnd,ikq)
               !read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
-                   !enk,emkq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
+                   !E_nk,E_mkq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
             enddo
           enddo
         enddo
@@ -159,8 +159,8 @@ module readepw
     
     do ik=1,nktotf
       do ibnd=1,nbndfst
-        if (Enk(ibnd,ik) /= Emkq(ibnd,ik)) then
-          write(stdout,*) "Enk /= Emkq","ibnd=",ibnd,"ik=",ik
+        if (E_nk(ibnd,ik) /= E_mkq(ibnd,ik)) then
+          write(stdout,*) "E_nk /= E_mkq","ibnd=",ibnd,"ik=",ik
         endif
       enddo
     enddo

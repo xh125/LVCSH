@@ -16,9 +16,6 @@
     exband(:),               &!  k-point independent list of bands excluded from the calculation of overlap and projection matrices in W90
     done_elph(:)
   INTEGER ::                 &!
-    nkqf,                    &!  number of k+q points per pool (fine grid)
-    nkf,                     &!  number of k points per pool (fine grid)
-    nqf,                     &!  number of q points per pool (fine grid)
     nkqtotf,                 &!  total number of k+q points (fine grid)
     nktotf,                  &!  total number of k points (fine grid)
     nqtotf,                  &!  total number of q points (fine grid)
@@ -27,8 +24,6 @@
     ibndmax,                 &!  Upper band bound for slimming down electron-phonon matrix
     lower_band,              &!  Lower band index for image (band) parallelization
     upper_band,              &!  Upper band index for image (band) parallelization
-    lower_bnd,               &!  Lower bound for the k-depend index among the mpi pools
-    upper_bnd,               &!  Upper bound for the k-depend index among the mpi pools
     lrepmatw2_merge,         &!  File merging dimensions
     lrepmatw5_merge,         &!  File merging dimensions
     nbndfst,                 &!  Number of bands within the fsthick window.
@@ -37,8 +32,6 @@
     nbndep,                  &!  Number of remaining bands after excluding bands in Wannierizatin step
     nbndskip,                &!  Number of bands to be skipped in Wannierization step, leading to
                               !  the exclusion from the original Hamiltonian
-    ngxx,                    &!  Maximum number of G-vectors over all pools
-    ngxxf,                   &!  Maximum number of G-vectors over all pools for k+q folding
     ig_s,                    &!  First G index within each core in case of G parallelization
     ig_e,                    &!  Last G index within each core in case of G parallelization
     num_wannier_plot,        &!  Number of Wannier functions to plot

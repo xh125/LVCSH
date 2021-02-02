@@ -19,7 +19,8 @@ module kpoint_grid
   real(kind=dp), allocatable :: wk(:)
   !! weight of k points
   
-  contains
-  subroutine 
+  contains 
+  
+  
   
 end module 

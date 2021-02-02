@@ -7,24 +7,24 @@ module surfacehopping
   implicit none
   integer :: iaver
   integer :: ierr
-  real(kind=dp),allocatable :: phQ(:),phP(:)
+  real(kind=dp),allocatable :: phQ(:,:),phP(:,:)
+  real(kind=dp),allocatable :: phQ0(:,:),phP0(:,:)
   ! phonons normal mode coordinate,and phonons P
   real(kind=dp),allocatable :: e(:),p(:,:),d(:,:,:),g(:)
-  real(kind=dp),allocatable :: phQ0(:),phP0(:)
   real(kind=dp),allocatable :: e0(:),p0(:,:),d0(:,:,:),g1(:)  
   real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
                                psit(:,:),xsit(:,:),ksit(:,:) 
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
-  real(kind=dp),allocatable :: c(:),w(:),w0(:)
-  real(kind=dp),allocatable :: c_nk(:,:),w_nk(:,:),w0_nk(:,:)
+  complex(kind=dpc),allocatable :: c(:),w(:),w0(:)
+  complex(kind=dpc),allocatable :: c_nk(:,:),w_nk(:,:),w0_nk(:,:)
   contains
   
   subroutine allocatesh()
     implicit none
-    allocate(phQ(1:nphfre),stat=ierr)  ! x(1:nphfre)
+    allocate(phQ(nmodes,nqtotf),stat=ierr)  ! x(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phQ',1)
     phQ = 0.0
-    allocate(phP(1:nphfre),stat=ierr)  ! v(1:nphfre)
+    allocate(phP(nmodes,nqtotf),stat=ierr)  ! v(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phP',1)    
     phP=0.0
     allocate(e(1:nefre),stat=ierr)
@@ -87,22 +87,22 @@ module surfacehopping
     if(ierr /=0) call errore('surfacehopping','Error allocating w_nk',1)
     allocate(w0_nk(nbndfst,nktotf),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating w0_nk',1) 
-
     
   end subroutine allocatesh
   
   !=============================================!
   != init coordinate and Normal mode velocitie =!
   !=============================================!
-  subroutine init_normalmode_coordinate_velocity(nq,nmodes,ph_l,ph_p,wf,T)
+  subroutine init_normalmode_coordinate_velocity(nq,nmodes,ph_l,ph_p,ph_w,T)
     use kinds,only   : dp
     use randoms,only : gaussian_random_number
     use phdisp, only : ph_lqv,ph_pqv
+    use constants,only : hbar_SI
     implicit none
     integer      ,intent(in) :: nq,nmodes
     real(kind=dp),intent(in) :: T
-    real(kind=dp),intent(in) :: wf(nmodes,nq)
-    real(kind=dp),intent(out):: ph_l(nmodes,nq),ph_P(nmodes,nq)
+    real(kind=dp),intent(in) :: ph_w(nmodes,nq)    !rad/s
+    real(kind=dp),intent(out):: ph_l(nmodes,nq),ph_p(nmodes,nq)
     
     integer :: iq,imode
     
@@ -115,9 +115,12 @@ module surfacehopping
     do iq=1,nq
       do imode=1,nmodes
         ph_l(imode,iq) = gaussian_random_number(0.0d0,ph_lqv(imode,iq))
-        ph_P(imode,iq) = gaussian_random_number(0.0d0,ph_pqv(imode,iq))
+        ph_p(imode,iq) = gaussian_random_number(0.0d0,ph_pqv(imode,iq))
+        !phQ(imode,iq) = ph_l(imode,iq) * sqrt(hbar_SI/2.0*ph_w(imode,iq))
       enddo
     enddo
+    
+    phQ = ph_l * sqrt(hbar_SI/2.0*ph_w)
     
   end subroutine init_normalmode_coordinate_velocity
   
@@ -126,16 +129,19 @@ module surfacehopping
   !=============================================!  
   subroutine init_dynamical_variable(nq,nmodes,ph_l,c_nk,ee,pp,ww)
     use parameters, only : init_band,init_ik
+    use hamiltonian,only : H0_nk,H_nk,set_H_nk,calculate_eigen_energy_state
     implicit none
     integer,intent(in) :: nq,nmodes
     real(kind=dp),intent(in) :: ph_l(nmodes,nq)
+    real(kind=dp),intent(out) :: ee(nbndfst*nktotf),pp(nbndfst*nktotf)
+    complex(kind=dpc),intent(out) :: c_nk(nbndfst,nktotf),ww(nbndfst*nktotf)
     
-    complex(kind=dpc),intent(out) :: c_nk(nmodes,nq)
     
     c_nk = 0.0d0
     c_nk(init_band,init_ik) = 1.0d0
-    call calculate_eigen_energy_state(nq,nmodes,ph_l,ee,pp)
-    
+    ww   = 0.0d0
+    call set_H_nk(nq,nmodes,ph_l,nbndfst,nktotf,epcq,kqmap,H0_nk,H_nk)
+    call calculate_eigen_energy_state(nktotf,nbndfst,H_nk,ee,pp)
     
   end subroutine init_dynamical_variable
   

@@ -14,7 +14,7 @@ module constants
     sqrt2 = dsqrt(2.0d0)                        ,&
     sqrt3 = dsqrt(3.0d0)                        ,&
     sqrt5 = dsqrt(5.0d0)                        ,&
-    sqrt7 = dsqrt(7.0d0)                            
+    sqrt7 = dsqrt(7.0d0)
   real(kind=dp),parameter,public  :: pi  = 3.141592653589793238462643383279_dp 
   real(kind=dp),parameter,public  :: tpi = 2.0*pi
   real(kind=dp),parameter,public  :: fpi = 4.0*pi

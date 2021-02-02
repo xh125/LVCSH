@@ -8,10 +8,13 @@ module phdisp
                           wq(:) ! for plot
   
     REAL(DP), ALLOCATABLE :: omega_disp(:,:),omega_thz(:,:),omega_cm(:,:)
-    real(kind=dp),allocatable :: ph_w(:,:)    !rad/s
-    real(kind=dp),allocatable :: ph_nqv(:,:)  !1.0 / (EXP(hbar * ph_w(i, qp) / (K_BOLTZMANN_SI * T)) - 1)
-    real(kind=dp),allocatable :: ph_lqv(:,:)  ! phonon filed amplitude Q_qv=sqrt(hbar/(2*ph_w)) * ph_lqv
+    real(kind=dp),allocatable :: ph_wqv(:,:)    !rad/s
+    real(kind=dp),allocatable :: ph_nqv(:,:)  !1.0 / (EXP(hbar * ph_wqv(i, qp) / (K_BOLTZMANN_SI * T)) - 1)
+    real(kind=dp),allocatable :: ph_lqv(:,:)  ! phonon filed amplitude Q_qv=sqrt(hbar/(2*ph_wqv)) * ph_lqv
     real(kind=dp),allocatable :: ph_pqv(:,:)  ! d_lqv/dt
+    real(kind=dp),allocatable :: ph_l(:,:)
+    real(kind=dp),allocatable :: ph_p(:,:)
+    
     
     complex(dpc),allocatable :: evecter_disp(:,:,:)
     
@@ -30,21 +33,22 @@ module phdisp
     real(kind=dp),intent(in) :: wf(nmodes,nqtotf)  ! in meV
     real(kind=dp),intent(in) :: T
     
-    allocate(ph_w(nmodes,nqtotf))
+    allocate(ph_wqv(nmodes,nqtotf))
     allocate(ph_nqv(nmodes,nqtotf),ph_lqv(nmodes,nqtotf),ph_pqv(nmodes,nqtotf))
-    ph_w   = 0.0
+    allocate(ph_l(nmodes,nqtotf),ph_p(nmodes,nqtotf))
+    ph_wqv   = 0.0
     ph_nqv = 0.0
     ph_lqv = 0.0
     ph_pqv = 0.0
     
-    ph_w = wf * mev_Thz*(1.0E12) * tpi    
+    ph_wqv = wf * mev_Thz * (1.0E12) * tpi
     ! correct frequency for phonons in SI (rad/s)
-    ph_nqv = 1.0/ (EXP(hbar_SI * ph_w / (K_BOLTZMANN_SI * T)) - 1.0)
+    ph_nqv = 1.0 / (EXP(hbar_SI * ph_wqv / (K_BOLTZMANN_SI * T)) - 1.0)
+    ph_nqv(1:3,1) = 0.0 ! gamma qpoint (1-3) branch 沿xyz三个方向的平移
+
+    ph_lqv = dsqrt(1.0+2.0*ph_nqv) !ph_Q = sqrt(hbar/(2*ph_wqv))*ph_lqv
+    ph_pqv = ph_wqv*ph_lqv
     
-    ph_lqv = dsqrt(1.0+2.0*ph_nqv) !ph_Q = sqrt(hbar/(2*ph_w))*ph_lqv
-    ph_pqv = ph_w*ph_lqv
-    
-  
   end subroutine ph_configuration
   
 end module phdisp
