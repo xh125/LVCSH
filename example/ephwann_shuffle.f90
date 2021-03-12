@@ -1720,18 +1720,20 @@
           ikk = 2*ik-1
           write(stdout,"(/5x,'ik = ', i7 ,' coord.:',3f12.7)") ik,xkf_all(:,ikk)
           if (vme) then
-            write(stdout,"(5x,a)") "ik   iband   jband Enk[meV] Emk[meV] vmef_x[Ryd*bohr] vmef_y[Ryd*bohr] vmef_z[Ryd*bohr]"
+            write(stdout,"(3x,a)") "ik   iband   jband Enk[eV] Emk[eV] vmef_x[Ryd*bohr] vmef_y[Ryd*bohr] vmef_z[Ryd*bohr]"
           else
-            write(stdout,"(5x,a)") "ik   iband   jband Enk[meV] Emk[meV] dmef_x[1/bohr]   dmef_y[1/bohr]   dmef_z[1/bohr]"
+            write(stdout,"(3x,a)") "ik   iband   jband Enk[eV] Emk[eV] dmef_x[1/bohr]   dmef_y[1/bohr]   dmef_z[1/bohr]"
           endif
           do ibnd=1,nbndsub
             do jbnd=1,nbndsub
               if (vme) then
-                write(stdout,"(x,3i5,2f12.4,3(2E16.6))") &
-                ik, ibnd+ibndmin-1 , jbnd+ibndmin-1, etf_all2(ibnd,ikk),etf_all2(jbnd,ikk),vmef_all(:,ibnd,jbnd,ikk)
+                write(stdout,"(3i5,2f8.4,3(2E16.6))") &
+                ik, ibnd+ibndmin-1 , jbnd+ibndmin-1, etf_all2(ibnd,ikk)*ryd2ev,etf_all2(jbnd,ikk)*ryd2ev,&
+                vmef_all(:,ibnd,jbnd,ikk)
               else 
-                write(stdout,"(x,3i5,2f12.4,3(2E16.6))") &
-                ik, ibnd+ibndmin-1 , jbnd+ibndmin-1, etf_all2(ibnd,ikk),etf_all2(jbnd,ikk),dmef_all(:,ibnd,jbnd,ikk)
+                write(stdout,"(3i5,2f8.4,3(2E16.6))") &
+                ik, ibnd+ibndmin-1 , jbnd+ibndmin-1, etf_all2(ibnd,ikk)*ryd2ev,etf_all2(jbnd,ikk)*ryd2ev,&
+                dmef_all(:,ibnd,jbnd,ikk)
               endif
             enddo
           enddo
