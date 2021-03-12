@@ -36,7 +36,7 @@ program lvcsh
   use randoms,only        : init_random_seed
   use surfacehopping,only : iaver,naver,phQ,phP,&
                             allocatesh,init_normalmode_coordinate_velocity,c_nk,w,&
-                            init_dynamical_variable
+                            init_dynamical_variable,calculate_nonadiabatic_coupling
   use elph2,only          : wf,nqtotf
   use phdisp,only         : ph_configuration,ph_lqv,ph_l,ph_p
   use modes,only          : nmodes
@@ -56,7 +56,7 @@ program lvcsh
   call ph_configuration(nqtotf,nmodes,wf,temp)
   call init_random_seed()
   if(lsetthreads) call set_mkl_threads(mkl_threads)
-  call allocatesh()
+  call allocatesh(nmodes)
   
   
   !==========================!
@@ -70,44 +70,24 @@ program lvcsh
     !!得到简正坐标的初始位置ph_l=phQ/sqrt(hbar/(2*wqv))和速度ph_p=phP /sqrt(hbar/(2*wqv))
     call init_normalmode_coordinate_velocity(nqtotf,nmodes,ph_l,ph_p,wf,temp)
     call init_dynamical_variable(nqtotf,nmodes,ph_l,c_nk,e,p,w)
+    call calculate_nonadiabatic_coupling(e,p,d)
+    ph_l0=ph_l; ph_p0=ph_p; e0=e; p0=p; d0=d;w0=w0
     
-    
-    
-!    call dia_syH(nbasis,H0,E,P)
-!    call set_HH(nfreem,nbasis,phQ,H0,Hep,HH)
-!    if(lelecsh) then
-!      HH_e = HH
-!      call dia_syH(nbasis,HH_e,E_e,P_e)
-!    endif
 
-!    !!得到初始的HH_e,c_e,w_e,n_e,isurface_e,HH_h,c_h,w_h,n_h,isurface_h
-!    call get_initialsurface(initehstat,representation)
+    !=======================!
+    != loop over snapshots =!
+    !=======================!
 
-!    if(lelecsh) then
-!      call calculate_nonadiabatic_coupling(nbasis,nfreem,E_e,P_e,Hep,d_e,dE_dQ_e)
-!      E0_e = E_e; P0_e=P_e;d0_e=d_e;w0_e=w_e
-!    endif
-!    if(lholesh) then
-!      call calculate_nonadiabatic_coupling(nbasis,nfreem,E_h,P_h,Hep,d_h,dE_dQ_h)
-!      d_h = -d_h
-!      dE_dQ_h = -dE_dQ_h
-!      E0_h = E_h; P0_h=P_h;d0_h=d_h;w0_h=w_h
-!    endif
-!    phQ0 = phQ; phP0=phP
-!
-!    !=======================!
-!    != loop over snapshots =!
-!    !=======================!
-!
-!    do isnap=1,nsnap
-!      do istep=1,nstep
-!        
+    do isnap=1,nsnap
+      do istep=1,nstep
+        
 !        time1   = io_time()  
-!        !==========================!
-!        != update x,v,c,e,p,d,w,g =!
-!        !==========================!
-!        !rk4方法数组计算核的动力学，得到新的Q
-!        call rk4_nuclei(nfreem,phQ,phP,dt)
+        !==========================!
+        != update x,v,c,e,p,d,w,g =!
+        !==========================!
+        !use rk4 to calculate the dynamical of phonon amplicite and get ph_l
+        !call rk4_nuclei(nfreem,phQ,phP,dt)
+        call rk4_phonon(p0,ph_l,ph_p,dt)
 !        !rk3方法计算电子空穴在透热表象下的演化
 !        if(lelecsh) call rk4_electron_diabatic(nbasis,C_e,n_e,dt,HH_e)      
 !        if(lholesh) call rk4_electron_diabatic(nbasis,C_h,n_h,dt,HH_h)

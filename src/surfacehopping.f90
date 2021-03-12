@@ -6,6 +6,7 @@ module surfacehopping
   use parameters, only : nsnap,naver
   implicit none
   integer :: iaver
+  integer :: isurface
   integer :: ierr
   real(kind=dp),allocatable :: phQ(:,:),phP(:,:)
   real(kind=dp),allocatable :: phQ0(:,:),phP0(:,:)
@@ -19,8 +20,9 @@ module surfacehopping
   complex(kind=dpc),allocatable :: c_nk(:,:),w_nk(:,:),w0_nk(:,:)
   contains
   
-  subroutine allocatesh()
+  subroutine allocatesh(nmodes)
     implicit none
+    integer,intent(in):: nmodes
     allocate(phQ(nmodes,nqtotf),stat=ierr)  ! x(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phQ',1)
     phQ = 0.0
@@ -35,10 +37,10 @@ module surfacehopping
     !if(ierr /=0) call errore('surfacehopping','Error allocating d',1)
     allocate(g(1:nefre),stat=ierr)  !g_ij
     if(ierr /=0) call errore('surfacehopping','Error allocating g',1)
-    allocate(phQ0(1:nphfre),stat=ierr)
-    if(ierr /=0) call errore('surfacehopping','Error allocating phQ0',1)
-    allocate(phP0(1:nphfre),stat=ierr)
-    if(ierr /=0) call errore('surfacehopping','Error allocating phP0',1)    
+    !allocate(phQ0(1:nphfre),stat=ierr)
+    !if(ierr /=0) call errore('surfacehopping','Error allocating phQ0',1)
+    !allocate(phP0(1:nphfre),stat=ierr)
+    !if(ierr /=0) call errore('surfacehopping','Error allocating phP0',1)    
     allocate(e0(1:nefre),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating e0',1)
     allocate(p0(nefre,nefre),stat=ierr)
@@ -121,6 +123,7 @@ module surfacehopping
     enddo
     
     phQ = ph_l * sqrt(hbar_SI/2.0*ph_w)
+    phP = ph_p * sqrt(hbar_SI/2.0*ph_w)
     
   end subroutine init_normalmode_coordinate_velocity
   
@@ -133,17 +136,89 @@ module surfacehopping
     implicit none
     integer,intent(in) :: nq,nmodes
     real(kind=dp),intent(in) :: ph_l(nmodes,nq)
-    real(kind=dp),intent(out) :: ee(nbndfst*nktotf),pp(nbndfst*nktotf)
+    real(kind=dp),intent(out) :: ee(nbndfst*nktotf),pp(nbndfst*nktotf,nbndfst*nktotf)
     complex(kind=dpc),intent(out) :: c_nk(nbndfst,nktotf),ww(nbndfst*nktotf)
-    
+    real(kind=dp) :: flagr,flagd
     
     c_nk = 0.0d0
     c_nk(init_band,init_ik) = 1.0d0
-    ww   = 0.0d0
     call set_H_nk(nq,nmodes,ph_l,nbndfst,nktotf,epcq,kqmap,H0_nk,H_nk)
     call calculate_eigen_energy_state(nktotf,nbndfst,H_nk,ee,pp)
+    call convert_diabatic_adiabatic(pp,c_nk,ww)
+    
+    call random_number(flagr)
+    flagd = 0.0d0
+    do iefre = 1,nefre
+      flagd = flagd + pp((init_ik-1)*nbndfst+init_ik,iefre)**2
+      if(flagr <= flagd) then
+        isurface = iefre
+        exit
+      endif
+    enddo
     
   end subroutine init_dynamical_variable
+  
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !% convert wavefunction from diabatix to adiabatic basis %!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  subroutine convert_diabatic_adiabatic(pp,c_nk,ww)
+    implicit none
+    real(kind=dp),intent(in) :: pp(nefre,nefre)
+    complex(kind=dpc),intent(in) :: c_nk(nbndfst,nktotf)
+    complex(kind=dpc),intent(out):: ww(nefre)
+    
+    integer :: iefre,jefre,ik,jk,iband,jband 
+    
+    ww=0.0d0
+    do ik=1,nktotf
+      do iband=1,nbndfst
+        iefre = (ik-1)*nbndfst + iband
+        do jk=1,nktotf
+          do jband=1,nbndfst
+            jefre = (jk-1)*nbndfst + jband 
+            ww(iefre) = ww(iefre)+pp(jefre,iefre)*c_nk(jband,jk)
+          enddo
+        enddo
+      enddo
+    enddo
+  
+  end subroutine convert_diabatic_adiabatic
+  
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !% calculate nonadiabatic coupling %!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  subroutine calculate_nonadiabatic_coupling(ee,p_nk,dd)
+    use kinds,only :  dp
+    implicit none
+    real(kind=dp),intent(in) :: ee(nefre)
+    !real(kind=dp),intent(in) :: epcq(nbndfst,nbndfst,nktotf,nmodes,nqtotf)
+    real(kind=dp),intent(in) :: p_nk(nbndfst,nktotf,nefre)
+    real(kind=dp),intent(out):: dd(nefre,nefre,nmodes,nqtotf)
+    integer :: iefre,jefre,iq,imode 
+    
+    dd=0.0d0
+    do iefre=1,nefre
+      do jefre=1,iefre
+        do iq =1, nqtotf
+          do imode=1,nmodes
+            do ik=1,nktotf
+              ikq = kqmap(ik,iq)
+              do iband1=1,nbndfst
+                do iband2=1,nbndfst
+                  dd(iefre,jefre,imode,iq) = dd(iefre,jefre,imode,iq) + &
+                  p_nk(iband1,ik,iefre)*p_nk(iband2,ikq,jefre)*epcq(iband1,iband2,ik,imode,iq)
+                enddo
+              enddo
+            enddo
+          enddo
+        enddo
+        dd(iefre,jefre,:,:) = dd(iefre,jefre,:,:)/(ee(jefre)-ee(iefre))
+        dd(jefre,iefre,:,:) = - dd(iefre,jefre,:,:)
+      enddo
+      !dE_dqv(iefre,:,:) = dd(iefre,iefre,:,:)
+    enddo    
+    
+  end subroutine calculate_nonadiabatic_coupling
   
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% calculate eigenenergy and eigenstate %!

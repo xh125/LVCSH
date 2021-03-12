@@ -8,7 +8,7 @@ module hamiltonian
   real(kind=dp),allocatable     :: H0_nk(:,:,:,:),H_nk(:,:,:,:)
   real(kind=dp),allocatable     :: H0(:,:),H(:,:)
   !平衡位置哈密顿量，电声耦合项，总的H和临时H
-  real(kind=dp),allocatable     :: E(:),P(:,:),E0(:),P0(:,:)
+  real(kind=dp),allocatable     :: E(:),P(:,:),P_nk(:,:,:),E0(:),P0(:,:)
   !哈密顿量的本征值与本征矢   
   integer :: nefre,nphfre
   integer :: ierr
@@ -77,7 +77,7 @@ module hamiltonian
   !========================================!
   != calculate eigenenergy and eigenstate =!
   !========================================!  
-  subroutine calculate_eigen_energy_state(nk,nband,H_nk,ee,pp)
+  subroutine calculate_eigen_energy_state(nk,nband,H,ee,p_nk)
     !use kinds,only : dp
     !use mkl95_precision
     !use mkl95_lapack
@@ -85,15 +85,17 @@ module hamiltonian
     use lapack95
     implicit none
     integer ,intent(in) :: nk,nband
-    real(kind=dp),intent(in) :: H_nk(nband,nk,nband,nk)
-    real(kind=dp),intent(out):: ee(nband*nk),pp(nband*nk,nband*nk) 
+    real(kind=dp),intent(in) :: H(nband*nk,nband*nk)
+    real(kind=dp),intent(out):: ee(nband*nk),p_nk(nband,nk,nband*nk) 
     
-    pp=reshape(H_nk,(/ nband*nk,nband*nk/))
+    ! pp=reshape(H_nk,(/ nband*nk,nband*nk/))
     
-    call syev(pp,ee,'V','U')
+    call syev(H,ee,'V','U')
     !!USE MKL lib could have a high speed in dgeev , sgeev   !in page 1131 and 1241
     !!On exit, hh array is overwritten
     !call heev(pp,ee,'V','U')    !P1143 MKL
+    
+    p_nk = reshape(H,(/ nband,nk,nband*nk/))
     
   end subroutine calculate_eigen_energy_state
   

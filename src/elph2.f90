@@ -19,19 +19,18 @@
     nkqtotf,                 &!  total number of k+q points (fine grid)
     nktotf,                  &!  total number of k points (fine grid)
     nqtotf,                  &!  total number of q points (fine grid)
+    nkf,                     &!
+    nqf,                     &!
+    nkqf,                    &!
     nrr,                     &!  number of wigner-seitz points (elec interp only)
     ibndmin,                 &!  Lower band bound for slimming down electron-phonon matrix
     ibndmax,                 &!  Upper band bound for slimming down electron-phonon matrix
-    lower_band,              &!  Lower band index for image (band) parallelization
-    upper_band,              &!  Upper band index for image (band) parallelization
-    lrepmatw2_merge,         &!  File merging dimensions
-    lrepmatw5_merge,         &!  File merging dimensions
     nbndfst,                 &!  Number of bands within the fsthick window.
     ibndstart,               &!  First band index after excluding bands in Wannierization step
     ibndend,                 &!  Last band index after excluding bands in Wannierization step
     nbndep,                  &!  Number of remaining bands after excluding bands in Wannierizatin step
     nbndskip,                &!  Number of bands to be skipped in Wannierization step, leading to
-                              !  the exclusion from the original Hamiltonian
+                             &!  the exclusion from the original Hamiltonian
     ig_s,                    &!  First G index within each core in case of G parallelization
     ig_e,                    &!  Last G index within each core in case of G parallelization
     num_wannier_plot,        &!  Number of Wannier functions to plot
