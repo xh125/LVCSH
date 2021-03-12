@@ -1,0 +1,59 @@
+epw calculation of carbyne
+&inputepw
+	prefix = 'carbyne'
+	outdir = './outdir/'
+	amass(1)= 12.0107
+	dvscf_dir = './save'
+
+	elph = .true.
+	kmaps= .true.
+	epbwrite = .false.
+	epbread  = .false.
+	epwwrite = .true.
+	epwread  = .true.
+	prtgkk   = .true.
+
+	
+	nbndsub  = 8
+	wannierize = .false.
+	num_iter = 300
+	dis_win_max = 7
+	dis_win_min = -25
+	dis_froz_min = -13
+	dis_froz_max = 2
+	proj(1) = "C:sp3"
+	wdata(1)= 'bands_plot = .true.'
+	wdata(2)= 'begin kpoint_path'
+	wdata(3)= 'G 0.00 0.00 0.00 M 0.00 0.00 0.50'
+	wdata(4)= 'end kpoint_path'
+	wdata(5)= 'bands_plot_format = gnuplot'
+
+	elecselfen = .true.
+	phonselfen = .true.
+	a2f	   = .true.
+
+	fsthick  = 10
+	degaussw = 0.1
+	temps = 300	
+
+	nkf1 = 1
+	nkf2 = 1
+	nkf3 = 10
+	nqf1 = 1
+	nqf2 = 1
+	nqf3 = 10
+
+	nk1 = 1
+	nk2 = 1
+	nk3 = 10
+	nq1 = 1
+	nq2 = 1
+	nq3 = 10
+/ 
+!   6 cartesian
+!   0.000000000000000E+00   0.000000000000000E+00   0.000000000000000E+00  0.2
+!   0.000000000000000E+00   0.000000000000000E+00   0.777260467755444E+00  0.4
+!   0.000000000000000E+00   0.000000000000000E+00   0.155452093551089E+01 0.4
+!   0.000000000000000E+00   0.000000000000000E+00   0.233178140326633E+01 0.4
+!   0.000000000000000E+00   0.000000000000000E+00   0.310904187102178E+01 0.4
+!   0.000000000000000E+00   0.000000000000000E+00  -0.388630233877722E+01 0.2

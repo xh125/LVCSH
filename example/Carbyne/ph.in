@@ -1,0 +1,18 @@
+Phonon of carbyne on a uniform q-grid
+&inputph
+prefix= 'carbyne'
+outdir= './outdir'
+fildvscf = 'carbynedv'
+electron_phonon = "interpolated"
+el_ph_sigma = 0.005
+el_ph_nsigma = 10
+trans = .true.
+tr2_ph = 1.0d-14
+!epsil  = .true.
+amass(1) = 12.01070
+fildyn = 'carbyne.dyn'
+ldisp = .true.
+nq1 = 1
+nq2 = 1
+nq3 = 10
+/

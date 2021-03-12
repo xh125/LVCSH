@@ -1,0 +1,64 @@
+&CONTROL
+    calculation   = "nscf"
+    prefix        = "carbyne"
+    outdir        = "./outdir"
+    pseudo_dir    = "./pseudopot"
+    verbosity     = "high"
+!    tprnfor       = .true.  
+!    tstress       = .true.
+!    forc_conv_thr =  1.00000d-5
+/
+
+&SYSTEM
+    ibrav       = 0
+    nat         = 2
+    ntyp        = 1
+    occupations = "smearing"
+    smearing    = "mv"    
+    degauss     =  0.05
+    ecutwfc     =  50
+    ecutrho     =  500
+/
+
+&ELECTRONS
+    conv_thr         =  1.00000e-09
+    electron_maxstep =  200
+    mixing_beta      =  7.00000e-01
+    startingpot      = "atomic"
+    startingwfc      = "atomic+random"
+/
+
+&IONS
+!    ion_dynamics = "bfgs"
+/
+
+&CELL
+!    cell_dofree    = "z"
+!    cell_dynamics  = "bfgs"
+!    press_conv_thr =  0.05
+/
+
+CELL_PARAMETERS {angstrom}
+ 20.000000   0.000000   0.000000
+  0.000000  20.000000   0.000000
+  0.000000   0.000000   2.573140
+
+ATOMIC_SPECIES
+C      12.01070  C.pbe-n-kjpaw_psl.1.0.0.UPF
+
+ATOMIC_POSITIONS {angstrom}
+C      10.000000  10.000000   0.000000
+C      10.000000  10.000000   1.242253
+
+K_POINTS crystal
+10
+  0.00000000  0.00000000  0.00000000  1.000000e-01
+  0.00000000  0.00000000  0.10000000  1.000000e-01
+  0.00000000  0.00000000  0.20000000  1.000000e-01
+  0.00000000  0.00000000  0.30000000  1.000000e-01
+  0.00000000  0.00000000  0.40000000  1.000000e-01
+  0.00000000  0.00000000  0.50000000  1.000000e-01
+  0.00000000  0.00000000  0.60000000  1.000000e-01
+  0.00000000  0.00000000  0.70000000  1.000000e-01
+  0.00000000  0.00000000  0.80000000  1.000000e-01
+  0.00000000  0.00000000  0.90000000  1.000000e-01
