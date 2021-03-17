@@ -9,11 +9,12 @@ module phdisp
   
     REAL(DP), ALLOCATABLE :: omega_disp(:,:),omega_thz(:,:),omega_cm(:,:)
     real(kind=dp),allocatable :: ph_wqv(:,:)    !rad/s
+    real(kind=dp),allocatable :: phQ(:,:),phP(:,:) !
     real(kind=dp),allocatable :: ph_nqv(:,:)  !1.0 / (EXP(hbar * ph_wqv(i, qp) / (K_BOLTZMANN_SI * T)) - 1)
     real(kind=dp),allocatable :: ph_lqv(:,:)  ! phonon filed amplitude Q_qv=sqrt(hbar/(2*ph_wqv)) * ph_lqv
-    real(kind=dp),allocatable :: ph_pqv(:,:)  ! d_lqv/dt
-    real(kind=dp),allocatable :: ph_l(:,:)
-    real(kind=dp),allocatable :: ph_p(:,:)
+    real(kind=dp),allocatable :: ph_pqv(:,:)  ! d_lqv/dt    P_qv=d(Q_qv)/dt=sqrt(hbar/(2*ph_wqv)) * d(ph_lqv)/dt
+    real(kind=dp),allocatable :: ph_l(:,:),ph_l0(:,:)
+    real(kind=dp),allocatable :: ph_p(:,:),ph_p0(:,:)
     
     
     complex(dpc),allocatable :: evecter_disp(:,:,:)

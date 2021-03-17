@@ -88,14 +88,16 @@ module hamiltonian
     real(kind=dp),intent(in) :: H(nband*nk,nband*nk)
     real(kind=dp),intent(out):: ee(nband*nk),p_nk(nband,nk,nband*nk) 
     
+    real(kind=dp):: pp(nband*nk,nband*nk)
+    pp = H
     ! pp=reshape(H_nk,(/ nband*nk,nband*nk/))
     
-    call syev(H,ee,'V','U')
+    call syev(pp,ee,'V','U')
     !!USE MKL lib could have a high speed in dgeev , sgeev   !in page 1131 and 1241
     !!On exit, hh array is overwritten
     !call heev(pp,ee,'V','U')    !P1143 MKL
     
-    p_nk = reshape(H,(/ nband,nk,nband*nk/))
+    p_nk = reshape(pp,(/ nband,nk,nband*nk/))
     
   end subroutine calculate_eigen_energy_state
   

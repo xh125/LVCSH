@@ -60,6 +60,7 @@ module cell_base
   !real(kind=dp),allocatable :: tau(:,:)
   !integer :: nat, ntyp
   
+  REAL(DP) :: wmass = 0.0_DP     ! cell fictitious mass
   
   contains
   

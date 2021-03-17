@@ -16,14 +16,15 @@ module readinput
   
   contains  
   
-  subroutine get_inputfile()
+  subroutine get_inputfile(filename)
     implicit none
-    call treat_inputfile()
+    character(*),intent(in) :: filename
+    call treat_inputfile(filename)
     call read_namelist()
   end subroutine
 
   !=======================================!
-  subroutine treat_inputfile()  
+  subroutine treat_inputfile(filename)  
   !用于将输入文件中的每一条写入字符串文件，并且(将非文件路径)改为小写，去除注释          
   !=======================================!
   !! Load the shin file into a character  
@@ -33,14 +34,20 @@ module readinput
   !=======================================!
 
     implicit none
-    
+    character(*),intent(in):: filename
+    logical :: alive
     !ia = ichar('a')
     !iz = ichar('z')
     
     in_unit=io_file_unit( )
-    open (unit=in_unit, file='LVCSH.in',form='formatted',status='old',iostat=ierr)
-    if(ierr /= 0) then
-      call io_error('Error: Problem opening input file LVCSH.in')
+    inquire(file=trim(adjustl(filename)),exist=alive)
+    if(.NOT. alive) then
+      call io_error("Error:Input file "//trim(adjustl(filename))//" doesn't exist.")
+    else
+      open (unit=in_unit, file='LVCSH.in',form='formatted',status='old',iostat=ierr)
+      if(ierr /= 0) then
+        call io_error('Error: Problem opening input file LVCSH.in')
+      endif
     endif
     
     num_lines=0;tot_num_lines=0;ierr=0

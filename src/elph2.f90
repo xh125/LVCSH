@@ -30,7 +30,7 @@
     ibndend,                 &!  Last band index after excluding bands in Wannierization step
     nbndep,                  &!  Number of remaining bands after excluding bands in Wannierizatin step
     nbndskip,                &!  Number of bands to be skipped in Wannierization step, leading to
-                             &!  the exclusion from the original Hamiltonian
+                              !  the exclusion from the original Hamiltonian
     ig_s,                    &!  First G index within each core in case of G parallelization
     ig_e,                    &!  Last G index within each core in case of G parallelization
     num_wannier_plot,        &!  Number of Wannier functions to plot

@@ -2,17 +2,18 @@ module surfacehopping
   use kinds, only : dp,dpc
   use epwcom,only : nkf1,nkf2,nkf3,nqf1,nqf2,nqf3,kqmap
   use elph2,only  : wf,epcq,nktotf,nbndfst,nqtotf,ibndmin,ibndmax
+  use phdisp,only : phQ,phP
   use hamiltonian,only : nphfre,nefre
   use parameters, only : nsnap,naver
   implicit none
   integer :: iaver
+  integer :: isnap,istep
   integer :: isurface
   integer :: ierr
-  real(kind=dp),allocatable :: phQ(:,:),phP(:,:)
-  real(kind=dp),allocatable :: phQ0(:,:),phP0(:,:)
+
   ! phonons normal mode coordinate,and phonons P
-  real(kind=dp),allocatable :: e(:),p(:,:),d(:,:,:),g(:)
-  real(kind=dp),allocatable :: e0(:),p0(:,:),d0(:,:,:),g1(:)  
+  real(kind=dp),allocatable :: e(:),p(:,:),d(:,:,:,:),g(:)
+  real(kind=dp),allocatable :: e0(:),p0(:,:),d0(:,:,:,:),g1(:)  
   real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
                                psit(:,:),xsit(:,:),ksit(:,:) 
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
@@ -26,15 +27,17 @@ module surfacehopping
     allocate(phQ(nmodes,nqtotf),stat=ierr)  ! x(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phQ',1)
     phQ = 0.0
+    ! phonons normal mode coordinates
     allocate(phP(nmodes,nqtotf),stat=ierr)  ! v(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phP',1)    
     phP=0.0
+    !phonons normal mode verlosity
     allocate(e(1:nefre),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating e',1)
     allocate(p(nefre,nefre),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating p',1)
-    !allocate(d(nefre,nefre,nphfre),stat=ierr) !d_ijk
-    !if(ierr /=0) call errore('surfacehopping','Error allocating d',1)
+    allocate(d(nefre,nefre,nmodes,nqtotf),stat=ierr) !d_ijk
+    if(ierr /=0) call errore('surfacehopping','Error allocating d',1)
     allocate(g(1:nefre),stat=ierr)  !g_ij
     if(ierr /=0) call errore('surfacehopping','Error allocating g',1)
     !allocate(phQ0(1:nphfre),stat=ierr)
@@ -138,6 +141,7 @@ module surfacehopping
     real(kind=dp),intent(in) :: ph_l(nmodes,nq)
     real(kind=dp),intent(out) :: ee(nbndfst*nktotf),pp(nbndfst*nktotf,nbndfst*nktotf)
     complex(kind=dpc),intent(out) :: c_nk(nbndfst,nktotf),ww(nbndfst*nktotf)
+    integer :: iefre
     real(kind=dp) :: flagr,flagd
     
     c_nk = 0.0d0
@@ -187,14 +191,16 @@ module surfacehopping
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% calculate nonadiabatic coupling %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  subroutine calculate_nonadiabatic_coupling(ee,p_nk,dd)
+  subroutine calculate_nonadiabatic_coupling(nmodes,ee,p_nk,dd)
     use kinds,only :  dp
     implicit none
+    integer, intent(in) :: nmodes
     real(kind=dp),intent(in) :: ee(nefre)
     !real(kind=dp),intent(in) :: epcq(nbndfst,nbndfst,nktotf,nmodes,nqtotf)
     real(kind=dp),intent(in) :: p_nk(nbndfst,nktotf,nefre)
     real(kind=dp),intent(out):: dd(nefre,nefre,nmodes,nqtotf)
     integer :: iefre,jefre,iq,imode 
+    integer :: ik,ikq,iband1,iband2
     
     dd=0.0d0
     do iefre=1,nefre

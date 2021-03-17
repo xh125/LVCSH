@@ -31,14 +31,14 @@ program lvcsh
   use readscf,only        : readpwscf_out
   use readphout,only      : readph_out
   use readepw,only        : readepwout
-  use parameters, only    : scfoutname,phoutname,epwoutname,temp
-  use hamiltonian,only    : set_H0_nk,e,p
+  use parameters, only    : scfoutname,phoutname,epwoutname,temp,nsnap,nstep,dt,inputfilename
+  use hamiltonian,only    : set_H0_nk,e,p,E0,P0
   use randoms,only        : init_random_seed
-  use surfacehopping,only : iaver,naver,phQ,phP,&
+  use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,d,d0,w0,&
                             allocatesh,init_normalmode_coordinate_velocity,c_nk,w,&
                             init_dynamical_variable,calculate_nonadiabatic_coupling
   use elph2,only          : wf,nqtotf
-  use phdisp,only         : ph_configuration,ph_lqv,ph_l,ph_p
+  use phdisp,only         : ph_configuration,ph_lqv,ph_l,ph_p,ph_l0,ph_p0
   use modes,only          : nmodes
   use io      ,only       : stdout
   implicit none
@@ -47,7 +47,7 @@ program lvcsh
   !===============!
   
   call environment_start( 'LVCSH' )
-  call get_inputfile()
+  call get_inputfile(inputfilename)
   call readpwscf_out(scfoutname)
   call readph_out(phoutname)
   call readepwout(epwoutname)
@@ -70,7 +70,7 @@ program lvcsh
     !!得到简正坐标的初始位置ph_l=phQ/sqrt(hbar/(2*wqv))和速度ph_p=phP /sqrt(hbar/(2*wqv))
     call init_normalmode_coordinate_velocity(nqtotf,nmodes,ph_l,ph_p,wf,temp)
     call init_dynamical_variable(nqtotf,nmodes,ph_l,c_nk,e,p,w)
-    call calculate_nonadiabatic_coupling(e,p,d)
+    call calculate_nonadiabatic_coupling(nmodes,e,p,d)
     ph_l0=ph_l; ph_p0=ph_p; e0=e; p0=p; d0=d;w0=w0
     
 
@@ -87,7 +87,7 @@ program lvcsh
         !==========================!
         !use rk4 to calculate the dynamical of phonon amplicite and get ph_l
         !call rk4_nuclei(nfreem,phQ,phP,dt)
-        call rk4_phonon(p0,ph_l,ph_p,dt)
+        !call rk4_phonon(p0,ph_l,ph_p,dt)
 !        !rk3方法计算电子空穴在透热表象下的演化
 !        if(lelecsh) call rk4_electron_diabatic(nbasis,C_e,n_e,dt,HH_e)      
 !        if(lholesh) call rk4_electron_diabatic(nbasis,C_h,n_h,dt,HH_h)
@@ -153,9 +153,9 @@ program lvcsh
 !        xsit(ifreem,isnap)=xsit(ifreem,isnap)+phQ(ifreem)
 !        !!平均动能
 !        ksit(ifreem,isnap)=ksit(ifreem,isnap)+0.5d0*phP(ifreem)**2
-!      enddo
+      enddo
 !           
-!    enddo
+    enddo
 !    !!
   enddo
 !  
