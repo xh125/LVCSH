@@ -31,14 +31,15 @@ program lvcsh
   use readscf,only        : readpwscf_out
   use readphout,only      : readph_out
   use readepw,only        : readepwout
-  use parameters, only    : scfoutname,phoutname,epwoutname,temp,nsnap,nstep,dt,inputfilename
+  use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,temp,&
+                            nsnap,nstep,dt,inputfilename
   use hamiltonian,only    : set_H0_nk,e,p,E0,P0
   use randoms,only        : init_random_seed
   use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,d,d0,w0,&
                             allocatesh,init_normalmode_coordinate_velocity,c_nk,w,&
                             init_dynamical_variable,calculate_nonadiabatic_coupling
   use elph2,only          : wf,nqtotf
-  use phdisp,only         : ph_configuration,ph_lqv,ph_l,ph_p,ph_l0,ph_p0
+  use disp,only           : ph_configuration,ph_lqv,ph_l,ph_p,ph_l0,ph_p0
   use modes,only          : nmodes
   use io      ,only       : stdout
   implicit none
@@ -48,8 +49,8 @@ program lvcsh
   
   call environment_start( 'LVCSH' )
   call get_inputfile(inputfilename)
-  call readpwscf_out(scfoutname)
-  call readph_out(phoutname)
+  if(lreadscfout) call readpwscf_out(scfoutname)
+  if(lreadphout) call readph_out(phoutname)
   call readepwout(epwoutname)
   call treat_parameters()
   call set_H0_nk()

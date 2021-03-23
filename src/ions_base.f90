@@ -33,6 +33,7 @@ module ions_base
 
     INTEGER,  ALLOCATABLE         :: ityp(:)
     character(len=3), allocatable :: iatm(:)
+    real(kind=dp),allocatable     :: iamass(:)    ! iamass(nat)
     REAL(DP), ALLOCATABLE         :: tau(:,:)     !  initial positions read from stdin (in bohr)
     real(dp), allocatable         :: xau(:,:)     !  
     REAL(DP), ALLOCATABLE         :: vel(:,:)     !  initial velocities read from stdin (in bohr)

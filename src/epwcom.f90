@@ -1,50 +1,3 @@
-  module klist_epw
-    use kinds, only :dp  
-    implicit none
-    integer, allocatable :: kqmap(:,:)
-    !!!! map of k+q grid into k grid
-    integer, allocatable :: isk_all(:)
-    !! Spin index of each k-point (used in LSDA calculations only)
-    INTEGER, ALLOCATABLE :: isk_loc(:)
-    !! Spin index of local k-point (used in LSDA calculations only)
-    INTEGER, ALLOCATABLE :: isk_dummy(:)
-    !! Spin index on the fine grid - dummy at the moment
-    REAL(KIND = DP), ALLOCATABLE :: xk_loc(:, :)
-    !! List of local (each cores) kpoints in cartesian coordinates
-    REAL(KIND = DP), ALLOCATABLE :: xk_all(:, :)
-    !! List of all kpoints in cartesian coordinates
-    REAL(KIND = DP), ALLOCATABLE :: xk_cryst(:, :)
-    !! List of all kpoints in crystal coordinates
-    REAL(KIND = DP), ALLOCATABLE :: et_all(:, :)
-    !! Eigenenergies on the full coarse k-grid
-    REAL(KIND = DP), ALLOCATABLE :: et_loc(:, :)
-    !! Eigenenergies on the local (each core) coarse k-grid  
-    
-  end module klist_epw 
-
-  MODULE output_epw
-    !-----------------------------------------------------------------------
-    !!
-    !! ... the name of the files
-    !!
-    SAVE
-    !
-    CHARACTER(LEN = 80) :: filqf
-    !! input  file for the fine q mesh
-    CHARACTER(LEN = 80) :: filkf
-    !! input  file for the fine k mesh
-    CHARACTER(LEN = 80) :: filukk
-    !! input  file for the rotation matrix U(k)
-    CHARACTER(LEN = 80) :: fildvscf0
-    !! output file for the deltavscf used as a fake perturbation to set phases
-    CHARACTER(LEN = 80) :: fila2f
-    !! input file containing eliashberg spectral function
-    CHARACTER(LEN = 80) :: restart_filq
-    !! input  file to restart from an exisiting q-file
-    !
-    !-----------------------------------------------------------------------
-  END MODULE output_epw  
-
   MODULE control_epw
   !-----------------------------------------------------------------------
   !!
@@ -461,6 +414,55 @@
   !
   !-----------------------------------------------------------------------
   END MODULE control_epw
+
+  module klist_epw
+    use kinds, only :dp  
+    implicit none
+    integer, allocatable :: kqmap(:,:)
+    !!!! map of k+q grid into k grid
+    integer, allocatable :: isk_all(:)
+    !! Spin index of each k-point (used in LSDA calculations only)
+    INTEGER, ALLOCATABLE :: isk_loc(:)
+    !! Spin index of local k-point (used in LSDA calculations only)
+    INTEGER, ALLOCATABLE :: isk_dummy(:)
+    !! Spin index on the fine grid - dummy at the moment
+    REAL(KIND = DP), ALLOCATABLE :: xk_loc(:, :)
+    !! List of local (each cores) kpoints in cartesian coordinates
+    REAL(KIND = DP), ALLOCATABLE :: xk_all(:, :)
+    !! List of all kpoints in cartesian coordinates
+    REAL(KIND = DP), ALLOCATABLE :: xk_cryst(:, :)
+    !! List of all kpoints in crystal coordinates
+    REAL(KIND = DP), ALLOCATABLE :: et_all(:, :)
+    !! Eigenenergies on the full coarse k-grid
+    REAL(KIND = DP), ALLOCATABLE :: et_loc(:, :)
+    !! Eigenenergies on the local (each core) coarse k-grid  
+    
+  end module klist_epw 
+
+  MODULE output_epw
+    !-----------------------------------------------------------------------
+    !!
+    !! ... the name of the files
+    !!
+    SAVE
+    !
+    CHARACTER(LEN = 80) :: filqf
+    !! input  file for the fine q mesh
+    CHARACTER(LEN = 80) :: filkf
+    !! input  file for the fine k mesh
+    CHARACTER(LEN = 80) :: filukk
+    !! input  file for the rotation matrix U(k)
+    CHARACTER(LEN = 80) :: fildvscf0
+    !! output file for the deltavscf used as a fake perturbation to set phases
+    CHARACTER(LEN = 80) :: fila2f
+    !! input file containing eliashberg spectral function
+    CHARACTER(LEN = 80) :: restart_filq
+    !! input  file to restart from an exisiting q-file
+    !
+    !-----------------------------------------------------------------------
+  END MODULE output_epw  
+
+
   
   module epwcom
     use control_epw

@@ -1,4 +1,4 @@
-module phdisp
+module disp
   use kinds,only :dp,dpc
   implicit none
     INTEGER :: nq1, nq2, nq3  ! number of q-points in each direction
@@ -51,8 +51,9 @@ module phdisp
     ph_pqv = ph_wqv*ph_lqv
     
   end subroutine ph_configuration
-  
-end module phdisp
+end module disp
+
+
 
 module modes
   use kinds, only : dp

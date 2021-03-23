@@ -309,7 +309,7 @@ implicit none
     backspace(unit=pwscfout_unit)
     if(ctmp(6:17)=="Smooth grid:") then
       doublegrid = .true.
-      read(pwscfout_unit,"(/5x,12x,i8)") ngms_g
+      read(pwscfout_unit,"(/5x,13x,i8)") ngms_g
     endif
     
     
@@ -327,6 +327,7 @@ implicit none
     
     
     call close_file(pwscfout_name,pwscfout_unit)
+    write(stdout,*) "Read PWscf outfile Succesful."
     
   end subroutine readpwscf_out
   

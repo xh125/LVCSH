@@ -310,3 +310,60 @@ MODULE wvfct
   !! converged to full accuracy, zero otherwise
   !
 END MODULE wvfct
+
+MODULE ener
+  !
+  !! The variables needed to compute the energies
+  !
+  USE kinds, ONLY : DP
+  !
+  SAVE
+  !
+  REAL(DP) :: etot
+  !! the total Kohn-Sham energy of the solid
+  REAL(DP) :: hwf_energy
+  !! this is the Harris-Weinert-Foulkes energy
+  REAL(DP) :: eband
+  !! the band energy
+  REAL(DP) :: deband
+  !! scf correction to have variational energy
+  REAL(DP) :: ehart
+  !! the Hartree energy
+  REAL(DP) :: etxc
+  !! the exchange and correlation energy
+  REAL(DP) :: vtxc
+  !! another exchange-correlation energy
+  REAL(DP) :: etxcc
+  !! the nlcc exchange and correlation
+  REAL(DP) :: ewld
+  !! the ewald energy
+  REAL(DP) :: elondon
+  !! the semi-empirical dispersion energy
+  REAL(DP) :: edftd3
+  !! the Grimme-d3 dispersion energy
+  REAL(DP) :: exdm
+  !! the XDM dispersion energy
+  REAL(DP) :: demet
+  !! variational correction ("-TS") for metals
+  REAL(DP) :: epaw
+  !! sum of one-center paw contributions
+  REAL(DP) :: ef
+  !! the Fermi energy
+  REAL(DP) :: ef_up
+  !! the Fermi energy up (if two_fermi_energies=.TRUE.)
+  REAL(DP) :: ef_dw
+  !! the Fermi energy down (if two_fermi_energies=.TRUE.)
+  !
+END MODULE ener
+
+MODULE pwcom
+  !
+  USE klist
+  USE lsda_mod
+  USE vlocal
+  USE wvfct
+  USE ener
+  USE relax
+  USE spin_orb
+  !
+END MODULE pwcom

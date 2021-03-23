@@ -21,12 +21,13 @@ module parameters
   integer(kind=dp):: init_band                !激发后初始的电子所处的能带
   integer         :: init_ikx,init_iky,init_ikz,init_ik 
   character(len=maxlen) :: inputfilename = "LVCSH.in"
-
+  logical :: lreadscfout,lreadphout,lreadfildyn
   
   
   namelist / shinput / &
-           scfoutname,phoutname,fildyn,epwoutname,naver,nstep,nsnap,gamma,&
-           dt,temp,init_kx,init_ky,init_kz,init_band, w_laser,fwhm,Efield_x,Efield_y,Efield_z,&
+           lreadscfout,lreadphout, scfoutname,phoutname,lreadfildyn,fildyn,epwoutname,&
+           naver,nstep,nsnap,gamma,dt,temp,&
+           init_kx,init_ky,init_kz,init_band, w_laser,fwhm,Efield_x,Efield_y,Efield_z,&
            lsetthreads,mkl_threads
 
   contains

@@ -1,8 +1,9 @@
 module readinput
   use kinds,     only : dp
   use constants, only : maxlen
-  use parameters,only : scfoutname,phoutname,fildyn,epwoutname,naver,nstep,nsnap,gamma,&
-                        dt,temp,init_kx,init_ky,init_kz,init_band,                     &
+  use parameters,only : lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,&
+                        epwoutname,naver,nstep,&
+                        nsnap,gamma,dt,temp,init_kx,init_ky,init_kz,init_band,         &
                         lsetthreads,mkl_threads
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
@@ -152,8 +153,11 @@ module readinput
     rewind(incar_unit)
     
     !   set default values for variables in namelist
+    lreadscfout= .false.
     scfoutname = "scf.out"
+    lreadphout = .false.
     phoutname  = "ph.out"
+    lreadfildyn= .false.
     fildyn     = "prefix.dyn"
     epwoutname = "epw.out"
     naver      = 100

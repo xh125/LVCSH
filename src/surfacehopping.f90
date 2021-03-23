@@ -2,7 +2,7 @@ module surfacehopping
   use kinds, only : dp,dpc
   use epwcom,only : nkf1,nkf2,nkf3,nqf1,nqf2,nqf3,kqmap
   use elph2,only  : wf,epcq,nktotf,nbndfst,nqtotf,ibndmin,ibndmax
-  use phdisp,only : phQ,phP
+  use disp,only : phQ,phP
   use hamiltonian,only : nphfre,nefre
   use parameters, only : nsnap,naver
   implicit none
@@ -101,7 +101,7 @@ module surfacehopping
   subroutine init_normalmode_coordinate_velocity(nq,nmodes,ph_l,ph_p,ph_w,T)
     use kinds,only   : dp
     use randoms,only : gaussian_random_number
-    use phdisp, only : ph_lqv,ph_pqv
+    use disp, only : ph_lqv,ph_pqv
     use constants,only : hbar_SI
     implicit none
     integer      ,intent(in) :: nq,nmodes

@@ -74,16 +74,26 @@ module constants
   !real(kind=dp), parameter, public :: sqrt_elem_charge_SI=elem_charge_SI**2
   !! elemental charge   ->  e**2
   real(kind=dp), parameter, public :: electronvolt_SI = 1.602176565e-19_dp! J
-  real(kind=dp), parameter, public :: elec_mass_SI=9.10938291e-31_dp      ! kg
-  real(kind=dp), parameter, public :: Hartree_SI=4.3597447222071E-18_DP   ! J
-  real(kind=dp), parameter, public :: Rydbebg_SI= Hartree_SI/2.0_dp       ! J
-  real(kind=dp), parameter, public :: amu_mass_SI =1.660539040e-27_dp     ! kg
+  real(kind=dp), parameter, public :: elec_mass_SI    = 9.10938291e-31_dp      ! kg
+  real(kind=dp), parameter, public :: ELECTRONMASS_SI = 9.1093837015E-31_DP! Kg
+  real(kind=dp), parameter, public :: Hartree_SI      = 4.3597447222071E-18_DP   ! J
+  real(kind=dp), parameter, public :: Rydbebg_SI      = Hartree_SI/2.0_dp       ! J
+  real(kind=dp), parameter, public :: amu_mass_SI     = 1.660539040e-27_dp     ! kg
+  REAL(kind=DP), PARAMETER, public :: AMU_SI         = 1.66053906660E-27_DP  ! Kg
   !! electron mass      ->  $$m_e$$
 
   !
   ! ... Physical constants, atomic units:
   ! ... AU for "Hartree" atomic units (e = m = hbar = 1)
   ! ... RY for "Rydberg" atomic units (e^2=2, m=1/2, hbar=1)
+
+  !
+  ! ... Unit conversion factors: energy and masses
+  !
+  REAL(DP), PARAMETER :: AUTOEV           = HARTREE_SI / ELECTRONVOLT_SI
+  REAL(DP), PARAMETER :: RYTOEV           = AUTOEV / 2.0_DP
+  REAL(DP), PARAMETER :: AMU_AU           = AMU_SI / ELECTRONMASS_SI
+  REAL(DP), PARAMETER :: AMU_RY           = AMU_AU / 2.0_DP
  
   !! 
   ! ... Unit conversion factors: atomic unit of time, in s and ps
@@ -96,6 +106,8 @@ module constants
   real(dp), parameter :: ev_ps           = ev_sec * 1.0E+12_DP
   real(dp), parameter :: ev_ThZ          = 1.0/ev_ps/tpi
   real(dp), parameter :: mev_THZ         = (0.001*electronvolt_SI)/H_PLANCK_SI/1.0E+12_DP
+
+
 
   real(kind=dp), parameter, public :: bohr_magn_SI=927.400968e-26_dp      ! J/T
   !! Bohr magneton      ->  $$\mu_B$$
