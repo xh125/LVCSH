@@ -180,6 +180,8 @@
   !! nr. of bins for frequency scan in \delta( e_k - e_k+q - w ) when strict sel. rule is applied
   INTEGER :: nbndsub
   !! nr. of bands in the optimal subspace (when disentanglement is used)
+  !Number of wannier functions to utilize
+  !nbndsub  : number of bands in the optimal subspace (when disentanglement is used)
   INTEGER :: num_iter
   !! nr. of steps used in creating the maximally localized Wannier functions
   INTEGER :: iprint
@@ -461,7 +463,6 @@
     !
     !-----------------------------------------------------------------------
   END MODULE output_epw  
-
 
   
   module epwcom

@@ -94,7 +94,8 @@ module constants
   REAL(DP), PARAMETER :: RYTOEV           = AUTOEV / 2.0_DP
   REAL(DP), PARAMETER :: AMU_AU           = AMU_SI / ELECTRONMASS_SI
   REAL(DP), PARAMETER :: AMU_RY           = AMU_AU / 2.0_DP
- 
+  REAL(KIND = DP), PARAMETER :: ryd2ev   = rytoev                     ! 13.6056981
+  REAL(KIND = DP), PARAMETER :: ryd2mev  = ryd2ev * 1.0E3_DP          ! 13605.6981
   !! 
   ! ... Unit conversion factors: atomic unit of time, in s and ps
   !

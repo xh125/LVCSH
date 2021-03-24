@@ -1,12 +1,12 @@
 module readepw
   use kinds ,only :dp
-  use constants,only : maxlen,amu_ry
+  use constants,only : maxlen,amu_ry,rytoev,ryd2mev
   use io, only : io_file_unit,open_file,close_file,findkword,findkline,stdout,io_error
   use klist, only : lgauss, degauss, ngauss, nkstot, wk
   use klist_epw, only : xk_all
   use epwcom, only : nkc1,nkc2,nkc3,nqf1,nqf2,nqf3,nkf1,nkf2,nkf3,nbndsub,kqmap,scdm_proj,vme
   use pwcom, only : ef
-  use elph2, only : nkqtotf,wf,wqf,xkf,wkf,etf,epcq,nkf,&
+  use elph2, only : nkqf,nkqtotf,wf,wqf,xkf,wkf,etf,epcq,nkf,&
                     nktotf,nqf,nqtotf,ibndmin,ibndmax,efnew,vmef,dmef
   use cell_base,only : ibrav,alat,omega,at,bg,celldm
   use ions_base,only : nat,iat, ntyp,ityp,atm,zv,amass,iatm,tau,iamass 
@@ -67,7 +67,8 @@ module readepw
     character(len=*) ,intent(in) :: fepwout
     integer :: unitepwout
     integer :: ipol,ik_,ibnd_,jbnd_,nu_
-    real(kind=dp) :: xiq(3)
+    real(kind=dp) :: epc_
+    real(kind=dp) :: xiq(3),xik(3)
     !real(kind=dp) :: E_nk,E_mkq
     integer :: ierr
     !! error status
@@ -93,6 +94,9 @@ module readepw
     read(unitepwout,"(33X,i12)")   ntyp
     read(unitepwout,"(33X,f12.4)") ecutwfc   
     read(unitepwout,"(33X,f12.4)") ecutrho !ecutwfc * dual
+    
+    nmodes = 3*nat
+    
     
     !call write_dft_name ( ) 
     read(unitepwout,"(27X,A)") dft
@@ -190,11 +194,12 @@ module readepw
     read(unitepwout,"(34X,i3)") nbnd
     read(unitepwout,"(37X,i3)") nexband
     read(unitepwout,"(40X,i3)") n_wannier
+    nbndsub = n_wannier
     if((nbnd-nexband)/=num_bands) &
     call errore('setup_nnkp', ' something wrong with num_bands', 1)
     
     
-    allocate(center_w(3,nbnd),stat=ierr)
+    allocate(center_w(3,n_wannier),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating center_w',1) 
     allocate(l_w(nbnd),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating l_w',1) 
@@ -218,13 +223,17 @@ module readepw
     
     call findkline(unitepwout,"     Using uniform q-mesh: ",1,27)
     read(unitepwout,"(27X,3i4)") nqf1,nqf2,nqf3
+    !!! qx,qy,qz sizes of the uniform phonon fine mesh to be used
     nqtotf = nqf1 * nqf2 * nqf3
+    !  total number of q points (fine grid)
     if(.not. allocated(xqf)) then 
       allocate(xqf(3,nqtotf),stat=ierr)
+      !  fine q point grid
       if(ierr /=0) call errore('readepw','Error allocating xqf',1)    
     endif        
     if(.not. allocated(wqf)) then 
       allocate(wqf(nqtotf),stat=ierr)
+      !  weights on the fine q grid
       if(ierr /=0) call errore('readepw','Error allocating wqf',1)    
     endif
     wqf = 1.0d0/(dble(nqtotf))
@@ -240,6 +249,7 @@ module readepw
       enddo
     enddo  
     
+    nqf = nqtotf
     !! set xqf(3,nqtotf) wqf(nqtotf)
     !call loadqmesh()      
     
@@ -260,7 +270,7 @@ module readepw
     endif
     wkf = 0.0d0
     do ik=1,nktotf
-      wkf(2*ik-1) = 1.0d0/dble(nkqtotf/2)
+      wkf(2*ik-1) = 2.0d0/dble(nkqtotf/2) !
     enddo
     DO i = 1, nkf1
       DO j = 1, nkf2
@@ -278,17 +288,23 @@ module readepw
       ENDDO
     ENDDO       
     
-    read(unitepwout,"(45X,i10)") nkqtotf
+    read(unitepwout,"(45X,i10)") nkqtotf    
+    nkf = nkqtotf/2
+    nkqf= nkqtotf
+
     
-    call findkline(unitepwout,"Fermi energy coarse grid =",6,31)
-    read(unitepwout,"(31X,f10.6)") ef
+    
+    call findkline(unitepwout,"Fermi energy coarse grid = ",6,32)
+    read(unitepwout,"(32X,f10.6)") ef
+    ef = ef /rytoev  
     call findkline(unitepwout,"Fermi energy is calculated from the fine k-mesh: Ef =",6,58)
     read(unitepwout,"(58X,f10.6)") efnew   
+    efnew = efnew /rytoev
     ef = efnew
     
     ! set xkf_bz(3,nktotf)
     !call loadkmesh_fullBZ()
-    call kq2k_map()
+    !call kq2k_map()
     
     
     !icbm = 1
@@ -299,15 +315,16 @@ module readepw
     !ENDIF       
     call findkword(unitepwout,"ibndmin")
     read(unitepwout,"(14X,10X,i5,2x,10X,f9.3)") ibndmin, ebndmin
+    ebndmin = ebndmin/rytoev
     read(unitepwout,"(14X,10X,i5,2x,10X,f9.3)") ibndmax, ebndmax
+    ebndmax = ebndmax/rytoev
+    
     nbndfst = ibndmax-ibndmin + 1
     
     
-    allocate(etf(nbndfst,nkf),stat=ierr)
+    allocate(etf(nbndsub,nkqf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating etf',1)
     etf = 0.0d0
-    allocate(wkf(nkf),stat=ierr)
-    if(ierr /=0) call errore("readepw","Error allocating wkf",1)
     
     allocate(E_nk(nbndfst,nkf),stat=ierr)
     if(ierr /=0) call errore("readepw",'Error allocating E_nk',1)
@@ -315,6 +332,11 @@ module readepw
     if(ierr /=0) call errore("readepw",'Error allocating E_mkq',1)
     allocate(epcq(nbndfst,nbndfst,nkf,nmodes,nqf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating epcq',1)
+    
+    if(.not. allocated(wf)) then 
+      allocate(wf(nmodes,nkqtotf),stat=ierr)
+      if(ierr /=0) call errore('readepw','Error allocating wf',1)    
+    endif            
   
     call findkline(unitepwout,"We only need to compute",6,28)
     read(unitepwout,"(29X,i8)") totq  ! totq = nqf
@@ -330,12 +352,15 @@ module readepw
       if((xiq(1) /= xqf(1,iq)) .or. (xiq(2) /= xqf(2,iq)) .or. (xiq(3) /= xqf(3,iq)) ) then
         write(stdout,*) "Warning: xqf set is wrong"
       endif
-      xqf(:,iq) = xiq
+      !xqf(:,iq) = xiq
       
       do ik=1,nkf
         ikk = 2*ik-1
         ikq = ikk + 1
-        read(unitepwout,'(5x,5x,i7, 9x, 3f12.7)') ik_, xkf(:, ikk)
+        read(unitepwout,'(5x,5x,i7, 9x, 3f12.7)') ik_, (xik(ipol),ipol=1,3)
+        if((xik(1) /= xkf(1,ikk)) .or. (xik(2) /= xkf(2,ikk)) .or. (xik(3) /= xkf(3,ikk)) ) then
+          write(stdout,*) "Warning: xkf set is wrong"
+        endif
         read(unitepwout,*)
         read(unitepwout,*)
         do ibnd = 1,nbndfst
@@ -347,9 +372,13 @@ module readepw
               !WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 1e20.10)') ibndmin - 1 + ibnd, ibndmin - 1 + jbnd, &
               !nu, ryd2ev * ekk, ryd2ev * ekq, ryd2mev * wf(nu, iq), ryd2mev * epc(ibnd, jbnd, nu, ik)
               read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
-                   etf(ibnd,ikk),etf(jbnd,ikq),wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
-              E_nk(ibnd,ik) = etf(ibnd,ikk)
-              E_mkq(jbnd,kqmap(ik,iq)) = etf(jbnd,ikq)
+                   ekk,ekq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
+              ekk = ekk /ryd2mev
+              ekq = ekq /ryd2mev
+              
+              E_nk(ibnd,ik) = ekk
+              E_mkq(jbnd,kqmap(ik,iq)) = ekq
+              etf(ibndmin-1+ibnd,ikk) = ekk
               !read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
                    !E_nk,E_mkq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
             enddo
@@ -359,6 +388,8 @@ module readepw
       enddo
 
     enddo
+    
+    wf = wf/ryd2mev
     
     do ik=1,nktotf
       do ibnd=1,nbndfst
