@@ -1,9 +1,11 @@
 module readinput
   use kinds,     only : dp
   use constants, only : maxlen
-  use parameters,only : lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,&
-                        epwoutname,naver,nstep,&
-                        nsnap,gamma,dt,temp,init_kx,init_ky,init_kz,init_band,         &
+  use parameters,only : &
+                        lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
+                        naver,nstep,nsnap,gamma,dt,temp,&
+                        init_kx,init_ky,init_kz,init_cband,init_vband,&
+                        llaser,efield,efield_cart,w_laser,fwhm,&
                         lsetthreads,mkl_threads
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
@@ -163,13 +165,19 @@ module readinput
     naver      = 100
     nstep      = 100
     nsnap      = 10
-    gamma      = 0.1
-    dt         = 0.5
-    temp       = 300.0
-    init_kx    = 0.0
+    gamma      = 0.1    ! the friction coefficient
+    dt         = 0.5    ! fs
+    temp       = 300.0  ! K
+    init_kx    = 0.0    ! in unit of b_x
     init_ky    = 0.0
     init_kz    = 0.0
-    init_band  = 1
+    init_cband = 1      ! the initial electron band
+    init_vband = 2      ! the initial hole band
+    llaser     = .true.
+    efield     = 1.0    ! V/m
+    efield_cart= (/ 0.0,0.0,1.0 /)  ! V/m
+    w_laser    = 1.0    ! eV
+    fwhm       = 10     ! fs
 
     lsetthreads= .FALSE.
     mkl_threads= 4    

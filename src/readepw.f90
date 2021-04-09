@@ -61,7 +61,7 @@ module readepw
   
   subroutine readepwout(fepwout)
     use elph2,    only : nqtotf,xqf,nbndfst
-    use grid,     only : loadqmesh,kq2k_map,loadkmesh_fullBZ
+    use grid,     only : loadqmesh,kq2k_map,loadkmesh_fullBZ,get_ikq
     use modes,    only : nmodes
     implicit none
     character(len=*) ,intent(in) :: fepwout
@@ -195,6 +195,7 @@ module readepw
     read(unitepwout,"(37X,i3)") nexband
     read(unitepwout,"(40X,i3)") n_wannier
     nbndsub = n_wannier
+    
     if((nbnd-nexband)/=num_bands) &
     call errore('setup_nnkp', ' something wrong with num_bands', 1)
     
@@ -337,6 +338,12 @@ module readepw
       allocate(wf(nmodes,nkqtotf),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating wf',1)    
     endif            
+
+    if(.not. allocated(kqmap)) then 
+      allocate(kqmap(nkf,nqf),stat=ierr)
+      if(ierr /=0) call errore('readepw','Error allocating kqmap',1)    
+    endif              
+    
   
     call findkline(unitepwout,"We only need to compute",6,28)
     read(unitepwout,"(29X,i8)") totq  ! totq = nqf
@@ -361,6 +368,8 @@ module readepw
         if((xik(1) /= xkf(1,ikk)) .or. (xik(2) /= xkf(2,ikk)) .or. (xik(3) /= xkf(3,ikk)) ) then
           write(stdout,*) "Warning: xkf set is wrong"
         endif
+        kqmap(ik,iq) = get_ikq(xik,xiq)
+        
         read(unitepwout,*)
         read(unitepwout,*)
         do ibnd = 1,nbndfst
@@ -390,34 +399,45 @@ module readepw
     enddo
     
     wf = wf/ryd2mev
+    epcq = epcq/ryd2mev
+    !do iq=1,nqf
+    !  do nu=1,nmodes
+    !    epcq(:,:,:,nu,iq) = epcq(:,:,:,nu,iq) * sqrt(2.0 *wf(nu,iq))
+    !  enddo
+    !enddo
     
-    do ik=1,nktotf
-      do ibnd=1,nbndfst
-        if (E_nk(ibnd,ik) /= E_mkq(ibnd,ik)) then
-          write(stdout,*) "E_nk /= E_mkq","ibnd=",ibnd,"ik=",ik
-        endif
-      enddo
-    enddo
+    ! Testing wrong in reading Energy
+    !do ik=1,nktotf
+    !  do ibnd=1,nbndfst
+    !    if (E_nk(ibnd,ik) /= E_mkq(ibnd,ik)) then
+    !      write(stdout,*) "E_nk /= E_mkq","ibnd=",ibnd,"ik=",ik
+    !    endif
+    !  enddo
+    !enddo
     
     call findkline(unitepwout,"matrix elements",15,29)
     read(unitepwout,"(A)") ctmp
     if(ctmp(32:35)=="vmef") then
       vme = .true.
-      allocate(vmef(3,nbndsub,nbndsub,nkf))
     else
       vme= .false.
-      allocate(dmef(3,nbndsub,nbndsub,nkf))
+      !allocate(dmef(3,nbndsub,nbndsub,nkf))
     endif
+    allocate(vmef(3,nbndsub,nbndsub,nkf))
     do ik=1,nkf
-      read(unitepwout,"(///)")
+      read(unitepwout,"(//)")
       do ibnd=1,nbndsub
         do jbnd=1,nbndsub
-          read(unitepwout,"(31X,3(2E16.6))") vmef(:,ibnd,jbnd,ik)
+          read(unitepwout,"(31X,3(2E16.6))") (vmef(ipol,ibnd,jbnd,ik),ipol=1,3)
         enddo
       enddo
     enddo
+    ! v_(k,i) = 1/m <ki|p|ki> = 2 * dmef (:, i,i,k) 
+    ! vmef = 2 *dmef
+    ! ! ... RY for "Rydberg" atomic units (e^2=2, m=1/2, hbar=1)   
+    if (.not. vme) vmef = 2.0*vmef  !in unit of Ryd*bohr   
     
-    
+    write(stdout,"(5X,A)") "Reading epw.out successfull!"
     
   end subroutine readepwout
   

@@ -181,13 +181,13 @@ module grid
   
   end subroutine loadqmesh
   
-  subroutine kpmq_map(xk,xq,nkq)
+  integer function get_ikq(xk,xq)
     use kinds,        only : dp
     use epwcom,       only : nkf1,nkf2,nkf3
     use constants,    only : eps5
     use io,           only : stdout
     implicit none
-    integer, intent(out) :: nkq
+    !integer :: get_ikq
     !! the index of k+q
     real(kind=dp),intent(in) :: xk(3)
     real(kind=dp),intent(in) :: xq(3)
@@ -210,16 +210,16 @@ module grid
     !
     ! since k- and q- meshes are commensurate, nkq can be easily found
     !
-    nkq = NINT(xx) * nkf2 * nkf3 + NINT(yy) * nkf3 + NINT(zz) + 1
+    get_ikq = NINT(xx) * nkf2 * nkf3 + NINT(yy) * nkf3 + NINT(zz) + 1
     !
     !  Now nkq represents the index of k+sign*q on the fine k-grid.
     !
-    RETURN
+    RETURN 
     !      
     
     
     
-  end subroutine kpmq_map
+  end function get_ikq
   
   !---------------------------------
   SUBROUTINE backtoBZ(xx, yy, zz, n1, n2, n3)

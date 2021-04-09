@@ -134,7 +134,7 @@ module surfacehopping
   != init dynamical varibale                   =!
   !=============================================!  
   subroutine init_dynamical_variable(nq,nmodes,ph_l,c_nk,ee,pp,ww)
-    use parameters, only : init_band,init_ik
+    use parameters, only : init_cband,init_vband,init_ik
     use hamiltonian,only : H0_nk,H_nk,set_H_nk,calculate_eigen_energy_state
     implicit none
     integer,intent(in) :: nq,nmodes
@@ -145,7 +145,7 @@ module surfacehopping
     real(kind=dp) :: flagr,flagd
     
     c_nk = 0.0d0
-    c_nk(init_band,init_ik) = 1.0d0
+    c_nk(init_cband,init_ik) = 1.0d0
     call set_H_nk(nq,nmodes,ph_l,nbndfst,nktotf,epcq,kqmap,H0_nk,H_nk)
     call calculate_eigen_energy_state(nktotf,nbndfst,H_nk,ee,pp)
     call convert_diabatic_adiabatic(pp,c_nk,ww)
