@@ -205,11 +205,17 @@ module readinput
     use parameters,only : init_ikx,init_iky,init_ikz,init_ik
     use epwcom,only : nkf1,nkf2,nkf3
     implicit none
-    init_ikx = get_ik(init_kx,nkf1)
-    init_iky = get_ik(init_ky,nkf2)
-    init_ikz = get_ik(init_kz,nkf3)
-    init_ik =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz
-    
+    if (llaser) then
+      
+      init_ik    = 1
+      init_cband = 1
+      init_vband = 2
+    else
+      init_ikx = get_ik(init_kx,nkf1)
+      init_iky = get_ik(init_ky,nkf2)
+      init_ikz = get_ik(init_kz,nkf3)
+      init_ik =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz
+    endif
     
   end subroutine treat_parameters
   
