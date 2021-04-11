@@ -27,12 +27,12 @@ program lvcsh
   use constants,only      : maxlen
   use environments,only   : environment_start,mkl_threads,&
                             set_mkl_threads,lsetthreads
-  use readinput,only      : get_inputfile,treat_parameters
+  use readinput,only      : get_inputfile
   use readscf,only        : readpwscf_out
   use readphout,only      : readph_out
   use readepw,only        : readepwout
   use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,temp,&
-                            nsnap,nstep,dt,inputfilename
+                            nsnap,nstep,dt,inputfilename,init_ik
   use hamiltonian,only    : set_H0_nk,e,p,E0,P0
   use randoms,only        : init_random_seed
   use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,d,d0,w0,&
@@ -52,9 +52,8 @@ program lvcsh
   if(lreadscfout) call readpwscf_out(scfoutname)
   if(lreadphout) call readph_out(phoutname)
   call readepwout(epwoutname)
-  call treat_parameters()
   call set_H0_nk()
-  call ph_configuration(nqtotf,nmodes,wf,temp)
+  !call ph_configuration(nqtotf,nmodes,wf,temp)
   call init_random_seed()
   if(lsetthreads) call set_mkl_threads(mkl_threads)
   call allocatesh(nmodes)
@@ -70,6 +69,7 @@ program lvcsh
     !==================! 
     !!得到简正坐标的初始位置ph_l=phQ/sqrt(hbar/(2*wqv))和速度ph_p=phP /sqrt(hbar/(2*wqv))
     call init_normalmode_coordinate_velocity(nqtotf,nmodes,ph_l,ph_p,wf,temp)
+    !call init_eh_stat(init_ik,init_cband,init_vband)
     call init_dynamical_variable(nqtotf,nmodes,ph_l,c_nk,e,p,w)
     call calculate_nonadiabatic_coupling(nmodes,e,p,d)
     ph_l0=ph_l; ph_p0=ph_p; e0=e; p0=p; d0=d;w0=w0

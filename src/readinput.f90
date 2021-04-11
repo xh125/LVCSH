@@ -24,6 +24,7 @@ module readinput
     character(*),intent(in) :: filename
     call treat_inputfile(filename)
     call read_namelist()
+    call param_in_atomicunits()
   end subroutine
 
   !=======================================!
@@ -201,10 +202,26 @@ module readinput
     
   end subroutine read_namelist
   
-  subroutine treat_parameters()
-    use parameters,only : init_ikx,init_iky,init_ikz,init_ik
+  subroutine param_in_atomicunits()
+    ! change the input parameters into Rydberg atomic units
+    use constants,only : Ryd2V_m,ryd2eV,Ry_TO_THZ,Ry_TO_fs
+    implicit none
+    
+    gamma = gamma / Ry_TO_THZ ! change gamma in unit of (THZ) to (Ryd)
+    dt    = dt / Ry_TO_fs     ! in Rydberg atomic units(1 a.u.=4.8378 * 10^-17 s)
+    efield= efield / Ryd2V_m  ! (in Ry a.u.;1 a.u. = 36.3609*10^10 V/m)
+    efield_cart = efield_cart / Ryd2V_m
+    w_laser = w_laser /ryd2eV
+    fwhm = fwhm/ ry_to_fs  
+    
+  end subroutine param_in_atomicunits
+  
+  subroutine init_eh_stat(init_ik)
+    use parameters,only : init_ikx,init_iky,init_ikz
     use epwcom,only : nkf1,nkf2,nkf3
     implicit none
+    
+    integer,intent(out) :: init_ik
     if (llaser) then
       
       init_ik    = 1
@@ -214,10 +231,10 @@ module readinput
       init_ikx = get_ik(init_kx,nkf1)
       init_iky = get_ik(init_ky,nkf2)
       init_ikz = get_ik(init_kz,nkf3)
-      init_ik =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz
+      init_ik  =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz
     endif
     
-  end subroutine treat_parameters
+  end subroutine init_eh_stat
   
   function get_ik(kx,nkx)
     use kinds,only : dp

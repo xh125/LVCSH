@@ -2,7 +2,6 @@ module surfacehopping
   use kinds, only : dp,dpc
   use epwcom,only : nkf1,nkf2,nkf3,nqf1,nqf2,nqf3,kqmap
   use elph2,only  : wf,epcq,nktotf,nbndfst,nqtotf,ibndmin,ibndmax
-  use disp,only : phQ,phP
   use hamiltonian,only : nphfre,nefre
   use parameters, only : nsnap,naver
   implicit none
@@ -12,7 +11,8 @@ module surfacehopping
   integer :: ierr
 
   ! phonons normal mode coordinate,and phonons P
-  real(kind=dp),allocatable :: e(:),p(:,:),d(:,:,:,:),g(:)
+  real(kind=dp),allocatable :: phQ(:,:),phP(:,:),phQ0(:,:),phP0(:,:)
+  real(kind=dp),allocatable :: e(:),p(:,:),p_nk(:,:,:),d(:,:,:,:),g(:)
   real(kind=dp),allocatable :: e0(:),p0(:,:),d0(:,:,:,:),g1(:)  
   real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
                                psit(:,:),xsit(:,:),ksit(:,:) 
@@ -30,26 +30,28 @@ module surfacehopping
     ! phonons normal mode coordinates
     allocate(phP(nmodes,nqtotf),stat=ierr)  ! v(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phP',1)    
-    phP=0.0
+    phP = 0.0
     !phonons normal mode verlosity
     allocate(e(1:nefre),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating e',1)
     allocate(p(nefre,nefre),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating p',1)
+    allocate(p_nk(nbndfst,nktotf,nefre),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating p_nk',1)
     allocate(d(nefre,nefre,nmodes,nqtotf),stat=ierr) !d_ijk
     if(ierr /=0) call errore('surfacehopping','Error allocating d',1)
     allocate(g(1:nefre),stat=ierr)  !g_ij
     if(ierr /=0) call errore('surfacehopping','Error allocating g',1)
-    !allocate(phQ0(1:nphfre),stat=ierr)
-    !if(ierr /=0) call errore('surfacehopping','Error allocating phQ0',1)
-    !allocate(phP0(1:nphfre),stat=ierr)
-    !if(ierr /=0) call errore('surfacehopping','Error allocating phP0',1)    
+    allocate(phQ0(nmodes,nqtotf),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating phQ0',1)
+    allocate(phP0(nmodes,nqtotf),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating phP0',1)    
     allocate(e0(1:nefre),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating e0',1)
     allocate(p0(nefre,nefre),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating p0',1)
-    !allocate(d0(nefre,nefre,nphfre),stat=ierr)
-    !if(ierr /=0) call errore('surfacehopping','Error allocating d0',1)
+    allocate(d0(nefre,nefre,nmodes,nqtotf),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating d0',1)
     allocate(g1(1:nefre),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating g1',1) 
     allocate(pes(0:nefre,1:nsnap,1:naver),stat=ierr)

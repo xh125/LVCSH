@@ -16,7 +16,7 @@ module parameters
   integer         :: nsnap
   real(kind=dp)   :: dt
   real(kind=dp)   :: temp
-  real(kind=dp)   :: gamma
+  real(kind=dp)   :: gamma    ! gamma is the friction coefficient,dimention is 1/t(ps-1)  THZ
   real(kind=dp)   :: init_kx,init_ky,init_kz  !激发后初始的电子(空穴)的k坐标
   integer(kind=dp):: init_cband,init_vband    !激发后初始的电子(空穴)所处的能带
   integer         :: init_ikx,init_iky,init_ikz,init_ik 

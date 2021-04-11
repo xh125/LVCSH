@@ -78,8 +78,10 @@ module constants
   real(kind=dp), parameter, public :: ELECTRONMASS_SI = 9.1093837015E-31_DP! Kg
   real(kind=dp), parameter, public :: Hartree_SI      = 4.3597447222071E-18_DP   ! J
   real(kind=dp), parameter, public :: Rydbebg_SI      = Hartree_SI/2.0_dp       ! J
+  REAL(kind=dp), PARAMETER, public :: BOHR_RADIUS_SI  = 0.529177210903E-10_DP  ! m  
   real(kind=dp), parameter, public :: amu_mass_SI     = 1.660539040e-27_dp     ! kg
-  REAL(kind=DP), PARAMETER, public :: AMU_SI         = 1.66053906660E-27_DP  ! Kg
+  REAL(kind=DP), PARAMETER, public :: AMU_SI          = 1.66053906660E-27_DP  ! Kg
+  REAL(kind=DP), PARAMETER, public :: C_SI            = 2.99792458E+8_DP    ! m sec^-1  
   !! electron mass      ->  $$m_e$$
 
   !
@@ -87,6 +89,8 @@ module constants
   ! ... AU for "Hartree" atomic units (e = m = hbar = 1)
   ! ... RY for "Rydberg" atomic units (e^2=2, m=1/2, hbar=1)
 
+
+  real(kind=dp),parameter :: e2 = 2.0  !the square of the electron charge
   !
   ! ... Unit conversion factors: energy and masses
   !
@@ -96,6 +100,8 @@ module constants
   REAL(DP), PARAMETER :: AMU_RY           = AMU_AU / 2.0_DP
   REAL(KIND = DP), PARAMETER :: ryd2ev   = rytoev                     ! 13.6056981
   REAL(KIND = DP), PARAMETER :: ryd2mev  = ryd2ev * 1.0E3_DP          ! 13605.6981
+  real(kind = dp), parameter :: ryd2V    = ryd2ev*sqrt(e2)
+  real(kind = dp), parameter :: Ryd2V_m  = Ryd2V/BOHR_RADIUS_SI
   !! 
   ! ... Unit conversion factors: atomic unit of time, in s and ps
   !
@@ -107,6 +113,8 @@ module constants
   real(dp), parameter :: ev_ps           = ev_sec * 1.0E+12_DP
   real(dp), parameter :: ev_ThZ          = 1.0/ev_ps/tpi
   real(dp), parameter :: mev_THZ         = (0.001*electronvolt_SI)/H_PLANCK_SI/1.0E+12_DP
+
+
 
 
 
@@ -144,6 +152,21 @@ module constants
   real(kind=dp),parameter,public  ::  au2amu= 5.485798701848d-4
   real(kind=dp),parameter,public  ::  au2k  = 3.1577464d5 
   real(kind=dp),parameter,public  ::  au2ang= 5.291772108d-1
+  
+  
+  !!!!!! COMPATIBIILITY
+  !
+  REAL(DP), PARAMETER :: BOHR_RADIUS_CM = BOHR_RADIUS_SI * 100.0_DP
+  REAL(DP), PARAMETER :: BOHR_RADIUS_ANGS = BOHR_RADIUS_CM * 1.0E8_DP
+  REAL(DP), PARAMETER :: ANGSTROM_AU = 1.0_DP/BOHR_RADIUS_ANGS
+  REAL(DP), PARAMETER :: AU_TERAHERTZ  = AU_PS
+  REAL(DP), PARAMETER :: AU_TO_OHMCMM1 = 46000.0_DP ! (ohm cm)^-1
+  REAL(DP), PARAMETER :: RY_TO_THZ = 1.0_DP / AU_TERAHERTZ / FPI
+  REAL(DP), PARAMETER :: RY_TO_GHZ = RY_TO_THZ*1000.0_DP
+  REAL(DP), PARAMETER :: RY_TO_CMM1= 1.E+10_DP * RY_TO_THZ / C_SI
+  real(dp), parameter :: Ry_TO_fs  = 2.0 * au2fs
+  !
+  REAL(DP), PARAMETER :: AVOGADRO = 6.02214076D+23  
   
   
   ! Leave the length to this value, and don't exceed in length (needed for output formatting)

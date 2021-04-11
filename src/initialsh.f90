@@ -57,6 +57,33 @@ module initialsh
     bolziman=1.0/(exp(wwomiga/(ttemp))-1.0)
     !<nb>=1/(exp{hw/kbT}-1)
   end function   
+
+  !==============================================!
+  != init Normal mode coordinate and  velocitie =!
+  !==============================================!
+  subroutine init_normalmode_coordinate_velocity(nq,nmodes,w,T,ph_Q,ph_P)
+    use kinds,only   : dp
+    use randoms,only : gaussian_random_number
+
+    implicit none
+    integer      ,intent(in) :: nq,nmodes
+    real(kind=dp),intent(in) :: T
+    real(kind=dp),intent(in) :: ph_w(nmodes,nq)  
+    real(kind=dp),intent(out):: ph_Q(nmodes,nq),ph_P(nmodes,nq)
+    
+    integer :: iq,imode
+    
+    do iq=1,nq
+      do imode=1,nmodes
+        ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(kb*T)/w(imode,iq))
+        ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(kb*T))
+      enddo
+    enddo
+    
+    phQ = ph_l * sqrt(hbar_SI/2.0*ph_w)
+    phP = ph_p * sqrt(hbar_SI/2.0*ph_w)
+    
+  end subroutine init_normalmode_coordinate_velocity
   
   !=============================================!
   != init coordinate and Normal mode velocitie =!
