@@ -205,6 +205,7 @@ module readinput
   subroutine param_in_atomicunits()
     ! change the input parameters into Rydberg atomic units
     use constants,only : Ryd2V_m,ryd2eV,Ry_TO_THZ,Ry_TO_fs
+    use lasercom,only  : fwhm_2T2
     implicit none
     
     gamma = gamma / Ry_TO_THZ ! change gamma in unit of (THZ) to (Ryd)
@@ -213,6 +214,7 @@ module readinput
     efield_cart = efield_cart / Ryd2V_m
     w_laser = w_laser /ryd2eV
     fwhm = fwhm/ ry_to_fs  
+    fwhm_2T2 = fwhm**2.0/4.0*log(2.0)
     
   end subroutine param_in_atomicunits
   

@@ -382,8 +382,8 @@ module readepw
               !nu, ryd2ev * ekk, ryd2ev * ekq, ryd2mev * wf(nu, iq), ryd2mev * epc(ibnd, jbnd, nu, ik)
               read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
                    ekk,ekq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
-              ekk = ekk /ryd2mev
-              ekq = ekq /ryd2mev
+              ekk = ekk /rytoev
+              ekq = ekq /rytoev
               
               E_nk(ibnd,ik) = ekk
               E_mkq(jbnd,kqmap(ik,iq)) = ekq

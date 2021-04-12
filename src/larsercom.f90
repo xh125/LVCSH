@@ -28,7 +28,11 @@ module lasercom
   real function f_w(w)
     implicit none
     real(kind=dp),intent(in) :: w
-    f_w = exp(-1.0*(w-w_laser)**2 * fwhm_2T2/4.0)
+    real(kind=dp) :: wfwhm
+    wfwhm = (w-w_laser)**2 *fwhm_2T2
+    wfwhm = -0.25*wfwhm
+    f_w = EXP(wfwhm)
+    !f_w = exp(-1.0*(w-w_laser)**2 * fwhm_2T2/4.0)
     return
   end function
   
@@ -39,20 +43,23 @@ module lasercom
     implicit none
     
     ! W_cvk(cband,vband,ik)=|<E dot vmef(3,cband,vband,ik)>|^2 *f_w(w)
+    real(kind=dp) :: fcw
     complex :: Evmef
     real(kind=dp) :: W_mnk   !垂直激发能量
     integer :: ik,ivband,icband,ipol
     allocate(W_cvk(nbndfst,nbndfst,nkf))
+    fwhm_2T2 = fwhm**2.0/4.0*log(2.0)
     W_cvk = 0.0
     do ik=1,nkf
-      do ivband=1,nbndfst
+      do ivband=1,nbndfst-1
         do icband=ivband+1,nbndfst
           Evmef = 0.0
           W_mnk = E_nk(icband,ik)-E_nk(ivband,ik)
           do ipol=1,3
             Evmef =Evmef+ (efield_cart(ipol)*(vmef(ipol,icband+ibndmin-1,ivband+ibndmin-1,ik)))
           enddo
-          W_cvk(icband,ivband,ik) = Evmef*CONJG(Evmef)*f_w(W_mnk)
+          fcw = f_w(W_mnk)
+          W_cvk(icband,ivband,ik) = Evmef*CONJG(Evmef)*fcw
         enddo
       enddo
     enddo  

@@ -7,7 +7,7 @@ module surfacehopping
   implicit none
   integer :: iaver
   integer :: isnap,istep
-  integer :: isurface
+  integer :: iesurface,ihsurface
   integer :: ierr
 
   ! phonons normal mode coordinate,and phonons P
@@ -17,8 +17,8 @@ module surfacehopping
   real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
                                psit(:,:),xsit(:,:),ksit(:,:) 
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
-  complex(kind=dpc),allocatable :: c(:),w(:),w0(:)
-  complex(kind=dpc),allocatable :: c_nk(:,:),w_nk(:,:),w0_nk(:,:)
+  complex(kind=dpc),allocatable :: celec_nk(:,:),w_e(:),w0_e(:)
+  complex(kind=dpc),allocatable :: chole_nk(:,:),w_h(:),w0_h(:)
   contains
   
   subroutine allocatesh(nmodes)
@@ -84,58 +84,33 @@ module surfacehopping
     allocate(msds(nsnap,naver),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating csit',1)
     msds = 0.0
-    allocate(c(nefre),stat=ierr)
-    if(ierr /=0) call errore('surfacehopping','Error allocating c',1)
-    allocate(c_nk(nbndfst,nktotf),stat=ierr)
-    if(ierr /=0) call errore('surfacehopping','Error allocating c_nk',1)    
-    allocate(w(nefre),stat=ierr)
-    if(ierr /=0) call errore('surfacehopping','Error allocating w',1)
-    allocate(w_nk(nbndfst,nktotf),stat=ierr)
-    if(ierr /=0) call errore('surfacehopping','Error allocating w_nk',1)
-    allocate(w0_nk(nbndfst,nktotf),stat=ierr)
-    if(ierr /=0) call errore('surfacehopping','Error allocating w0_nk',1) 
-    
+    !allocate(c(nefre),stat=ierr)
+    !if(ierr /=0) call errore('surfacehopping','Error allocating c',1)
+    allocate(celec_nk(nbndfst,nktotf),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating celec_nk',1)  
+    allocate(chole_nk(nbndfst,nktotf),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating chole_nk',1)      
+    !allocate(w(nefre),stat=ierr)
+    !if(ierr /=0) call errore('surfacehopping','Error allocating w',1)
+    allocate(w_e(nefre),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating w_e',1)
+    allocate(w_h(nefre),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating w_h',1)      
+    allocate(w0_e(nefre),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating w0_e',1) 
+    allocate(w0_h(nefre),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating w0_h',1)     
   end subroutine allocatesh
   
   
-  !=============================================!
-  != init dynamical varibale                   =!
-  !=============================================!  
-  subroutine init_dynamical_variable(nq,nmodes,ph_l,c_nk,ee,pp,ww)
-    use parameters, only : init_cband,init_vband,init_ik
-    use hamiltonian,only : H0_nk,H_nk,set_H_nk,calculate_eigen_energy_state
-    implicit none
-    integer,intent(in) :: nq,nmodes
-    real(kind=dp),intent(in) :: ph_l(nmodes,nq)
-    real(kind=dp),intent(out) :: ee(nbndfst*nktotf),pp(nbndfst*nktotf,nbndfst*nktotf)
-    complex(kind=dpc),intent(out) :: c_nk(nbndfst,nktotf),ww(nbndfst*nktotf)
-    integer :: iefre
-    real(kind=dp) :: flagr,flagd
-    
-    c_nk = 0.0d0
-    c_nk(init_cband,init_ik) = 1.0d0
-    call set_H_nk(nq,nmodes,ph_l,nbndfst,nktotf,epcq,kqmap,H0_nk,H_nk)
-    call calculate_eigen_energy_state(nktotf,nbndfst,H_nk,ee,pp)
-    call convert_diabatic_adiabatic(pp,c_nk,ww)
-    
-    call random_number(flagr)
-    flagd = 0.0d0
-    do iefre = 1,nefre
-      flagd = flagd + pp((init_ik-1)*nbndfst+init_ik,iefre)**2
-      if(flagr <= flagd) then
-        isurface = iefre
-        exit
-      endif
-    enddo
-    
-  end subroutine init_dynamical_variable
+
   
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% convert wavefunction from diabatix to adiabatic basis %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  subroutine convert_diabatic_adiabatic(pp,c_nk,ww)
+  subroutine convert_diabatic_adiabatic(pp_nk,c_nk,ww)
     implicit none
-    real(kind=dp),intent(in) :: pp(nefre,nefre)
+    real(kind=dp),intent(in) :: pp_nk(nbndfst,nktotf,nefre)
     complex(kind=dpc),intent(in) :: c_nk(nbndfst,nktotf)
     complex(kind=dpc),intent(out):: ww(nefre)
     
@@ -147,8 +122,7 @@ module surfacehopping
         iefre = (ik-1)*nbndfst + iband
         do jk=1,nktotf
           do jband=1,nbndfst
-            jefre = (jk-1)*nbndfst + jband 
-            ww(iefre) = ww(iefre)+pp(jefre,iefre)*c_nk(jband,jk)
+            ww(iefre) = ww(iefre)+pp_nk(jband,jk,iefre)*c_nk(jband,jk)
           enddo
         enddo
       enddo
@@ -171,8 +145,8 @@ module surfacehopping
     integer :: ik,ikq,iband1,iband2
     
     dd=0.0d0
-    do iefre=1,nefre
-      do jefre=1,iefre
+    do iefre=1,nefre-1
+      do jefre=iefre+1,nefre
         do iq =1, nqtotf
           do imode=1,nmodes
             do ik=1,nktotf
@@ -184,9 +158,10 @@ module surfacehopping
                 enddo
               enddo
             enddo
+            dd(iefre,jefre,imode,iq) = sqrt(2.0*wf(imode,iq)/nqtotf)*dd(iefre,jefre,imode,iq)/(ee(jefre)-ee(iefre))
           enddo
         enddo
-        dd(iefre,jefre,:,:) = dd(iefre,jefre,:,:)/(ee(jefre)-ee(iefre))
+        !dd(iefre,jefre,:,:) = dd(iefre,jefre,:,:)/(ee(jefre)-ee(iefre))
         dd(jefre,iefre,:,:) = - dd(iefre,jefre,:,:)
       enddo
       !dE_dqv(iefre,:,:) = dd(iefre,iefre,:,:)

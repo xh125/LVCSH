@@ -42,11 +42,11 @@ module hamiltonian
     
   end subroutine set_H0_nk
   
-  subroutine set_H_nk(nq,nmodes,ph_l,nband,nk,epcq,kqmap,H0_nk,H_nk)
+  subroutine set_H_nk(nq,nmodes,ph_Q,nband,nk,epcq,kqmap,H0_nk,H_nk)
     use kinds,only: dp
     integer,intent(in):: nq,nmodes,nband,nk
     integer,intent(in):: kqmap(nk,nq)
-    real(kind=dp),intent(in) :: ph_l(nmodes,nq)
+    real(kind=dp),intent(in) :: ph_Q(nmodes,nq)
     real(kind=dp),intent(in) :: H0_nk(nband,nk,nband,nk)
     real(kind=dp),intent(in) :: epcq(nband,nband,nk,nmodes,nq)
     real(kind=dp),intent(out):: H_nk(nband,nk,nband,nk)
@@ -62,7 +62,12 @@ module hamiltonian
           ikq=kqmap(ik,iq)
           do iband=1,nband !|iband,ik>
             do jband=1,nband !|jband,ikq>
-              H_nk(jband,ikq,iband,ik) = H_nk(jband,ikq,iband,ik)+ph_l(nu,iq)*epcq(iband,jband,ik,nu,iq)/sqrt(real(nq))
+              H_nk(jband,ikq,iband,ik) = H_nk(jband,ikq,iband,ik)+&
+              ph_Q(nu,iq)*sqrt(2.0*wf(nu,iq))*epcq(iband,jband,ik,nu,iq)/sqrt(real(nq))
+              !1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
+              !(3.20) (6.4)
+              !1 F. Giustino, Reviews of Modern Physics 89 (2017) 015003.
+              !(1)
             enddo
           enddo
         enddo

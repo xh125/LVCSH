@@ -36,6 +36,7 @@ module io
   !! Data for the stopwatches 
   integer, save     :: nnames=0
   !! Number of active stopwatches
+  real(kind=dp) :: time1
   
 contains
   

@@ -32,17 +32,19 @@ program lvcsh
   use readphout,only      : readph_out
   use readepw,only        : readepwout
   use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,temp,&
-                            nsnap,nstep,dt,inputfilename,init_ik
-  use hamiltonian,only    : set_H0_nk,e,p,E0,P0
+                            nsnap,nstep,dt,inputfilename,init_ik,llaser
+  use hamiltonian,only    : set_H0_nk
   use randoms,only        : init_random_seed
-  use initialsh,only      : init_normalmode_coordinate_velocity
-  use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,d,d0,w0,&
-                            allocatesh,c_nk,w,&
-                            init_dynamical_variable,calculate_nonadiabatic_coupling
+  use initialsh,only      : init_normalmode_coordinate_velocity,init_dynamical_variable
+  use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,phQ0,phP0,e,p,e0,p0,d,d0,&
+                            allocatesh,celec_nk,chole_nk,w_e,w_h,w0_e,w0_h,&
+                            calculate_nonadiabatic_coupling
   use elph2,only          : wf,nqtotf
-  use disp,only           : ph_configuration,ph_lqv,ph_l,ph_p,ph_l0,ph_p0
+  use disp,only           : ph_configuration
   use modes,only          : nmodes
-  use io      ,only       : stdout
+  use io      ,only       : stdout,io_time,time1
+  use dynamics,only       : rk4_nuclei
+  !use dynamica
   implicit none
   !===============!
   != preparation =!
@@ -70,10 +72,10 @@ program lvcsh
     !==================! 
     !!得到简正坐标的初始位置phQ和速度phP
     call init_normalmode_coordinate_velocity(nqtotf,nmodes,wf,temp,phQ,phP)
-    !call init_eh_stat(init_ik,init_cband,init_vband)
-    call init_dynamical_variable(nqtotf,nmodes,ph_l,c_nk,e,p,w)
+    !!得到初始电子和空穴的状态
+    call init_dynamical_variable(nqtotf,nmodes,phQ,llaser,celec_nk,chole_nk,e,p,w_e,w_h)
     call calculate_nonadiabatic_coupling(nmodes,e,p,d)
-    ph_l0=ph_l; ph_p0=ph_p; e0=e; p0=p; d0=d;w0=w0
+    phQ0=phQ; phP0=phP; e0=e; p0=p; d0=d; w0_e=w_e; w0_h=w_h
     
 
     !=======================!
@@ -83,13 +85,13 @@ program lvcsh
     do isnap=1,nsnap
       do istep=1,nstep
         
-!        time1   = io_time()  
-        !==========================!
-        != update x,v,c,e,p,d,w,g =!
-        !==========================!
-        !use rk4 to calculate the dynamical of phonon amplicite and get ph_l
-        !call rk4_nuclei(nfreem,phQ,phP,dt)
-        !call rk4_phonon(p0,ph_l,ph_p,dt)
+        time1   = io_time()  
+        !==============================!
+        != update phQ,phP,c,e,p,d,w,g =!
+        !==============================!
+        
+        !use rk4 to calculate the dynamical of phonon normal modes
+        call rk4_nuclei(p0,phQ,phP,dt)
 !        !rk3方法计算电子空穴在透热表象下的演化
 !        if(lelecsh) call rk4_electron_diabatic(nbasis,C_e,n_e,dt,HH_e)      
 !        if(lholesh) call rk4_electron_diabatic(nbasis,C_h,n_h,dt,HH_h)
