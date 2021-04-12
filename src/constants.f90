@@ -96,12 +96,14 @@ module constants
   !
   REAL(DP), PARAMETER :: AUTOEV           = HARTREE_SI / ELECTRONVOLT_SI
   REAL(DP), PARAMETER :: RYTOEV           = AUTOEV / 2.0_DP
+  real(dp), parameter :: Ry2J             = RYTOEV *electronvolt_SI
   REAL(DP), PARAMETER :: AMU_AU           = AMU_SI / ELECTRONMASS_SI
   REAL(DP), PARAMETER :: AMU_RY           = AMU_AU / 2.0_DP
   REAL(KIND = DP), PARAMETER :: ryd2ev   = rytoev                     ! 13.6056981
   REAL(KIND = DP), PARAMETER :: ryd2mev  = ryd2ev * 1.0E3_DP          ! 13605.6981
   real(kind = dp), parameter :: ryd2V    = ryd2ev*sqrt(e2)
   real(kind = dp), parameter :: Ryd2V_m  = Ryd2V/BOHR_RADIUS_SI
+  real(kind = dp), parameter :: K_B_Ryd  = k_B_SI/ Ry2J
   !! 
   ! ... Unit conversion factors: atomic unit of time, in s and ps
   !

@@ -35,8 +35,9 @@ program lvcsh
                             nsnap,nstep,dt,inputfilename,init_ik
   use hamiltonian,only    : set_H0_nk,e,p,E0,P0
   use randoms,only        : init_random_seed
+  use initialsh,only      : init_normalmode_coordinate_velocity
   use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,d,d0,w0,&
-                            allocatesh,init_normalmode_coordinate_velocity,c_nk,w,&
+                            allocatesh,c_nk,w,&
                             init_dynamical_variable,calculate_nonadiabatic_coupling
   use elph2,only          : wf,nqtotf
   use disp,only           : ph_configuration,ph_lqv,ph_l,ph_p,ph_l0,ph_p0
@@ -67,8 +68,8 @@ program lvcsh
     !==================!
     != initialization =!
     !==================! 
-    !!得到简正坐标的初始位置ph_l=phQ/sqrt(hbar/(2*wqv))和速度ph_p=phP /sqrt(hbar/(2*wqv))
-    call init_normalmode_coordinate_velocity(nqtotf,nmodes,ph_l,ph_p,wf,temp)
+    !!得到简正坐标的初始位置phQ和速度phP
+    call init_normalmode_coordinate_velocity(nqtotf,nmodes,wf,temp,phQ,phP)
     !call init_eh_stat(init_ik,init_cband,init_vband)
     call init_dynamical_variable(nqtotf,nmodes,ph_l,c_nk,e,p,w)
     call calculate_nonadiabatic_coupling(nmodes,e,p,d)

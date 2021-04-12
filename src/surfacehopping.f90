@@ -97,40 +97,6 @@ module surfacehopping
     
   end subroutine allocatesh
   
-  !=============================================!
-  != init coordinate and Normal mode velocitie =!
-  !=============================================!
-  subroutine init_normalmode_coordinate_velocity(nq,nmodes,ph_l,ph_p,ph_w,T)
-    use kinds,only   : dp
-    use randoms,only : gaussian_random_number
-    use disp, only : ph_lqv,ph_pqv
-    use constants,only : hbar_SI
-    implicit none
-    integer      ,intent(in) :: nq,nmodes
-    real(kind=dp),intent(in) :: T
-    real(kind=dp),intent(in) :: ph_w(nmodes,nq)    !rad/s
-    real(kind=dp),intent(out):: ph_l(nmodes,nq),ph_p(nmodes,nq)
-    
-    integer :: iq,imode
-    
-    ! ph_l= Q_qv/ sqrt(hbar/(2*w_qv))
-    ! ph_P= P_qv/ sqrt(hbar/(2*w_qv))
-    
-    !ph_l = gaussian_random_number(0.0d0,ph_lqv)
-    !ph_P = gaussian_random_number(0.0d0,ph_pqv)
-    
-    do iq=1,nq
-      do imode=1,nmodes
-        ph_l(imode,iq) = gaussian_random_number(0.0d0,ph_lqv(imode,iq))
-        ph_p(imode,iq) = gaussian_random_number(0.0d0,ph_pqv(imode,iq))
-        !phQ(imode,iq) = ph_l(imode,iq) * sqrt(hbar_SI/2.0*ph_w(imode,iq))
-      enddo
-    enddo
-    
-    phQ = ph_l * sqrt(hbar_SI/2.0*ph_w)
-    phP = ph_p * sqrt(hbar_SI/2.0*ph_w)
-    
-  end subroutine init_normalmode_coordinate_velocity
   
   !=============================================!
   != init dynamical varibale                   =!

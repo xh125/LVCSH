@@ -395,7 +395,13 @@ module readepw
         enddo
         read(unitepwout,"(/)")
       enddo
-
+      
+      do nu=1,nmodes
+        if(wf(nu,iq)<0.0) then
+          wf(nu,iq)=-1.0*wf(nu,iq) 
+          write(stdout,*) "Carefully!!! the energy of phonon in iq=",iq,"modes=",nu,"=",-1.0*wf(nu,iq)
+        endif
+      enddo
     enddo
     
     wf = wf/ryd2mev
