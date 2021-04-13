@@ -1,9 +1,10 @@
 module hamiltonian
   use kinds,only : dp,dpc
   use parameters
-  use elph2, only  : nbndfst,nktotf,epcq,nqtotf,wf
+  use elph2, only  : nband=>nbndfst,nk=>nktotf,epcq,nq => nqtotf,wf,epcq
   use modes, only  : nmodes
   use readepw,only : E_nk
+  use epwcom,only  : kqmap
   implicit none
   real(kind=dp),allocatable     :: H0_nk(:,:,:,:),H_nk(:,:,:,:)
   real(kind=dp),allocatable     :: H0(:,:),H(:,:)
@@ -17,23 +18,23 @@ module hamiltonian
   subroutine set_H0_nk()
     implicit none
     integer :: ik,iband,ibasis
-    nefre = nbndfst * nktotf
-    nphfre = nmodes * nqtotf
+    nefre = nband * nk
+    nphfre = nmodes * nq
     
     allocate(H0(nefre,nefre),stat=ierr)
     if(ierr /=0) call errore('hamiltonian','Error allocating H0',1)    
-    H0=0.0
-    allocate(H0_nk(nbndfst,nktotf,nbndfst,nktotf),stat=ierr)
+    H0 = 0.0
+    allocate(H0_nk(nband,nk,nband,nk),stat=ierr)
     if(ierr /=0) call errore('hamiltonian','Error allocating H0_nk',1)
     H0_nk = 0.0
-    allocate(H_nk(nbndfst,nktotf,nbndfst,nktotf),stat=ierr)
+    allocate(H_nk(nband,nk,nband,nk),stat=ierr)
     if(ierr /=0) call errore('hamiltonian','Error allocating H_nk',1)
     H_nk = 0.0
     allocate(H(nefre,nefre),stat=ierr)
     if(ierr /=0) call errore('hamiltonian','Error allocating H',1)        
     
-    do ik=1,nktotf
-      do iband=1,nbndfst
+    do ik=1,nk
+      do iband=1,nband
         H0_nk(iband,ik,iband,ik)=E_nk(iband,ik)
       enddo
     enddo
@@ -42,13 +43,12 @@ module hamiltonian
     
   end subroutine set_H0_nk
   
-  subroutine set_H_nk(nq,nmodes,ph_Q,nband,nk,epcq,kqmap,H0_nk,H_nk)
+  subroutine set_H_nk(ph_Q,H_nk)
     use kinds,only: dp
-    integer,intent(in):: nq,nmodes,nband,nk
-    integer,intent(in):: kqmap(nk,nq)
+    
+    implicit none
+    
     real(kind=dp),intent(in) :: ph_Q(nmodes,nq)
-    real(kind=dp),intent(in) :: H0_nk(nband,nk,nband,nk)
-    real(kind=dp),intent(in) :: epcq(nband,nband,nk,nmodes,nq)
     real(kind=dp),intent(out):: H_nk(nband,nk,nband,nk)
     
     integer :: iq,nu,iband,jband

@@ -109,24 +109,43 @@ module surfacehopping
   !% convert wavefunction from diabatix to adiabatic basis %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
   subroutine convert_diabatic_adiabatic(pp_nk,c_nk,ww)
+    use f95_precision
+    use blas95
     implicit none
     real(kind=dp),intent(in) :: pp_nk(nbndfst,nktotf,nefre)
     complex(kind=dpc),intent(in) :: c_nk(nbndfst,nktotf)
     complex(kind=dpc),intent(out):: ww(nefre)
     
+    real(kind=dp) :: pp(nefre,nefre)
+    complex(kind=dpc) :: cc(nefre) 
+    
     integer :: iefre,jefre,ik,jk,iband,jband 
     
-    ww=0.0d0
-    do ik=1,nktotf
-      do iband=1,nbndfst
-        iefre = (ik-1)*nbndfst + iband
-        do jk=1,nktotf
-          do jband=1,nbndfst
-            ww(iefre) = ww(iefre)+pp_nk(jband,jk,iefre)*c_nk(jband,jk)
-          enddo
-        enddo
-      enddo
-    enddo
+    pp = reshape(pp_nk,(/nefre,nefre/))
+    cc = reshape(c_nk,(/nefre/))
+    ww= 0.0d0
+    call gemv(pp,cc,ww,trans='T')
+    
+    !ww=0.0d0
+    !do ik=1,nktotf
+    !  do iband=1,nbndfst
+    !    iefre = (ik-1)*nbndfst + iband
+    !    do jk=1,nktotf
+    !      do jband=1,nbndfst
+    !        ww(iefre) = ww(iefre)+pp_nk(jband,jk,iefre)*c_nk(jband,jk)
+    !      enddo
+    !    enddo
+    !  enddo
+    !enddo
+    !
+    !do iefre=1,nefre
+    !  if(ww(iefre)/=ww_(iefre)) then
+    !    lgemv=.false.
+    !    exit
+    !  endif
+    !enddo
+      
+    
   
   end subroutine convert_diabatic_adiabatic
   
@@ -182,6 +201,40 @@ module surfacehopping
     !<nb>=1/(exp{hw/kbT}-1)
   end function bolziman
  
- 
-
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !% CALCULATE HOPPING PROBABILITY %!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !% REF: NOTEBOOK PAGE 631        %!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  !call calculate_hopping_probability(w0_e,phP0,d0,dt,g,g1)
+  subroutine calculate_hopping_probability(WW,VV,dd,tt,gg,gg1)
+    implicit none
+    complex(kind=dpc),intent(in) :: WW(nefre)
+    real(kind=dp),intent(in)     :: VV(nmodes,nqtotf)
+    real(kind=dp),intent(in)     :: dd(nefre,nefre,nmodes,nqtotf)
+    real(kind=dp),intent(in)     :: tt
+    real(kind=dp),intent(out)     :: gg(nefre)
+    real(kind=dp),intent(out)     :: gg1(nefre)
+    
+    real(kind=dp) :: sumvd
+    
+    gg = 0.0
+    gg1= 0.0
+    do iefre=1,nefre
+      if(iefre /= iesurface) then
+        sumvd = 0.0
+        do iq=1,nqtotf
+          do imode=1,nmodes
+            sumvd = sumvd+VV(imode,iq)*dd(iesurface,iefre,imode,iq)
+          enddo
+        enddo
+        gg(iefre)=2.0*tt*Real(CONJG(WW(iesurface))*WW(iefre))*sumvd/REAL(CONJG(WW(iesurface))*WW(iesurface))
+        gg1(iefre) = gg(iefre)
+        if(gg(iefre) < 0.0) gg(iefre) = 0.0
+      endif
+    enddo
+      
+  end subroutine calculate_hopping_probability
+  
+  
 end module surfacehopping

@@ -1,7 +1,8 @@
 module initialsh
   use kinds     ,only   : dp,dpc
   use constants ,only   : maxlen,tpi,K_B_Ryd,ryd2eV
-  use elph2     ,only   : epcq
+  use elph2     ,only   : epcq,nq=>nqtotf
+  use modes     ,only   : nmodes
   implicit none
   
   contains
@@ -87,12 +88,11 @@ module initialsh
   !==============================================!
   != init Normal mode coordinate and  velocitie =!
   !==============================================!
-  subroutine init_normalmode_coordinate_velocity(nq,nmodes,w,T,ph_Q,ph_P)
+  subroutine init_normalmode_coordinate_velocity(w,T,ph_Q,ph_P)
     use kinds,only   : dp
     use randoms,only : gaussian_random_number
 
     implicit none
-    integer      ,intent(in) :: nq,nmodes
     real(kind=dp),intent(in) :: T
     real(kind=dp),intent(in) :: w(nmodes,nq)  
     real(kind=dp),intent(out):: ph_Q(nmodes,nq),ph_P(nmodes,nq)
@@ -108,7 +108,12 @@ module initialsh
         E_ph_quantum = (bolziman(womiga,T)+0.5)*womiga ! In Quantum
         ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum/womiga))
         ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))      
-      
+        
+        if(iq==1 .and. imode <=3) then
+          ph_Q(imode,iq)=0.0
+          ph_P(imode,iq)=0.0
+        endif
+        
       enddo
     enddo
     
@@ -117,14 +122,13 @@ module initialsh
   !=============================================!
   != init dynamical varibale                   =!
   !=============================================!  
-  subroutine init_dynamical_variable(nq,nmodes,ph_Q,laser,c_nk,v_nk,ee,pp,ww_e,ww_h)
+  subroutine init_dynamical_variable(ph_Q,laser,c_nk,v_nk,ee,pp,ww_e,ww_h)
     use parameters, only : init_cband,init_vband,init_ik
     use hamiltonian,only : H0_nk,H_nk,set_H_nk,calculate_eigen_energy_state,nefre
     use elph2,only       : nbndfst,nktotf
     use epwcom,only      : kqmap
     use surfacehopping,only : iesurface,ihsurface,convert_diabatic_adiabatic,p_nk
     implicit none
-    integer,intent(in) :: nq,nmodes
     real(kind=dp),intent(in) :: ph_Q(nmodes,nq)
     logical,intent(in) :: laser
     real(kind=dp),intent(out) :: ee(nefre),pp(nefre,nefre)
@@ -139,7 +143,7 @@ module initialsh
     c_nk(init_cband,init_ik) = 1.0d0
     v_nk(init_vband,init_ik) = 1.0d0
       
-    call set_H_nk(nq,nmodes,ph_Q,nbndfst,nktotf,epcq,kqmap,H0_nk,H_nk)
+    call set_H_nk(ph_Q,H_nk)
     call calculate_eigen_energy_state(nktotf,nbndfst,H_nk,ee,pp)
     p_nk = reshape(pp,(/ nbndfst,nktotf,nefre /))
     call convert_diabatic_adiabatic(p_nk,c_nk,ww_e)
