@@ -1,7 +1,7 @@
 module dynamics
   use kinds,only : dp,dpc
   use io,only :
-  use parameters,only : gamma
+  use parameters,only : gamma,temp
   use hamiltonian,only : nphfre,nefre,set_H_nk
   use elph2,only          : nk=>nktotf,nq=>nqtotf,wf,nband=>nbndfst,epcq
   use modes,only          : nmodes
@@ -165,7 +165,60 @@ module dynamics
   !===============================================!
   != ref: notebook page 462 and 638              =!
   !===============================================!
-
+  ! ref: 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
+  SUBROUTINE ADD_BATH_EFFECT(EE,PP,DD,TT,XX,VV)
+    use kinds,only : dp,dpc
+    use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
+    use parameters,only : gamma,temp
+    use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7
+    use surfacehopping,only : iesurface,ihsurface,E0
+    implicit none
+    
+    real(kind=dp), intent(in) :: EE(nefre)
+    real(kind=dp), intent(in) :: PP(nefre,nefre)
+    real(kind=dp), intent(in) :: DD(nefre,nefre,nmodes,nq)
+    real(kind=dp), intent(in) :: tt
+    real(kind=dp), intent(inout) :: XX(nmodes,nq),VV(nmodes,nq)
+    
+    integer :: imode,iq,iefre
+    real(kind=dp) :: SIGMAR,R1,R2,R3,R4,Z1,Z2,Z3,Z4!,GAUSSIAN_RANDOM_NUMBER_FAST
+    !EXTERNAL GAUSSIAN_RANDOM_NUMBER_FAST
+    real(kind=dp) :: wwf2
+    real(kind=dp) :: dEa2_dQ2
+    
+    SIGMAR=DSQRT(2.0*gamma*KB*TEMP*TT)
+    DO iq=1,nq
+      do imode=1,nmodes
+        dEa2_dQ2 = 0.0
+        do iefre=1,nefre
+          if(iefre /= iesurface) then
+            dEa2_dQ2 = dEa2_dQ2 + (EE(iefre)-EE(iesurface))*DD(iefre,iesurface,imode,iq)*DD(iesurface,iefre,imode,iq)
+          endif
+          if(iefre /= ihsurface) then
+            dEa2_dQ2 = dEa2_dQ2 + (ee(iefre)-ee(ihsurface))*dd(iefre,ihsurface,imode,iq)*dd(ihsurface,iefre,imode,iq)
+          endif
+        enddo
+        wwf2 = wf(imode,iq)**2+dEa2_dQ2
+      
+   
+        !KK=K
+        !DO JSITE=1,NSITE
+        !  IF(JSITE.NE.ISURFACE) KK=KK+2.0D0*ALPHA*DD(JSITE,ISURFACE,ISITE)*PP(ISITE,ISURFACE)*PP(ISITE,JSITE)
+        !ENDDO
+    
+        R1=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
+        R2=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
+        R3=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
+        R4=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
+        Z1=R1    ! V
+        Z2=TT*(R1/2.0D0+R2/SQRT3/2.0D0)  !V*T
+        Z3=TT**2*(R1/6.0D0+R2*SQRT3/12.0D0+R3/SQRT5/12.0D0) ! V*T**2
+        Z4=TT**3*(R1/24.0D0+R2*SQRT3/40.0D0+R3/SQRT5/24.0D0+R4/SQRT7/120.0D0) ! V*T**3
+        XX(imode,iq)=XX(imode,iq)+(Z2-GAMMA*Z3+(-wwf2+GAMMA**2)*Z4)
+        VV(imode,iq)=VV(imode,iq)+(Z1-GAMMA*Z2+(-wwf2+GAMMA**2)*Z3+(2.0*gamma*wwf2-GAMMA**3)*Z4)
+      enddo
+    enddo
+  ENDSUBROUTINE  
   
   
 end module dynamics

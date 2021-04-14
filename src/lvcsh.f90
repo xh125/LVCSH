@@ -15,7 +15,7 @@ program lvcsh
   !=====================================================================================================!
   !=  system interaction with environment by system-bath interactions                                  =!     
   !=====================================================================================================!
-  != Last updata 2020-12.30 Version:0.1.1                                                              =!   
+  != Last updata 2021-04.14 Version:0.1.2                                                              =!   
   != Developed by XieHua at department of physic, USTC;xh125@mail.ustc.edu.cn                          =!
   !=====================================================================================================!
   !! Author: HuaXie
@@ -36,14 +36,16 @@ program lvcsh
   use hamiltonian,only    : H_nk,set_H_nk,set_H0_nk,calculate_eigen_energy_state
   use randoms,only        : init_random_seed
   use initialsh,only      : init_normalmode_coordinate_velocity,init_dynamical_variable
-  use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,phQ0,phP0,e,p,e0,p0,d,d0,g,g1,&
-                            allocatesh,celec_nk,chole_nk,w_e,w_h,w0_e,w0_h,&
-                            calculate_nonadiabatic_coupling,convert_diabatic_adiabatic
+  use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,phQ0,phP0,e,p,e0,p0,d,d0,ge,ge1,gh,gh1,&
+                            allocatesh,celec_nk,chole_nk,w_e,w_h,w0_e,w0_h,iesurface,ihsurface,&
+                            calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
+                            calculate_hopping_probability,calculate_sumg_pes,minde_e,minde_h,&
+                            sumg0_e,sumg0_h,sumg1_e,sumg1_h,nonadiabatic_transition
   use elph2,only          : wf,nqtotf,nktotf,nbndfst
   use disp,only           : ph_configuration
   use modes,only          : nmodes
   use io      ,only       : stdout,io_time,time1
-  use dynamics,only       : rk4_nuclei,rk4_electron_diabatic,lelec,lhole
+  use dynamics,only       : rk4_nuclei,rk4_electron_diabatic,lelec,lhole,ADD_BATH_EFFECT
   !use dynamica
   implicit none
   !===============!
@@ -99,31 +101,22 @@ program lvcsh
         call calculate_nonadiabatic_coupling(nmodes,e,p,d)
         call convert_diabatic_adiabatic(p,celec_nk,w_e)
         call convert_diabatic_adiabatic(p,chole_nk,w_h)
-        call calculate_hopping_probability(w0_e,phP0,d0,dt,g,g1)
-!        !rk4方法计算电子空穴在透热表象下的演化
-!        if(lelecsh) then
-!          call dia_syH(nbasis,HH_e,E_e,P_e)
-!          call calculate_nonadiabatic_coupling(nbasis,nfreem,E_e,P_e,Hep,d_e,dE_dQ_e)
-!          call convert_diabatic_adiabatic(nbasis,P_e,C_e,W_e)
-!          call calculate_hopping_probability(nbasis,nfreem,w0_e,phP0,d0_e,dt,g_e,g1_e,isurface_e)
-!          call correct_hopping_probability(MSH,nbasis,g_e,g1_e,E0_e,w0_e,w_e,P0_e,P_e,isurface_e)
-!          call nonadiabatic_transition(MSH,nbasis,nfreem,E0_e,P0_e,P_e,d_e,isurface_e,g_e,w0_e,phP,c_e)
-!        endif
-!        if(lholesh) then
-!          call dia_syH(nbasis,HH_h,E_h,P_h)
-!          call calculate_nonadiabatic_coupling(nbasis,nfreem,E_h,P_h,Hep,d_h,dE_dQ_h)
-!          d_h     = -d_h
-!          dE_dQ_h = -dE_dQ_h
-!          call convert_diabatic_adiabatic(nbasis,P_h,C_h,W_h)
-!          call calculate_hopping_probability(nbasis,nfreem,w0_h,phP0,d0_h,dt,g_h,g1_h,isurface_h)
-!          call correct_hopping_probability(MSH,nbasis,g_h,g1_h,E0_h,w0_h,w_h,P0_h,P_h,isurface_h)
-!          call nonadiabatic_transition(MSH,nbasis,nfreem,E0_h,P0_h,P_h,d_h,isurface_h,g_h,w0_h,phP,c_e)          
-!        endif
-!        
-!        !===================!
-!        != add bath effect =!
-!        !===================!        
-!        call add_bath_effect(nbasis,nfreem,d0_e,p0_e,d0_h,p0_h,womiga,dt,phQ,phP)
+        call calculate_hopping_probability(iesurface,w0_e,phP0,d0,dt,ge,ge1)
+        call calculate_hopping_probability(ihsurface,w0_h,phP0,d0,dt,gh,gh1)
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+        !% CALCULATE SUMG0,SUMG1,MINDE and CHANGE POTENTIAL ENERGY SURFACE %!
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!        
+        call calculate_sumg_pes(sumg0_e,sumg1_e,w0_e,w_e,ge1,ge,iesurface,minde_e)
+        call calculate_sumg_pes(sumg0_h,sumg1_h,w0_h,w_h,gh1,gh,ihsurface,minde_h)
+        
+        
+        call nonadiabatic_transition(lelec,iesurface,E0,P0,d0,ge,w_e,phP)
+        call nonadiabatic_transition(lhole,ihsurface,E0,P0,d0,ge,w_h,phP)        
+   
+        !===================!
+        != add bath effect =!
+        !===================!        
+        call add_bath_effect(E0,P0,d0,dt,phQ,phP)
 !
 !        !============================!
 !        != reset dynamical variable =!

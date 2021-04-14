@@ -12,13 +12,14 @@ module surfacehopping
 
   ! phonons normal mode coordinate,and phonons P
   real(kind=dp),allocatable :: phQ(:,:),phP(:,:),phQ0(:,:),phP0(:,:)
-  real(kind=dp),allocatable :: e(:),p(:,:),p_nk(:,:,:),d(:,:,:,:),g(:)
-  real(kind=dp),allocatable :: e0(:),p0(:,:),d0(:,:,:,:),g1(:)  
+  real(kind=dp),allocatable :: e(:),p(:,:),p_nk(:,:,:),d(:,:,:,:),ge(:),gh(:)
+  real(kind=dp),allocatable :: e0(:),p0(:,:),d0(:,:,:,:),ge1(:),gh1(:)  
   real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
                                psit(:,:),xsit(:,:),ksit(:,:) 
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
   complex(kind=dpc),allocatable :: celec_nk(:,:),w_e(:),w0_e(:)
   complex(kind=dpc),allocatable :: chole_nk(:,:),w_h(:),w0_h(:)
+  real(kind=dp) :: minde_e,minde_h,sumg0_e,sumg0_h,sumg1_e,sumg1_h
   contains
   
   subroutine allocatesh(nmodes)
@@ -40,8 +41,10 @@ module surfacehopping
     if(ierr /=0) call errore('surfacehopping','Error allocating p_nk',1)
     allocate(d(nefre,nefre,nmodes,nqtotf),stat=ierr) !d_ijk
     if(ierr /=0) call errore('surfacehopping','Error allocating d',1)
-    allocate(g(1:nefre),stat=ierr)  !g_ij
-    if(ierr /=0) call errore('surfacehopping','Error allocating g',1)
+    allocate(ge(1:nefre),stat=ierr)  !g_ij
+    if(ierr /=0) call errore('surfacehopping','Error allocating ge',1)
+    allocate(gh(1:nefre),stat=ierr)  !g_ij
+    if(ierr /=0) call errore('surfacehopping','Error allocating gh',1)    
     allocate(phQ0(nmodes,nqtotf),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating phQ0',1)
     allocate(phP0(nmodes,nqtotf),stat=ierr)
@@ -52,8 +55,10 @@ module surfacehopping
     if(ierr /=0) call errore('surfacehopping','Error allocating p0',1)
     allocate(d0(nefre,nefre,nmodes,nqtotf),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating d0',1)
-    allocate(g1(1:nefre),stat=ierr)
-    if(ierr /=0) call errore('surfacehopping','Error allocating g1',1) 
+    allocate(ge1(1:nefre),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating ge1',1) 
+    allocate(gh1(1:nefre),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating gh1',1) 
     allocate(pes(0:nefre,1:nsnap,1:naver),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating pes',1)
     pes = 0.0
@@ -207,8 +212,10 @@ module surfacehopping
   !% REF: NOTEBOOK PAGE 631        %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
   !call calculate_hopping_probability(w0_e,phP0,d0,dt,g,g1)
-  subroutine calculate_hopping_probability(WW,VV,dd,tt,gg,gg1)
+  subroutine calculate_hopping_probability(isurface,WW,VV,dd,tt,gg,gg1)
+    use modes,only : nmodes
     implicit none
+    integer,intent(in)           :: isurface
     complex(kind=dpc),intent(in) :: WW(nefre)
     real(kind=dp),intent(in)     :: VV(nmodes,nqtotf)
     real(kind=dp),intent(in)     :: dd(nefre,nefre,nmodes,nqtotf)
@@ -217,24 +224,121 @@ module surfacehopping
     real(kind=dp),intent(out)     :: gg1(nefre)
     
     real(kind=dp) :: sumvd
+    integer :: iefre,iq,imode
     
     gg = 0.0
     gg1= 0.0
     do iefre=1,nefre
-      if(iefre /= iesurface) then
+      if(iefre /= isurface) then
         sumvd = 0.0
         do iq=1,nqtotf
           do imode=1,nmodes
-            sumvd = sumvd+VV(imode,iq)*dd(iesurface,iefre,imode,iq)
+            sumvd = sumvd+VV(imode,iq)*dd(isurface,iefre,imode,iq)
           enddo
         enddo
-        gg(iefre)=2.0*tt*Real(CONJG(WW(iesurface))*WW(iefre))*sumvd/REAL(CONJG(WW(iesurface))*WW(iesurface))
+        gg(iefre)=2.0*tt*Real(CONJG(WW(isurface))*WW(iefre))*sumvd/REAL(CONJG(WW(isurface))*WW(isurface))
         gg1(iefre) = gg(iefre)
         if(gg(iefre) < 0.0) gg(iefre) = 0.0
       endif
     enddo
       
   end subroutine calculate_hopping_probability
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !% CALCULATE SUMG0,SUMG1,MINDE %!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  subroutine calculate_sumg_pes(sumg0,sumg1,w0,w,gg1,gg,isurface,minde)
+    implicit none
+    real(kind=dp),intent(out):: sumg0,sumg1
+    complex(kind=dpc),intent(in) :: w0(nefre),w(nefre)
+    real(kind=dp),intent(in) :: gg1(nefre)
+    real(kind=dp),intent(out):: gg(nefre)
+    integer,intent(in)       :: isurface 
+    real(kind=dp),intent(out):: minde 
+    
+    integer :: iefre
+    
+    sumg0 = (ABS(W0(ISURFACE))**2-ABS(W(ISURFACE))**2)/ABS(W0(ISURFACE))**2
+    sumg1 = SUM(gg1)
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    !% CHANGE POTENTIAL ENERGY SURFACE %!
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!      
+    IF(ISURFACE == 1) THEN
+      MINDE=(E0(ISURFACE+1)-E0(ISURFACE))
+      iefre=isurface+1
+    ELSEIF(ISURFACE == nefre) THEN
+      MINDE=(E0(ISURFACE)-E0(ISURFACE-1))
+      iefre = isurface-1
+    ELSEIF((E0(ISURFACE+1)-E0(ISURFACE)) < (E0(ISURFACE)-E0(ISURFACE-1))) THEN
+      MINDE=(E0(ISURFACE+1)-E0(ISURFACE))
+      iefre= isurface+1
+    ELSE
+      MINDE=(E0(ISURFACE)-E0(ISURFACE-1))
+      iefre= isurface-1
+    ENDIF 
+    
+    gg(iefre) = sumg0 - (sumg1-gg1(iefre))
+    if(gg(iefre) < 0.0) gg(iefre)=0.0
+    if(SUM(GG) > 1.0 ) GG=GG/SUM(GG)
+    
+  end subroutine calculate_sumg_pes
   
+  
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !% NONADIABATIC TRANSITION %!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !% REF: NOTEBOOK PAGE 635  %!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  subroutine nonadiabatic_transition(lelec,isurface,EE,PP,DD,GG,WW,VV)
+    use randoms,only :more_random
+    use modes,only : nmodes
+    implicit none
+    logical , intent(in) :: lelec
+    integer , intent(inout)  :: isurface
+    real(kind=dp),intent(in) :: EE(nefre)
+    real(kind=dp),intent(in) :: PP(nefre,nefre)
+    real(kind=dp),intent(in) :: DD(nefre,nefre,nmodes,nqtotf)
+    real(kind=dp),intent(in) :: GG(nefre)
+    real(kind=dp),intent(inout) :: VV(nmodes,nqtotf)
+    complex(kind=dpc),intent(in) :: WW(nefre)
+    
+    real(kind=dp) :: sumvd,sumdd,sumgg,flagr,flagd,detaE
+    integer :: iefre,imode,iq
+    
+    call more_random()
+    call random_number(flagr)
+    sumgg = 0.0d0
+    do iefre=1,nefre
+      if(iefre /= isurface) then
+        sumgg = sumgg + GG(iefre)
+        if(flagr < sumgg) then
+          sumvd = 0.0
+          sumdd = 0.0
+          do iq=1,nqtotf
+            do imode=1,nmodes
+              sumvd = sumvd + PP(imode,iq)*DD(isurface,iefre,imode,iq)
+              sumdd = sumdd + DD(isurface,iefre,imode,iq)**2
+            enddo
+          enddo
+          detaE = EE(isurface)-EE(iefre)
+          if(.not. lelec) detaE = -1.0*detaE  ! 针对空穴修改能量
+          flagd = 1.0+2.0*detaE*sumdd/sumvd**2  
+          
+          if(flagd > 0.0) then
+            flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
+            do iq=1,nqtotf
+              do imode=1,nmodes
+                VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,iefre,imode,iq)
+              enddo
+            enddo
+            isurface = iefre
+          endif
+          
+          exit
+        endif
+      endif
+    enddo
+  
+  end subroutine nonadiabatic_transition
   
 end module surfacehopping
