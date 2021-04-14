@@ -44,7 +44,7 @@ program lvcsh
   use elph2,only          : wf,nqtotf,nktotf,nbndfst
   use disp,only           : ph_configuration
   use modes,only          : nmodes
-  use io      ,only       : stdout,io_time,time1
+  use io      ,only       : stdout,io_time,time1,time2
   use dynamics,only       : rk4_nuclei,rk4_electron_diabatic,lelec,lhole,ADD_BATH_EFFECT
   !use dynamica
   implicit none
@@ -117,16 +117,15 @@ program lvcsh
         != add bath effect =!
         !===================!        
         call add_bath_effect(E0,P0,d0,dt,phQ,phP)
-!
-!        !============================!
-!        != reset dynamical variable =!
-!        !============================!
-!
-!        phQ0=phQ; phQ0=phQ; E0_e=E_e; p0_e=p_e; d0_e=d_e; w0_e=w_e;w0_h=w_h
-!        E0_h=E_h; p0_h=p_h; d0_h=d_h
-!        time2   = io_time()
-!        write(stdout,"(A5,1X,I10,1X,F15.6,1X,A10)") 'Step=',istep,(time2-time1),"seconds"        
-!      enddo
+
+        !============================!
+        != reset dynamical variable =!
+        !============================!
+
+        phQ0=phQ; phP0=phP; e0=e; p0=p; d0=d; w0_e=w_e; w0_h=w_h
+        time2   = io_time()
+        write(stdout,"(A5,1X,I10,1X,F15.6,1X,A10)") 'Step=',istep,(time2-time1),"seconds"        
+      enddo
 !      
 !      !=====================!
 !      != store information =!
@@ -150,7 +149,6 @@ program lvcsh
 !        xsit(ifreem,isnap)=xsit(ifreem,isnap)+phQ(ifreem)
 !        !!平均动能
 !        ksit(ifreem,isnap)=ksit(ifreem,isnap)+0.5d0*phP(ifreem)**2
-      enddo
 !           
     enddo
 !    !!
