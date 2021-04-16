@@ -4,22 +4,23 @@ module surfacehopping
   use elph2,only  : wf,epcq,nktotf,nbndfst,nqtotf,ibndmin,ibndmax
   use hamiltonian,only : nphfre,nefre
   use parameters, only : nsnap,naver
+  use surfacecom
   implicit none
-  integer :: iaver
-  integer :: isnap,istep
-  integer :: iesurface,ihsurface
-  integer :: ierr
-
-  ! phonons normal mode coordinate,and phonons P
-  real(kind=dp),allocatable :: phQ(:,:),phP(:,:),phQ0(:,:),phP0(:,:)
-  real(kind=dp),allocatable :: e(:),p(:,:),p_nk(:,:,:),d(:,:,:,:),ge(:),gh(:)
-  real(kind=dp),allocatable :: e0(:),p0(:,:),d0(:,:,:,:),ge1(:),gh1(:)  
-  real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
-                               psit(:,:),xsit(:,:),ksit(:,:) 
-  real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
-  complex(kind=dpc),allocatable :: celec_nk(:,:),w_e(:),w0_e(:)
-  complex(kind=dpc),allocatable :: chole_nk(:,:),w_h(:),w0_h(:)
-  real(kind=dp) :: minde_e,minde_h,sumg0_e,sumg0_h,sumg1_e,sumg1_h
+  !integer :: iaver
+  !integer :: isnap,istep
+  !integer :: iesurface,ihsurface
+  !integer :: ierr
+  !
+  !! phonons normal mode coordinate,and phonons P
+  !real(kind=dp),allocatable :: phQ(:,:),phP(:,:),phQ0(:,:),phP0(:,:)
+  !real(kind=dp),allocatable :: e(:),p(:,:),p_nk(:,:,:),d(:,:,:,:),ge(:),gh(:)
+  !real(kind=dp),allocatable :: e0(:),p0(:,:),d0(:,:,:,:),ge1(:),gh1(:)  
+  !real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
+  !                             psit(:,:),xsit(:,:),ksit(:,:) 
+  !real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
+  !complex(kind=dpc),allocatable :: celec_nk(:,:),w_e(:),w0_e(:)
+  !complex(kind=dpc),allocatable :: chole_nk(:,:),w_h(:),w0_h(:)
+  !real(kind=dp) :: minde_e,minde_h,sumg0_e,sumg0_h,sumg1_e,sumg1_h
   contains
   
   subroutine allocatesh(nmodes)
@@ -228,6 +229,8 @@ module surfacehopping
     
     gg = 0.0
     gg1= 0.0
+    ! FSSH
+    ! ref: 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
     do iefre=1,nefre
       if(iefre /= isurface) then
         sumvd = 0.0
@@ -236,8 +239,10 @@ module surfacehopping
             sumvd = sumvd+VV(imode,iq)*dd(isurface,iefre,imode,iq)
           enddo
         enddo
+        ! in adiabatic representation：the switching probabilities from the active surface isurface to another surface iefre 
         gg(iefre)=2.0*tt*Real(CONJG(WW(isurface))*WW(iefre))*sumvd/REAL(CONJG(WW(isurface))*WW(isurface))
-        gg1(iefre) = gg(iefre)
+        gg1(iefre) = gg(iefre)  ! 绝热表象原始的跃迁几率
+        !FSSH if g_ij<0,reset to g_ij=0
         if(gg(iefre) < 0.0) gg(iefre) = 0.0
       endif
     enddo
@@ -258,6 +263,9 @@ module surfacehopping
     
     integer :: iefre
     
+    ! sumg0 总的跃迁几率(透热表象下计算得出)
+    ! SC_FSSH
+    ! ref: 1 L. Wang, and O. V. Prezhdo, Journal of Physical Chemistry Letters 5 (2014) 713.
     sumg0 = (ABS(W0(ISURFACE))**2-ABS(W(ISURFACE))**2)/ABS(W0(ISURFACE))**2
     sumg1 = SUM(gg1)
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
@@ -280,6 +288,36 @@ module surfacehopping
     gg(iefre) = sumg0 - (sumg1-gg1(iefre))
     if(gg(iefre) < 0.0) gg(iefre)=0.0
     if(SUM(GG) > 1.0 ) GG=GG/SUM(GG)
+
+    !elseif(trim(adjustl(MMSH)) == "CC-FSSH") then
+    !  lallocate = allocated(S_ai)
+    !  if(.not. lallocate) allocate(S_ai(nbasis))
+    !  S_ai = cmplx_0
+    !  isurface_a = isurface
+    !  S_aa = SUM(pp0(:,isurface_a)*pp(:,isurface_a))
+    !  !S_aa = SUM(CONJG(pp0(:,isurface_a))*pp(:,isurface_a))
+    !  if(S_aa**2 >= 0.5) then
+    !    isurface_j = isurface_a
+    !  else
+    !    do ibasis = 1,nbasis
+    !      S_ai(ibasis) = SUM(pp0(:,isurface_a)*pp(:,ibasis))
+    !      !S_ai(ibasis) = SUM(CONJG(pp0(:,isurface_a))*pp(:,ibasis))
+    !    enddo
+    !    S_ai = S_ai**2
+    !    !S_ai = CONJG(S_ai)*S_ai
+    !    max_Sai =  MAXLOC(S_ai)
+    !    isurface_j = max_Sai(1)
+    !  endif
+    !  if(isurface_j == isurface) then
+    !    gg = gg1
+    !  else
+    !    GG(itrival) = sumg0 - (SUM(GG1)-GG1(itrival))
+    !    if(GG(itrival) < 0.0d0) GG(itrival) = 0.0d0
+    !    if(SUM(GG) > 1.0d0) GG=GG/SUM(GG)
+    !  endif
+    !
+    !endif    
+
     
   end subroutine calculate_sumg_pes
   

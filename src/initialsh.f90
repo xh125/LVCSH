@@ -12,7 +12,7 @@ module initialsh
     use epwcom,only : nkf1,nkf2,nkf3
     use readepw,only : E_nk
     use elph2,only  : vmef,ibndmin,ibndmax,nbndfst,nkf  !vmef(3,nbndsub,nbndsub,nkf)
-    use lasercom,only: W_cvk,get_Mcvk !W_cvk(nbndfst,nbndfst,nkf)
+    use getmcvk,only: W_cvk,get_Mcvk !W_cvk(nbndfst,nbndfst,nkf)
     use constants,only :ryd2eV
     implicit none
     

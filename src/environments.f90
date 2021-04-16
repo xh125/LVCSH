@@ -102,9 +102,14 @@ module environments
   subroutine set_mkl_threads(mkl_threads)
     implicit none
     integer,intent(in) :: mkl_threads
-    call mkl_set_num_threads(mkl_threads)
+    if(mkl_threads <= max_threads) then
+      call mkl_set_num_threads(mkl_threads)
+    else
+      write(stdout,"(5x,A)") "The mkl_threads is setting wrong!!"
+      write(stdout,"(5x,A,I,A,I)"),"The max_threads is:",max_threads,"mkl_threads need <",max_threads
+    endif
     write(stdout,*) repeat("=",57)
-    write(stdout,"(5X,A,i3,A)") "Reset Intel MKL uses ",max_threads," threads." 
+    write(stdout,"(5X,A,i3,A)") "Reset Intel MKL uses ",mkl_threads," threads." 
     write(stdout,*) 
   end subroutine set_mkl_threads
 
