@@ -194,7 +194,7 @@ implicit none
     if(ctmp(1:26)=="Starting charge structure ") then
       read(pwscfout_unit,"(///,A)") ctmp
       DO nt = 1, ntyp
-        WRITE( pwscfout_unit, '(5x,a6,9x,f6.3)') atm(nt), starting_charge(nt)
+        read( pwscfout_unit, '(5x,a6,9x,f6.3)') atm(nt), starting_charge(nt)
       ENDDO      
     endif    
 
@@ -313,16 +313,156 @@ implicit none
     endif
     
     
+    !CALL create_scf_type( rhoin )
+    call findkline(pwscfout_unit,"Self-consistent Calculation",6,32)
+    
+    call findkline(pwscfout_unit,"End of self-consistent calculation",6,39) ! line 847 of electrons.f90
+    conv_elec = .true.
+    
+    ! call print_ks_engergies()
+    read(pwscfout_unit,"(/,5x,a)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp=="Number of k-points >= 100: set verbosity='high' to print the bands.") then
+      write(stdout,*) "Don't print_ks_engergies for the reason of nkstot >=100 and iverbosity <=0"
+      write(stdout,*) "need to set iverbosity = 1 in scf.in"
+    else
+      allocate ( ngk_g(nkstot))
+      read(pwscfout_unit,"(/,A)") ctmp
+      if(ctmp == "------") then
+        lforcet = .true.
+        read(pwscfout_unit,"(///)")
+      else
+        lforcet = .false.
+        backspace(unit=pwscfout_unit)
+        backspace(unit=pwscfout_unit)
+      endif                  
     
     allocate(et(nbnd,nk_),wg(nbnd,nk_))
-    call findkline(pwscfout_unit,"          k =",1,13)
-    backspace(pwscfout_unit)
-    do ik=1,nk_
-      read(pwscfout_unit,"(/,A,/)") ctmp
+    
+    do ik=1,nkstot
+      if (lsda) read(pwscfout_unit,*) 
+      read(pwscfout_unit,"(A)") ctmp
+      backspace(unit=pwscfout_unit)
+      if(ctmp(36:37)=="(") then
+        conv_elec = .true.
+        read(pwscfout_unit,"(/,13X,3F7.4,2X,I6)") (xk(i,ik),i=1,3),ngk_g(ik)
+        ! FORMAT(/'          k =',3F7.4,'     band energies (ev):'/ )
+        ! FORMAT(/'          k =',3F7.4,' (',I6,' PWs)   bands (ev):'/ )
+      else
+        conv_elec = .false.
+        read(pwscfout_unit,"(/,13X,3F7.4)") (xk(i,ik),i=1,3)
+      endif
       read(pwscfout_unit,"(2X,8F9.4)") (et(ibnd,ik),ibnd=1,nbnd)
-      read(pwscfout_unit,"(A,/)") ctmp
-      read(pwscfout_unit,"(2X,8F9.4)") (wg(ibnd,ik),ibnd=1,nbnd)
+      read(pwscfout_unit,"(/,A)") ctmp
+      if(ctmp == "     occupation numbers ") tnen
+        lbands = .false.
+        read(pwscfout_unit,"(2X,8F9.4)") (wg(ibnd,ik),ibnd=1,nbnd)
+      else
+        backspace(unit=pwscfout_unit)
+        backspace(unit=pwscfout_unit)
+      endif
+      
     enddo
+    
+    !CALL print_ks_ef_homolumo ( .false., 0.0_dp, 0.0_dp, 0.0_dp )
+    if(.not. lbands) then !IF ( .NOT. lbands) 
+      if(lgauss .or. ltetra) then
+        if(two_fermi_energies) then
+          read(pwscfout_unit,"(/,39X,2F10.4)") ef_up,ef_dw
+          ef_up = ef_up/ryd2ev
+          ef_dw = ef_dw/ryd2ev
+          !FORMAT(/'     the spin up/dw Fermi energies are ',2F10.4,' ev' )
+          if(print_ef_scf) then
+            read(pwscfout_unit,"(20X,2F10.4)") ef_scf_up,ef_scf_dw
+            ef_scf_dw= ef_scf_dw/ryd2ev
+            ef_scf_up= ef_scf_up/ryd2ev
+            !FORMAT( '     (compare with: ',2F10.4,' eV, computed in scf)' )
+          endif
+        else
+          read(pwscfout_unit,"(/,25X,f10.4)") ef
+          ef = ef/ryd2ev
+          !FORMAT(/'     the Fermi energy is ',F10.4,' ev' )
+          if(print_ef_scf) then
+            read(pwscfout_unit,"(20X,F10.4)") ef_scf
+            ef_scf = ef_scf/ryd2ev
+            !FORMAT( '     (compare with: ', F10.4,' eV, computed in scf)' )
+          endif
+        endif
+      else if(.not. one_atom_occupations) then
+        ! ... presumably not a metal: print HOMO (and LUMO if available)
+        read(pwscfout_unit,"(/,A)") ctmp
+        backspace(unit=pwscfout_unit)
+        if(ctmp(6:33)=="highest occupied level (ev):") then
+          !FORMAT(/'     highest occupied level (ev): ',F10.4 )
+          read(pwscfout_unit,"(34X,F10.4)") ehomo
+          ehomo = ehomo/ryd2ev
+        else
+          read(pwscfout_unit,"(53X,2F10.4)")ehomo,elumo
+          !FORMAT(/'     highest occupied, lowest unoccupied level (ev): ',2F10.4 ) 
+          ehomo =ehomo/ryd2ev
+          elumo = elumo/ryd2ev
+        endif
+      endif  
+    endif
+    
+    !CALL print_energies ( printout )
+    read(pwscfout_unit,"(/,32X,0PF17.8)") etot
+    !9081 FORMAT(/'!    total energy              =',0PF17.8,' Ry' )
+    read(pwscfout_unit,"(/,A)") ctmp
+    !9085 FORMAT(/'     total all-electron energy =',0PF17.6,' Ry' )
+    if(ctmp(6:32)=="total all-electron energy =") then
+      only_paw = .true.
+      backspace(unit=pwscfout_unit)
+      read(pwscfout_unit,"(32X,0PF17.6)") total_core_energy
+      total_core_energy = total_core_energy -etot
+    else
+      backspace(unit=pwscfout_unit)
+      backspace(unit=pwscfout_unit)
+    endif
+    
+    !9082 FORMAT( '     Harris-Foulkes estimate   =',0PF17.8,' Ry' )
+    read(pwscfout_unit,"(A)") ctmp
+    if(ctmp(6:32)=="Harris-Foulkes estimate   =") then
+      backspace(unit=pwscfout_unit)
+      read(pwscfout_unit,"(32X,0PF17.8)") hwf_energy
+    else
+      backspace(unit=pwscfout_unit)
+    endif
+    
+    !9083 FORMAT( '     estimated scf accuracy    <',0PF17.8,' Ry' )
+    !9084 FORMAT( '     estimated scf accuracy    <',1PE17.1,' Ry' )
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(45:46)=="E") then
+      read(pwscfout_unit,"(32X,1PE17.1)") dr2
+    else
+      read(pwscfout_unit,"(32X,0PF17.8)") dr2
+    endif
+    
+    if(lgauss) then
+      read(pwscfout_unit,"(32X,)") demet
+      read(pwscfout_unit,"(32X,)") etot
+      etot = etot+demet
+      read(pwscfout_unit,*)
+    else
+      read(pwscfout_unit,*)
+    endif
+    
+    !9062 FORMAT( '     one-electron contribution =',F17.8,' Ry' &
+    !        /'     hartree contribution      =',F17.8,' Ry' &
+    !        /'     xc contribution           =',F17.8,' Ry' &
+    !        /'     ewald contribution        =',F17.8,' Ry' )
+    read(pwscfout_unit,"(32X,/,32X,F17.8,32X,/,32X,F17.8)") ehart,ewld
+    
+    !IF ( llondon ) WRITE ( stdout , 9074 ) elondon
+    !IF ( ldftd3 )  WRITE ( stdout , 9078 ) edftd3
+    !IF ( lxdm )    WRITE ( stdout , 9075 ) exdm
+    !IF ( ts_vdw )  WRITE ( stdout , 9076 ) 2.0d0*EtsvdW
+    !IF ( textfor)  WRITE ( stdout , 9077 ) eext
+    !IF ( tefield )            WRITE( stdout, 9064 ) etotefield
+    !IF ( gate )               WRITE( stdout, 9065 ) etotgatefield
+    !IF ( lda_plus_u )         WRITE( stdout, 9066 ) eth
+    !IF ( ABS (descf) > eps8 ) WRITE( stdout, 9069 ) descf    
     
     
     
