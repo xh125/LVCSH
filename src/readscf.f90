@@ -462,8 +462,45 @@ implicit none
     !IF ( tefield )            WRITE( stdout, 9064 ) etotefield
     !IF ( gate )               WRITE( stdout, 9065 ) etotgatefield
     !IF ( lda_plus_u )         WRITE( stdout, 9066 ) eth
-    !IF ( ABS (descf) > eps8 ) WRITE( stdout, 9069 ) descf    
+    !IF ( ABS (descf) > eps8 ) WRITE( stdout, 9069 ) descf  
     
+    !9017 FORMAT(/'     total magnetization       =', F9.2,' Bohr mag/cell', &
+    !            /'     absolute magnetization    =', F9.2,' Bohr mag/cell' )
+    !9018 FORMAT(/'     total magnetization       =',3F9.2,' Bohr mag/cell' &
+    !       &   ,/'     absolute magnetization    =', F9.2,' Bohr mag/cell' )
+    !9060 FORMAT(/'     The total energy is the sum of the following terms:' )
+    !9061 FORMAT(/'     The total energy is F=E-TS. E is the sum of the following terms:' )
+    !9062 FORMAT( '     one-electron contribution =',F17.8,' Ry' &
+    !            /'     hartree contribution      =',F17.8,' Ry' &
+    !            /'     xc contribution           =',F17.8,' Ry' &
+    !            /'     ewald contribution        =',F17.8,' Ry' )
+    !9064 FORMAT( '     electric field correction =',F17.8,' Ry' )
+    !9065 FORMAT( '     gate field correction     =',F17.8,' Ry' ) ! TB
+    !9066 FORMAT( '     Hubbard energy            =',F17.8,' Ry' )
+    !9067 FORMAT( '     one-center paw contrib.   =',F17.8,' Ry' )
+    !9068 FORMAT( '      -> PAW hartree energy AE =',F17.8,' Ry' &
+    !            /'      -> PAW hartree energy PS =',F17.8,' Ry' &
+    !            /'      -> PAW xc energy AE      =',F17.8,' Ry' &
+    !            /'      -> PAW xc energy PS      =',F17.8,' Ry' &
+    !            /'      -> total E_H with PAW    =',F17.8,' Ry' &
+    !            /'      -> total E_XC with PAW   =',F17.8,' Ry' )
+    !9069 FORMAT( '     scf correction            =',F17.8,' Ry' )
+    !9070 FORMAT( '     smearing contrib. (-TS)   =',F17.8,' Ry' )
+    !9071 FORMAT( '     Magnetic field            =',3F12.7,' Ry' )
+    !9072 FORMAT( '     pot.stat. contrib. (-muN) =',F17.8,' Ry' )
+    !9073 FORMAT( '     lambda                    =',F11.2,' Ry' )
+    !9074 FORMAT( '     Dispersion Correction     =',F17.8,' Ry' )
+    !9075 FORMAT( '     Dispersion XDM Correction =',F17.8,' Ry' )
+    !9076 FORMAT( '     Dispersion T-S Correction =',F17.8,' Ry' )
+    !9077 FORMAT( '     External forces energy    =',F17.8,' Ry' )
+    !9078 FORMAT( '     DFT-D3 Dispersion         =',F17.8,' Ry' )
+    !9080 FORMAT(/'     total energy              =',0PF17.8,' Ry' )
+    !9081 FORMAT(/'!    total energy              =',0PF17.8,' Ry' )
+    !9082 FORMAT( '     Harris-Foulkes estimate   =',0PF17.8,' Ry' )
+    !9083 FORMAT( '     estimated scf accuracy    <',0PF17.8,' Ry' )
+    !9084 FORMAT( '     estimated scf accuracy    <',1PE17.1,' Ry' )
+    !9085 FORMAT(/'     total all-electron energy =',0PF17.6,' Ry' )
+    !9170 FORMAT( '     internal energy E=F+TS    =',0PF17.8,' Ry' )    
     
     
     call close_file(pwscfout_name,pwscfout_unit)
