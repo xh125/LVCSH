@@ -1,26 +1,37 @@
 module readscf
-implicit none
-  
+  use kinds,only : dp
+  implicit none
+  logical :: print_ef_scf = .false.
+  real(kind=dp) :: ef_scf_up,ef_scf_dw  
   contains
   
   subroutine readpwscf_out(pwscfout_name)
-    use constants,only : maxlen
+    use constants,only : maxlen,ryd2ev
     use io,only : stdout,io_file_unit,open_file,close_file,findkword,findkline,io_error
     use kinds,only : dp
     use cell_base,only : alat, ibrav, omega,celldm,at,bg,wmass
     use ions_base,only : nat,iat, ntyp,ityp,atm,zv,amass,iatm,tau,xau
     use symm_base,only : nsym,isym,sname,s, sr
-    use klist,only : nelec,nelup,neldw,two_fermi_energies,nkstot,lgauss,ltetra,xk,wk
+    use klist,only : nelec,nelup,neldw,two_fermi_energies,nkstot,lgauss,ltetra,xk,wk,tot_charge
     use gvec, only : ecutrho,ecutwfc,dft_is_hybrid,ecutfock,ecfixed,qcutz,q2sigma,&
                     doublegrid,ngm_g,ngms_g
     use relax, only: epse,epsf,epsp
     use funct, only: iexch, icorr, igcx, igcc, inlc, imeta, imetac,exx_fraction,dft
-    use pw_control_flags, only : nstep,nmix,imix,tr2,mixing_beta,mixing_style,lscf
-    use spin_orb,only :lspinorb,domag
+    use pw_control_flags, only : nstep,nmix,imix,tr2,mixing_beta,mixing_style,lscf,conv_elec,&
+                                  lbands,llondon,ldftd3,lxdm,ts_vdw,textfor,iverbosity,&
+                                  conv_elec
+    use ener,only : etot, hwf_energy, eband, deband, ehart, &
+                    vtxc, etxc, etxcc, ewld, demet, epaw, &
+                    elondon, edftd3, ef_up, ef_dw, exdm,ef
+    USE tsvdw_module,         ONLY : EtsvdW 
+    use spin_orb,only :lspinorb,domag,lforcet
     use noncolin_module,only : noncolin
     use vlocal,only : starting_charge
     use lsda_mod,only : lsda,starting_magnetization
     use wvfct,only : nbnd,et,wg
+    use fixed_occ,only : one_atom_occupations
+    USE paw_variables,ONLY : okpaw, ddd_paw, total_core_energy, only_paw 
+    USE extfield,             ONLY : tefield, etotefield,gate, etotgatefield
     
     implicit none
     character(len=*),intent(in) :: pwscfout_name
@@ -33,7 +44,28 @@ implicit none
     logical :: lfindkword 
     integer :: i,ipol,apol,nt,ik,ibnd
     REAL(DP) :: xkg_(3)
+    real(kind=dp) :: ef_scf = 0.0,ehomo,elumo
+    REAL(DP) :: eext=0.0_DP
+    !! external forces contribution to the total energy
+    REAL(DP) :: dr2
+    !! the norm of the diffence between potential    
+    !LOGICAL :: tefield
+    !! if .TRUE. a finite electric field is added to the
+    !! local potential
+    !LOGICAL :: dipfield
+    !! if .TRUE. the dipole field is subtracted
+    ! TB
+    
     ! coordinates of the k point in crystal axes
+    ! ... a few local variables
+    !  
+    INTEGER, ALLOCATABLE :: &
+        ngk_g(:)       ! number of plane waves summed on all nodes
+    logical :: lda_plus_u
+    real(kind=dp) :: eth
+    REAL(DP) :: descf
+    !! correction for variational energy    
+    
     pwscfout_unit = io_file_unit()
     
     
@@ -337,32 +369,33 @@ implicit none
         backspace(unit=pwscfout_unit)
       endif                  
     
-    allocate(et(nbnd,nk_),wg(nbnd,nk_))
+      allocate(et(nbnd,nk_),wg(nbnd,nk_))
     
-    do ik=1,nkstot
-      if (lsda) read(pwscfout_unit,*) 
-      read(pwscfout_unit,"(A)") ctmp
-      backspace(unit=pwscfout_unit)
-      if(ctmp(36:37)=="(") then
-        conv_elec = .true.
-        read(pwscfout_unit,"(/,13X,3F7.4,2X,I6)") (xk(i,ik),i=1,3),ngk_g(ik)
-        ! FORMAT(/'          k =',3F7.4,'     band energies (ev):'/ )
-        ! FORMAT(/'          k =',3F7.4,' (',I6,' PWs)   bands (ev):'/ )
-      else
-        conv_elec = .false.
-        read(pwscfout_unit,"(/,13X,3F7.4)") (xk(i,ik),i=1,3)
-      endif
-      read(pwscfout_unit,"(2X,8F9.4)") (et(ibnd,ik),ibnd=1,nbnd)
-      read(pwscfout_unit,"(/,A)") ctmp
-      if(ctmp == "     occupation numbers ") tnen
-        lbands = .false.
-        read(pwscfout_unit,"(2X,8F9.4)") (wg(ibnd,ik),ibnd=1,nbnd)
-      else
+      do ik=1,nkstot
+        if (lsda) read(pwscfout_unit,*) 
+        read(pwscfout_unit,"(A)") ctmp
         backspace(unit=pwscfout_unit)
-        backspace(unit=pwscfout_unit)
-      endif
-      
-    enddo
+        if(ctmp(36:37)=="(") then
+          conv_elec = .true.
+          read(pwscfout_unit,"(/,13X,3F7.4,2X,I6)") (xk(i,ik),i=1,3),ngk_g(ik)
+          ! FORMAT(/'          k =',3F7.4,'     band energies (ev):'/ )
+          ! FORMAT(/'          k =',3F7.4,' (',I6,' PWs)   bands (ev):'/ )
+        else
+          conv_elec = .false.
+          read(pwscfout_unit,"(/,13X,3F7.4)") (xk(i,ik),i=1,3)
+        endif
+        read(pwscfout_unit,"(2X,8F9.4)") (et(ibnd,ik),ibnd=1,nbnd)
+        read(pwscfout_unit,"(/,A)") ctmp
+        if(ctmp == "     occupation numbers ") then
+          lbands = .false.
+          read(pwscfout_unit,"(2X,8F9.4)") (wg(ibnd,ik),ibnd=1,nbnd)
+        else
+          backspace(unit=pwscfout_unit)
+          backspace(unit=pwscfout_unit)
+        endif
+        
+      enddo
+    endif
     
     !CALL print_ks_ef_homolumo ( .false., 0.0_dp, 0.0_dp, 0.0_dp )
     if(.not. lbands) then !IF ( .NOT. lbands) 
@@ -440,8 +473,8 @@ implicit none
     endif
     
     if(lgauss) then
-      read(pwscfout_unit,"(32X,)") demet
-      read(pwscfout_unit,"(32X,)") etot
+      read(pwscfout_unit,"(32X,F17.8)") demet
+      read(pwscfout_unit,"(32X,0PF17.8)") etot
       etot = etot+demet
       read(pwscfout_unit,*)
     else
@@ -454,54 +487,110 @@ implicit none
     !        /'     ewald contribution        =',F17.8,' Ry' )
     read(pwscfout_unit,"(32X,/,32X,F17.8,32X,/,32X,F17.8)") ehart,ewld
     
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="Dispersion Correction     =") then
+      llondon = .true.
+      read(pwscfout_unit,"(32X,F17.8)") elondon
+    endif
+    
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="DFT-D3 Dispersion         =") then
+      ldftd3 = .true.
+      read(pwscfout_unit,"(32X,F17.8)") edftd3
+    endif    
+    
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="Dispersion XDM Correction =") then
+      lxdm = .true.
+      read(pwscfout_unit,"(32X,F17.8)") exdm
+    endif        
+
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="Dispersion T-S Correction =") then
+      ts_vdw = .true.
+      read(pwscfout_unit,"(32X,F17.8)") EtsvdW
+      EtsvdW = EtsvdW/ 2.0
+    endif   
+    
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="External forces energy    =") then
+      textfor = .true.
+      read(pwscfout_unit,"(32X,F17.8)") eext
+    endif         
+    
+    
+    
     !IF ( llondon ) WRITE ( stdout , 9074 ) elondon
     !IF ( ldftd3 )  WRITE ( stdout , 9078 ) edftd3
     !IF ( lxdm )    WRITE ( stdout , 9075 ) exdm
     !IF ( ts_vdw )  WRITE ( stdout , 9076 ) 2.0d0*EtsvdW
     !IF ( textfor)  WRITE ( stdout , 9077 ) eext
     !IF ( tefield )            WRITE( stdout, 9064 ) etotefield
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="electric field correction =") then
+      tefield = .true.
+      read(pwscfout_unit,"(32X,F17.8)") etotefield
+    endif    
     !IF ( gate )               WRITE( stdout, 9065 ) etotgatefield
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="gate field correction     =") then
+      gate = .true.
+      read(pwscfout_unit,"(32X,F17.8)") etotgatefield
+    endif             
     !IF ( lda_plus_u )         WRITE( stdout, 9066 ) eth
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="Hubbard energy            =") then
+       lda_plus_u= .true.
+      read(pwscfout_unit,"(32X,F17.8)") eth
+    endif        
     !IF ( ABS (descf) > eps8 ) WRITE( stdout, 9069 ) descf  
-    
-    !9017 FORMAT(/'     total magnetization       =', F9.2,' Bohr mag/cell', &
-    !            /'     absolute magnetization    =', F9.2,' Bohr mag/cell' )
-    !9018 FORMAT(/'     total magnetization       =',3F9.2,' Bohr mag/cell' &
-    !       &   ,/'     absolute magnetization    =', F9.2,' Bohr mag/cell' )
-    !9060 FORMAT(/'     The total energy is the sum of the following terms:' )
-    !9061 FORMAT(/'     The total energy is F=E-TS. E is the sum of the following terms:' )
-    !9062 FORMAT( '     one-electron contribution =',F17.8,' Ry' &
-    !            /'     hartree contribution      =',F17.8,' Ry' &
-    !            /'     xc contribution           =',F17.8,' Ry' &
-    !            /'     ewald contribution        =',F17.8,' Ry' )
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="scf correction            =") then
+   
+      read(pwscfout_unit,"(32X,F17.8)") descf 
+    endif        
     !9064 FORMAT( '     electric field correction =',F17.8,' Ry' )
     !9065 FORMAT( '     gate field correction     =',F17.8,' Ry' ) ! TB
     !9066 FORMAT( '     Hubbard energy            =',F17.8,' Ry' )
     !9067 FORMAT( '     one-center paw contrib.   =',F17.8,' Ry' )
     !9068 FORMAT( '      -> PAW hartree energy AE =',F17.8,' Ry' &
-    !            /'      -> PAW hartree energy PS =',F17.8,' Ry' &
-    !            /'      -> PAW xc energy AE      =',F17.8,' Ry' &
-    !            /'      -> PAW xc energy PS      =',F17.8,' Ry' &
-    !            /'      -> total E_H with PAW    =',F17.8,' Ry' &
-    !            /'      -> total E_XC with PAW   =',F17.8,' Ry' )
+    !        /'      -> PAW hartree energy PS =',F17.8,' Ry' &
+    !        /'      -> PAW xc energy AE      =',F17.8,' Ry' &
+    !        /'      -> PAW xc energy PS      =',F17.8,' Ry' &
+    !        /'      -> total E_H with PAW    =',F17.8,' Ry' &
+    !        /'      -> total E_XC with PAW   =',F17.8,' Ry' )
     !9069 FORMAT( '     scf correction            =',F17.8,' Ry' )
-    !9070 FORMAT( '     smearing contrib. (-TS)   =',F17.8,' Ry' )
-    !9071 FORMAT( '     Magnetic field            =',3F12.7,' Ry' )
-    !9072 FORMAT( '     pot.stat. contrib. (-muN) =',F17.8,' Ry' )
-    !9073 FORMAT( '     lambda                    =',F11.2,' Ry' )
     !9074 FORMAT( '     Dispersion Correction     =',F17.8,' Ry' )
     !9075 FORMAT( '     Dispersion XDM Correction =',F17.8,' Ry' )
     !9076 FORMAT( '     Dispersion T-S Correction =',F17.8,' Ry' )
     !9077 FORMAT( '     External forces energy    =',F17.8,' Ry' )
     !9078 FORMAT( '     DFT-D3 Dispersion         =',F17.8,' Ry' )
-    !9080 FORMAT(/'     total energy              =',0PF17.8,' Ry' )
-    !9081 FORMAT(/'!    total energy              =',0PF17.8,' Ry' )
-    !9082 FORMAT( '     Harris-Foulkes estimate   =',0PF17.8,' Ry' )
-    !9083 FORMAT( '     estimated scf accuracy    <',0PF17.8,' Ry' )
-    !9084 FORMAT( '     estimated scf accuracy    <',1PE17.1,' Ry' )
-    !9085 FORMAT(/'     total all-electron energy =',0PF17.6,' Ry' )
-    !9170 FORMAT( '     internal energy E=F+TS    =',0PF17.8,' Ry' )    
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="one-center paw contrib.   =") then
+      okpaw = .true.
+      read(pwscfout_unit,"(32X,F17.8)") epaw 
+      if(iverbosity > 0 ) then
+        read(pwscfout_unit,"(/////)")
+      endif
+    endif            
     
+    !9072 FORMAT( '     pot.stat. contrib. (-muN) =',F17.8,' Ry' )
+    read(pwscfout_unit,"(A)") ctmp
+    backspace(unit = pwscfout_unit)
+    if(ctmp(6:32)=="pot.stat. contrib. (-muN) =") then
+      read(pwscfout_unit,"(32X,F17.8)") tot_charge 
+      tot_charge = tot_charge/ef
+    endif            
     
     call close_file(pwscfout_name,pwscfout_unit)
     write(stdout,*) "Read PWscf outfile Succesful."

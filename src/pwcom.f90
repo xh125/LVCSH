@@ -168,7 +168,6 @@ module pw_control_flags
     lensemb =.FALSE., &! if .TRUE. compute ensemble energies
     restart =.FALSE.   ! if .TRUE. restart from results of a preceding run
   
-  
   !
   ! ... ionic dynamics
   !
@@ -179,7 +178,22 @@ module pw_control_flags
     conv_ions          ! if .TRUE. ionic convergence has been reached
   REAL(DP), PUBLIC  :: &
     upscale            ! maximum reduction of convergence threshold  
+
+  ! ... External Forces on Ions
+  !
+  LOGICAL,          PUBLIC :: textfor = .FALSE.
+
+
+  LOGICAL,          PUBLIC :: treinit_gvecs = .FALSE.
   
+  ! ... printout control
+  !
+  INTEGER, PUBLIC :: &
+    io_level = 1       ! variable controlling the amount of I/O to file
+  INTEGER, PUBLIC :: & ! variable controlling the amount of I/O to output
+    iverbosity = 0     ! -1 minimal, 0 low, 1 medium, 2 high, 3 debug
+
+    
 end module pw_control_flags
 
 MODULE vlocal
@@ -356,6 +370,173 @@ MODULE ener
   !
 END MODULE ener
 
+MODULE fixed_occ
+  !
+  !! The quantities needed in calculations with fixed occupations.
+  !
+  USE kinds,      ONLY : DP
+  !
+  SAVE
+  !
+  REAL(DP), ALLOCATABLE :: f_inp(:,:)
+  !! the occupations for each spin
+  LOGICAL :: tfixed_occ
+  !! if .TRUE. the occupations are fixed.
+  LOGICAL :: one_atom_occupations
+  !! if .TRUE. the occupations are decided according to the projections of the
+  !! wavefunctions on the initial atomic  wavefunctions (to be used only
+  !! for an isolated atom).
+  !
+END MODULE fixed_occ
+
+MODULE paw_variables
+    !
+    USE kinds,      ONLY : DP
+    !
+    IMPLICIT NONE
+    PUBLIC
+    SAVE
+
+    !!!!!!!!!!!!!!!!!!!!!!!!
+    !!!! Control flags: !!!!
+
+    ! Set to true after initialization, to prevent double allocs:
+    LOGICAL              :: paw_is_init = .false.
+    ! Analogous to okvan in  "uspp_param" (Modules/uspp.f90)
+    LOGICAL :: &
+         okpaw = .FALSE.          ! if .TRUE. at least one pseudo is PAW
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!! Pseudopotential data: !!!!
+
+    ! There is (almost) no pseudopotential data here, it is all stored in the upf type.
+    ! See files pseudo_types.f90 and read_uspp.f90
+
+    ! Constant to be added to etot to get all-electron energy 
+    REAL(DP) :: total_core_energy = 0._dp
+    ! true if all the pseudopotentials are PAW
+    LOGICAL  :: only_paw
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!! Initialization data: !!!!
+
+    INTEGER,PARAMETER    :: lm_fact = 3   ! To converge E_xc integrate up to LM = lm_fact * lm_max
+    INTEGER,PARAMETER    :: lm_fact_x = 3 ! As above, for gradient corrected functionals
+    INTEGER,PARAMETER    :: xlm = 2       ! Additional factor to add to have a good grad.corr.
+    INTEGER,PARAMETER    :: radial_grad_style = 0 ! = 0 or 1, algorithm to use for d/dr
+
+    TYPE paw_radial_integrator
+        ! the following variables are used to integrate radial sampling
+        INTEGER          :: lmax        ! max l component that can be integrated correctly
+        INTEGER          :: ladd        ! additional l max that have been added for grad.corr.
+        INTEGER          :: lm_max      ! as above, but +1 and squared
+        INTEGER          :: nx          ! number of integration directions
+        REAL(DP),POINTER :: ww(:)       ! integration weights (one per direction)
+        REAL(DP),POINTER :: ylm(:,:)    ! Y_lm(nx,lm_max)
+        REAL(DP),POINTER :: wwylm(:,:)  ! ww(nx) * Y_lm(nx,lm_max)
+        ! additional variables for gradient correction
+        REAL(DP),POINTER :: dylmt(:,:),&! |d(ylm)/dtheta|**2
+                            dylmp(:,:)  ! |d(ylm)/dphi|**2
+        REAL(DP),POINTER :: cos_phi(:)  ! cos(phi)  
+        REAL(DP),POINTER :: sin_phi(:)  ! sin(phi)  
+        REAL(DP),POINTER :: cos_th(:)  ! cos(theta)  (for divergence)
+        REAL(DP),POINTER :: sin_th(:)  ! sin(theta)  (for divergence)
+        REAL(DP),POINTER :: cotg_th(:)  ! cos(theta)/sin(theta)  (for divergence)
+    END TYPE
+    TYPE(paw_radial_integrator), ALLOCATABLE :: &
+        rad(:) ! information to integrate different atomic species
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!! self-consistent variables: !!!!
+
+    ! This type contains some useful data that has to be passed to all
+    ! functions, but cannot stay in global variables for parallel:
+    TYPE paw_info
+        INTEGER :: a ! atom index
+        INTEGER :: t ! atom type index = itype(a)
+        INTEGER :: m ! atom mesh = g(t)%mesh
+        INTEGER :: b ! number of beta functions = upf(t)%nbeta
+        INTEGER :: l ! max angular index l+1 -> (l+1)**2 is max
+                     ! lm index, it is used to allocate rho
+        INTEGER :: ae ! tells if we are doing all-electron (1) or pseudo (2)
+    END TYPE
+
+    ! Analogous to deeq in "uspp_param" (Modules/uspp.f90)
+    REAL(DP), ALLOCATABLE :: &
+         ddd_paw(:,:,:)  ! D: D^1_{ij} - \tilde{D}^1_{ij} (only Hxc part)
+
+    REAL(DP), ALLOCATABLE ::  vs_rad(:,:,:)
+
+ END MODULE paw_variables
+
+module tsvdw_module
+  use kinds,only : dp
+  ! PUBLIC variables 
+  !
+  LOGICAL, PUBLIC :: vdw_isolated    ! isolated system control
+  REAL(DP), PUBLIC:: vdw_econv_thr   ! energy convergence threshold for periodic systems
+  REAL(DP), PUBLIC :: EtsvdW                                   !the TS-vdW energy
+  REAL(DP), DIMENSION(:), ALLOCATABLE, PUBLIC :: UtsvdW        !the TS-vdW wavefunction forces (dispersion potential)
+  REAL(DP), DIMENSION(:,:), ALLOCATABLE, PUBLIC :: FtsvdW      !the TS-vdW ionic forces (-dE/dR)
+  REAL(DP), DIMENSION(:,:), ALLOCATABLE, PUBLIC :: HtsvdW      !the TS-vdW cell forces (dE/dh)
+  REAL(DP), DIMENSION(:), ALLOCATABLE, PUBLIC :: VefftsvdW     !the TS-vdW effective Hirshfeld volume
+end module tsvdw_module
+
+MODULE extfield
+  !! The quantities needed in calculations with external field.
+  !
+  USE kinds, ONLY : DP
+  !
+  SAVE
+  !
+  LOGICAL :: tefield
+  !! if .TRUE. a finite electric field is added to the
+  !! local potential
+  LOGICAL :: dipfield
+  !! if .TRUE. the dipole field is subtracted
+  ! TB
+  LOGICAL :: relaxz
+  !! relax in z direction
+  LOGICAL :: block
+  !! add potential barrier
+  LOGICAL :: gate
+  !! if .TRUE. and system is charged, charge is represented
+  !! with charged plate (gate)
+  !
+  INTEGER :: edir
+  !! direction of the field
+  REAL(DP) :: emaxpos
+  !! position of the maximum of the field (0<emaxpos<1)
+  REAL(DP) :: eopreg
+  !! amplitude of the inverse region (0<eopreg<1)
+  REAL(DP) :: eamp
+  !! field amplitude (in a.u.) (1 a.u. = 51.44 10^11 V/m)
+  REAL(DP) :: etotefield
+  !! energy correction due to the field
+  REAL(DP) :: el_dipole
+  !! electronic_dipole, used when dipole correction is on
+  REAL(DP) :: ion_dipole
+  !! ionic_dipole, used when dipole correction is on
+  REAL(DP) :: tot_dipole
+  !! total dipole, used when dipole correction is on
+  ! TB
+  REAL(DP) :: zgate
+  !! position of charged plate
+  REAL(DP) :: block_1
+  !! ...blocking potential
+  REAL(DP) :: block_2
+  !! ...blocking potential
+  REAL(DP) :: block_height
+  !! ...blocking potential
+  REAL(DP) :: etotgatefield
+  !! energy correction due to the gate
+  REAL(DP), ALLOCATABLE :: forcefield(:,:)
+  !
+  REAL(DP), ALLOCATABLE :: forcegate(:,:)
+  !! TB gate forces
+  !
+end module extfield
+
 MODULE pwcom
   !
   USE klist
@@ -363,6 +544,7 @@ MODULE pwcom
   USE vlocal
   USE wvfct
   USE ener
+  use fixed_occ
   USE relax
   USE spin_orb
   !
