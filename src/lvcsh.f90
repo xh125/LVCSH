@@ -58,7 +58,6 @@ program lvcsh
   if(lreadphout) call readph_out(phoutname)
   call readepwout(epwoutname)
   call set_H0_nk()
-  !call ph_configuration(nqtotf,nmodes,wf,temp)
   call init_random_seed()
   if(lsetthreads) call set_mkl_threads(mkl_threads)
   call allocatesh(nmodes)
@@ -72,7 +71,7 @@ program lvcsh
     !==================!
     != initialization =!
     !==================! 
-    !!得到简正坐标的初始位置phQ和速度phP
+    !!Get the initial normal mode coordinate phQ and versity phP
     call init_normalmode_coordinate_velocity(wf,temp,phQ,phP)
     !!得到初始电子和空穴的状态
     call init_dynamical_variable(phQ,llaser,celec_nk,chole_nk,e,p,w_e,w_h)
@@ -126,11 +125,11 @@ program lvcsh
         time2   = io_time()
         write(stdout,"(A5,1X,I10,1X,F15.6,1X,A10)") 'Step=',istep,(time2-time1),"seconds"        
       enddo
-!      
-!      !=====================!
-!      != store information =!
-!      !=====================!    
-!
+      
+      !=====================!
+      != store information =!
+      !=====================!    
+
 !      pes_elec(0,isnap,iaver)=E_e(isurface_e)
 !      pes_hole(0,isnap,iaver)=E_h(isurface_h)
 !      do ibasis=1,nbasis
@@ -151,7 +150,6 @@ program lvcsh
 !        ksit(ifreem,isnap)=ksit(ifreem,isnap)+0.5d0*phP(ifreem)**2
 !           
     enddo
-!    !!
   enddo
 !  
 !  csit_elec=csit_elec/naver
@@ -167,13 +165,13 @@ program lvcsh
 !  != save information =!
 !  !====================!
 !  call saveresult()
-!  call cpu_time(t1)
-!  write(6,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'
-!  write(stdout,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'  
-!  
-!  close(stdout)
-!  
-!  stop
+  !call cpu_time(t1)
+  !write(6,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'
+  !write(stdout,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'  
+  
+  close(stdout)
+  
+  stop
   
 end program lvcsh
 

@@ -181,6 +181,16 @@ module pw_control_flags
   REAL(DP), PUBLIC  :: &
     upscale            ! maximum reduction of convergence threshold  
 
+  ! ... Real-sapce algorithms
+  !
+  LOGICAL,          PUBLIC :: tqr=.FALSE. ! if true the Q are in real space
+
+  !LOGICAL,          PUBLIC :: real_space=.false. ! beta functions in real space
+  !
+  ! ... Augmetation charge and beta smoothing
+  !
+  LOGICAL,          PUBLIC :: tq_smoothing=.FALSE. ! if true the Q are smoothed 
+  LOGICAL,          PUBLIC :: tbeta_smoothing=.FALSE. ! if true the betas are smoothed 
   ! ... External Forces on Ions
   !
   LOGICAL,          PUBLIC :: textfor = .FALSE.
@@ -549,5 +559,6 @@ MODULE pwcom
   use fixed_occ
   USE relax
   USE spin_orb
+  use fixed_occ
   !
 END MODULE pwcom

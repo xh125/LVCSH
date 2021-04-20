@@ -20,7 +20,8 @@ module readscf
     use funct, only: iexch, icorr, igcx, igcc, inlc, imeta, imetac,exx_fraction,dft
     use pw_control_flags, only : nstep,nmix,imix,tr2,mixing_beta,mixing_style,lscf,conv_elec,&
                                   lbands,llondon,ldftd3,lxdm,ts_vdw,textfor,iverbosity,&
-                                  conv_elec
+                                  conv_elec,tqr,tbeta_smoothing,tq_smoothing
+                                  
     use ener,only : etot, hwf_energy, eband, deband, ehart, &
                     vtxc, etxc, etxcc, ewld, demet, epaw, &
                     elondon, edftd3, ef_up, ef_dw, exdm,ef
@@ -33,6 +34,7 @@ module readscf
     use fixed_occ,only : one_atom_occupations
     USE paw_variables,ONLY : okpaw, ddd_paw, total_core_energy, only_paw 
     USE extfield,             ONLY : tefield, etotefield,gate, etotgatefield
+    use pwcom,only : tfixed_occ,f_inp
     
     implicit none
     character(len=*),intent(in) :: pwscfout_name
@@ -45,6 +47,8 @@ module readscf
     logical :: lfindkword 
     integer :: i,ipol,apol,nt,ik,ibnd
     REAL(DP) :: xkg_(3)
+    LOGICAL :: real_space = .FALSE.
+    !! if true perform calculations in real space
     
     real(kind=dp) :: ef_scf = 0.0,ehomo,elumo
     REAL(DP) :: eext=0.0_DP
@@ -361,6 +365,7 @@ module readscf
     
     read(pwscfout_unit,"(/5x,13x,i8)") ngm_g
     
+    !IF (doublegrid) THEN
     read(pwscfout_unit,"(/,A)") ctmp
     backspace(unit=pwscfout_unit)
     backspace(unit=pwscfout_unit)
@@ -369,25 +374,88 @@ module readscf
       read(pwscfout_unit,"(/5x,13x,i8)") ngms_g
     endif
     
+    !IF ( real_space )
+    read(pwscfout_unit,"(5x,A)") ctmp
+    if(ctmp(1:38)=="Real space treatment of Beta functions") then
+      real_space = .true.
+    else
+      real_space = .false.
+      backspace(unit=pwscfout_unit)
+    endif
+    
+    !IF ( tbeta_smoothing ) 
+    read(pwscfout_unit,"(5x,A)") ctmp
+    if(ctmp(1:27)=="Beta functions are smoothed") then
+      tbeta_smoothing = .true.
+    else
+      tbeta_smoothing = .false.
+      backspace(unit=pwscfout_unit)
+    endif    
+    
+    !IF ( tqr )
+    read(pwscfout_unit,"(5x,A)") ctmp
+    if(ctmp(1:28)=="Real space treatment of Q(r)") then
+      tqr = .true.
+    else
+      tqr = .false.
+      backspace(unit=pwscfout_unit)
+    endif        
+    
+    !IF ( tq_smoothing ) WRITE( stdout, '(5x,"Augmentation charges are smoothed ")' )
+    read(pwscfout_unit,"(5x,A)") ctmp
+    if(ctmp(1:33)=="Augmentation charges are smoothed") then
+      tq_smoothing = .true.
+    else
+      tq_smoothing = .false.
+      backspace(unit=pwscfout_unit)
+    endif            
+    
+    !  IF (tfixed_occ) THEN
+    read(pwscfout_unit,"(/,5x,A)") ctmp
+    if(ctmp(1:27)=="Occupations read from input") then
+      tfixed_occ = .true.
+      allocate(f_inp(nbnd,2))
+      read(pwscfout_unit,"(/,5X,A)") ctmp
+      if(ctmp(1:8)==" Spin-up") then
+        lsda = .true.
+        read(pwscfout_unit,"(/,(5X,8f9.4))") (f_inp(ibnd,1),ibnd=1,nbnd)
+        read(pwscfout_unit,"(/,A)") ctmp
+        read(pwscfout_unit,"(/,(5X,8f9.4))") (f_inp(ibnd,2),ibnd=1,nbnd)
+      else
+        lsda = .false.
+        backspace(unit=pwscfout_unit)
+        backspace(unit=pwscfout_unit)
+        read(pwscfout_unit,"(/,(5X,8f9.4))") (f_inp(ibnd,1),ibnd=1,nbnd)
+      endif
+    else
+      tfixed_occ = .false.
+      backspace(unit=pwscfout_unit)
+      backspace(unit=pwscfout_unit)
+    endif                
+    
     
     !CALL create_scf_type( rhoin )
     call findkline(pwscfout_unit,"Self-consistent Calculation",6,32)
     
     call findkline(pwscfout_unit,"End of self-consistent calculation",6,39) ! line 847 of electrons.f90
+    read(pwscfout_unit,*)
     conv_elec = .true.
     
     ! call print_ks_engergies()
     read(pwscfout_unit,"(/,5x,a)") ctmp
-    backspace(unit = pwscfout_unit)
+    !backspace(unit = pwscfout_unit)
     if(ctmp=="Number of k-points >= 100: set verbosity='high' to print the bands.") then
+      !IF (nkstot >= 100 .and. iverbosity <= 0 )
       write(stdout,*) "Don't print_ks_engergies for the reason of nkstot >=100 and iverbosity <=0"
       write(stdout,*) "need to set iverbosity = 1 in scf.in"
     else
+      backspace(unit = pwscfout_unit)
+      backspace(unit = pwscfout_unit)
       allocate ( ngk_g(nkstot))
       read(pwscfout_unit,"(/,A)") ctmp
       if(ctmp == "------") then
         lforcet = .true.
-        read(pwscfout_unit,"(///)")
+        read(pwscfout_unit,"(//,A)") ctmp
       else
         lforcet = .false.
         backspace(unit=pwscfout_unit)
@@ -397,17 +465,20 @@ module readscf
       allocate(et(nbnd,nk_),wg(nbnd,nk_))
     
       do ik=1,nkstot
-        if (lsda) read(pwscfout_unit,*) 
-        read(pwscfout_unit,"(A)") ctmp
+        if (lsda) read(pwscfout_unit,"(/,A,/)") ctmp 
+        read(pwscfout_unit,"(/,A,/)") ctmp
         backspace(unit=pwscfout_unit)
+        backspace(unit=pwscfout_unit)
+        backspace(unit=pwscfout_unit)
+        
         if(ctmp(36:37)=="(") then
           conv_elec = .true.
-          read(pwscfout_unit,"(/,13X,3F7.4,2X,I6)") (xk(i,ik),i=1,3),ngk_g(ik)
+          read(pwscfout_unit,"(/,13X,3F7.4,2X,I6,/)") (xk(i,ik),i=1,3),ngk_g(ik)
           ! FORMAT(/'          k =',3F7.4,'     band energies (ev):'/ )
           ! FORMAT(/'          k =',3F7.4,' (',I6,' PWs)   bands (ev):'/ )
         else
           conv_elec = .false.
-          read(pwscfout_unit,"(/,13X,3F7.4)") (xk(i,ik),i=1,3)
+          read(pwscfout_unit,"(/,13X,3F7.4,/)") (xk(i,ik),i=1,3)
         endif
         read(pwscfout_unit,"(2X,8F9.4)") (et(ibnd,ik),ibnd=1,nbnd)
         read(pwscfout_unit,"(/,A)") ctmp

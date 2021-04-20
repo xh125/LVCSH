@@ -164,11 +164,11 @@ module readepw
       !! List of all kpoints in cartesian coordinates
       if(ierr /=0) call errore('readepw','Error allocating xk_all',1)    
     endif
-    if(.not. allocated(wk)) then 
-      allocate(wk(nkstot),stat=ierr)
-      !! weight of k points
-      if(ierr /=0) call errore('readepw','Error allocating wk',1)    
-    endif    
+    
+    if( allocated(wk)) deallocate(wk) 
+    allocate(wk(nkstot),stat=ierr)
+    !! weight of k points of nkstot
+    if(ierr /=0) call errore('readepw','Error allocating wk',1)    
     
     read(unitepwout,"(A)") ctmp
     if(trim(adjustl(ctmp))=="cart. coord. in units 2pi/a_0") then

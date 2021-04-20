@@ -70,7 +70,10 @@ module initialsh
     endif
     
   end function  
-  
+
+
+  !ref : 1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
+  !    : (3.24)  
   function bolziman(womiga,temp)
     use io,only :stdout
     use constants,only : K_B_Ryd
@@ -88,6 +91,9 @@ module initialsh
   !==============================================!
   != init Normal mode coordinate and  velocitie =!
   !==============================================!
+  !ref : 1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
+  !    :  (3.17) (3.20) (3.24)
+  !ref : 2 HuangKun 《固体物理》 (3-44) (3-45)
   subroutine init_normalmode_coordinate_velocity(w,T,ph_Q,ph_P)
     use kinds,only   : dp
     use randoms,only : gaussian_random_number
@@ -106,7 +112,7 @@ module initialsh
         womiga = w(imode,iq)
         E_ph_class   = K_B_Ryd*T  ! IN class 
         E_ph_quantum = (bolziman(womiga,T)+0.5)*womiga ! In Quantum
-        ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum/womiga))
+        ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)
         ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))      
         
         if(iq==1 .and. imode <=3) then
