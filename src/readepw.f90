@@ -145,7 +145,7 @@ module readepw
       read(unitepwout,"(17X,a3,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
     enddo
     ! atoms mass in "Rydberg" atomic units
-    iamass = iamass * amu_ry
+    !iamass = iamass * amu_ry
     
     
     call findkline(unitepwout,"number of k points=",6,24)

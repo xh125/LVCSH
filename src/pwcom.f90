@@ -9,7 +9,9 @@ module klist
   character(len=32) :: smearing
   !! smearing type
   real(kind=dp),allocatable :: xk(:,:) !xk(3,npk)
-  !! coordinates of k points  
+  !! coordinates of k points in units 2pi/alat
+  real(kind=dp),allocatable :: xkg(:,:) !xkg(3,npk)
+  !! coordinates of k points
   real(kind=dp),allocatable :: wk(:) !wk(npk)
   !! weight of k points  
   real(kind=dp) :: xqq(3)

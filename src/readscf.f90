@@ -12,7 +12,8 @@ module readscf
     use cell_base,only : alat, ibrav, omega,celldm,at,bg,wmass
     use ions_base,only : nat,iat, ntyp,ityp,atm,zv,amass,iatm,tau,xau
     use symm_base,only : nsym,isym,sname,s, sr
-    use klist,only : nelec,nelup,neldw,two_fermi_energies,nkstot,lgauss,ltetra,xk,wk,tot_charge
+    use klist,only : nelec,nelup,neldw,two_fermi_energies,nkstot,lgauss,ltetra,xk,xkg,&
+                     wk,tot_charge
     use gvec, only : ecutrho,ecutwfc,dft_is_hybrid,ecutfock,ecfixed,qcutz,q2sigma,&
                     doublegrid,ngm_g,ngms_g
     use relax, only: epse,epsf,epsp
@@ -44,6 +45,7 @@ module readscf
     logical :: lfindkword 
     integer :: i,ipol,apol,nt,ik,ibnd
     REAL(DP) :: xkg_(3)
+    
     real(kind=dp) :: ef_scf = 0.0,ehomo,elumo
     REAL(DP) :: eext=0.0_DP
     !! external forces contribution to the total energy
@@ -81,7 +83,14 @@ module readscf
     call findkword(pwscfout_unit,"Program")
     read(pwscfout_unit,"(A)") pwscf_info
     write(stdout,*) pwscf_info
-    
+
+
+    !100 FORMAT( /,/,5X, &
+    ! &     'bravais-lattice index     = ',I12,/,5X, &
+    ! &     'lattice parameter (alat)  = ',F12.4,'  a.u.',/,5X, &
+    ! &     'unit-cell volume          = ',F12.4,' (a.u.)^3',/,5X, &
+    ! &     'number of atoms/cell      = ',I12,/,5X, &
+    ! &     'number of atomic types    = ',I12)    
     call findkword(pwscfout_unit,"bravais-lattice")
     read(pwscfout_unit,"(33X,I12)")   ibrav
     read(pwscfout_unit,"(33X,F12.4)") alat   ! in unit a.u.
@@ -89,11 +98,12 @@ module readscf
     read(pwscfout_unit,"(33X,I12)")   nat
     read(pwscfout_unit,"(33X,I12)")   ntyp
 
-    call findkline(pwscfout_unit,"number of electrons       =",6,32)
+
+    !101 FORMAT(5X, &
+    !   &     'number of electrons       = ',F12.2,' (up:',f7.2,', down:',f7.2,')')    
     read(pwscfout_unit,"(A)") ctmp
-    itmp =len(trim(adjustl(ctmp)))
     backspace(unit=pwscfout_unit)
-    if(itmp> 40) then
+    if(len(trim(adjustl(ctmp)))==66) then
       !101
       two_fermi_energies = .true.
       read(pwscfout_unit,"(33X,F12.2,5X,f7.2,7X,f7.2)") nelec,nelup,neldw
@@ -235,6 +245,7 @@ module readscf
     backspace(unit=pwscfout_unit)
     backspace(unit=pwscfout_unit)
     if(ctmp(1:28)=="Starting magnetic structure ") then
+      lsda = .true.
       read(pwscfout_unit,"(///,A)") ctmp
       DO nt = 1, ntyp
         WRITE( pwscfout_unit, '(5x,a6,9x,f6.3)') atm(nt), starting_magnetization(nt)
@@ -276,14 +287,25 @@ module readscf
     
     !positions (cryst. coord.)
     allocate(xau(3,nat))
-    xau = 0.0
-    do iat=1,nat
-      do ipol=1,3
-        xau(ipol,iat)=bg(1,ipol)*tau(1,iat)+bg(2,ipol)*tau(2,iat)+bg(3,ipol)*tau(3,iat)
+    xau = 0.0    
+    read(pwscfout_unit,"(/,A)") ctmp
+    if(trim(adjustl(ctmp))=="Crystallographic axes") then
+    ! iverbosity > 0
+      read(pwscfout_unit,"(//)")
+      do iat=1,nat
+        read(pwscfout_unit,"(21X,A3,15X,3F11.7)") iatm(iat),(xau(ipol,iat),ipol=1,3)
       enddo 
-    enddo
-    
-    call findkline(pwscfout_unit,"number of k points=",6,24)
+    else
+      backspace(unit=pwscfout_unit)
+      backspace(unit=pwscfout_unit)
+      do iat=1,nat
+        do ipol=1,3
+          xau(ipol,iat)=bg(1,ipol)*tau(1,iat)+bg(2,ipol)*tau(2,iat)+bg(3,ipol)*tau(3,iat)
+        enddo 
+      enddo
+    endif
+       
+    !call findkline(pwscfout_unit,"number of k points=",6,24)
     read(pwscfout_unit,"(A)") ctmp
     backspace(unit=pwscfout_unit)
     if(len(trim(adjustl(ctmp)))==25) then
@@ -297,6 +319,7 @@ module readscf
       lgauss = .true.
       read(pwscfout_unit,"(24X,I6)") nk_
     endif
+    
     IF ( lsda ) THEN
       !
       ! ... LSDA case: do not print replicated k-points
@@ -308,11 +331,13 @@ module readscf
       !nk_ = nkstot
     END IF      
     allocate(xk(3,nk_),wk(nk_))
+    allocate(xkg(3,nk_))
     xk = 0.0
     wk = 0.0
     
     read(pwscfout_unit,"(A)") ctmp
     if(trim(adjustl(ctmp))=="cart. coord. in units 2pi/alat") then
+      ! iverbosity > 0 .OR. nk_ < 100
       do ik=1,nk_
         read(pwscfout_unit,"(20X,3F12.7,7X,F12.7)") (xk(ipol,ik),ipol=1,3),wk(ik)
       enddo
@@ -327,7 +352,7 @@ module readscf
     if(trim(adjustl(ctmp))=="cryst. coord.") then
       !iverbosity>0
       do ik=1,nk_
-        read(pwscfout_unit,"(20x,3f12.7,7x,f12.7)") (xkg_(ipol),ipol=1,3),wk(ik)
+        read(pwscfout_unit,"(20x,3f12.7,7x,f12.7)") (xkg(ipol,ik),ipol=1,3),wk(ik)
       enddo
     else
       backspace(unit=pwscfout_unit)
