@@ -51,6 +51,8 @@ program lvcsh
   !===============!
   != preparation =!
   !===============!
+  real(kind=8) t0,t1
+  call cpu_time(t0)  
   
   call environment_start( 'LVCSH' )
   call get_inputfile(inputfilename)

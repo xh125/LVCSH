@@ -25,6 +25,8 @@ module lasercom
     return
   end function f_t
   
+  
+  !ref : 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
   real function f_w(w)
     implicit none
     real(kind=dp),intent(in) :: w

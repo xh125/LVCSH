@@ -3,6 +3,8 @@ module getmcvk
   implicit none
   
   contains
+  !ref : 1 S. Butscher et al., Physical Review B 72 (2005) 
+  !ref : 2 <固体物理> (9-31)
   subroutine get_Mcvk()
     !得到光激发下垂直跃迁的跃迁几率
     use elph2,only  : vmef,ibndmin,ibndmax,nbndfst,nkf  !vmef(3,nbndsub,nbndsub,nkf)
@@ -19,6 +21,9 @@ module getmcvk
       allocate(W_cvk(nbndfst,nbndfst,nkf),stat=ierr)
       if(ierr /=0) call errore('getmcvk','Error allocating W_cvk',1)
     endif
+    
+    !ref : 1 S. Butscher et al., Physical Review B 72 (2005) 
+    !ref : 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
     fwhm_2T2 = fwhm**2.0/4.0*log(2.0)
     W_cvk = 0.0
     do ik=1,nkf

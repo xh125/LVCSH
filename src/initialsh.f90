@@ -7,6 +7,9 @@ module initialsh
   
   contains
   
+  
+  ! ref: 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
+  ! ref: 2. HuangKun <固体物理> (9-29) (9-31)
   subroutine init_eh_stat(laser,init_ik,cband,vband)
     use parameters,only : init_ikx,init_iky,init_ikz,init_kx,init_ky,init_kz
     use epwcom,only : nkf1,nkf2,nkf3
@@ -134,6 +137,9 @@ module initialsh
     use elph2,only       : nbndfst,nktotf
     use epwcom,only      : kqmap
     use surfacehopping,only : iesurface,ihsurface,convert_diabatic_adiabatic,p_nk
+    use io,only : stdout
+    use lasercom,only : w_laser
+    use readepw,only : E_nk
     implicit none
     real(kind=dp),intent(in) :: ph_Q(nmodes,nq)
     logical,intent(in) :: laser
@@ -176,7 +182,24 @@ module initialsh
     enddo    
     
     en_eh = (ee(iesurface)-ee(ihsurface))*ryd2eV
+    write(stdout,"(/,5X,A)") "In the laser obsorbtion,the inital excited state as follow:"
+    write(stdout,"(5X,A22,F12.7,A3)")  "Laser centred energy :",w_laser*ryd2eV," eV"
     
+    write(stdout,"(/,5X,A,I5)")"In diabatic base,electron excited :init_ik=",init_ik
+    write(stdout,"(5X,A,I5)")  "Electron in the conductor band:initi_cband=",init_cband
+    write(stdout,"(5X,A,I5)")  "Hole     in the valence   band:initi_vband=",init_vband
+    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of elctron:",E_nk(init_cband,init_ik)*ryd2eV," eV"
+    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of hole   :",E_nk(init_vband,init_ik)*ryd2eV," eV"
+    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of exciton:",&
+                                        (E_nk(init_cband,init_ik)-E_nk(init_vband,init_ik))*ryd2eV," eV"
+    
+    write(stdout,"(/,5X,A,I5)")"In adiabatic base,the elctron and hole state as follow"
+    write(stdout,"(5X,A,I5)")  "Electron in the energy surface:iesurface=",iesurface
+    write(stdout,"(5X,A,I5)")  "Hole in the energy surface    :ihsurface=",ihsurface
+    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of elctron:",ee(iesurface)*ryd2eV," eV"
+    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of hole   :",ee(ihsurface)*ryd2eV," eV"
+    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of exciton:",&
+                                        (ee(iesurface)-ee(ihsurface))*ryd2eV," eV"    
     
   end subroutine init_dynamical_variable  
   

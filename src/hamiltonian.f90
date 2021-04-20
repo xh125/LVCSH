@@ -9,7 +9,7 @@ module hamiltonian
   real(kind=dp),allocatable     :: H0_nk(:,:,:,:),H_nk(:,:,:,:)
   real(kind=dp),allocatable     :: H0(:,:),H(:,:)
   !平衡位置哈密顿量，电声耦合项，总的H和临时H
-  real(kind=dp),allocatable     :: E(:),P(:,:),P_nk(:,:,:),E0(:),P0(:,:)
+  real(kind=dp),allocatable     :: E(:),P(:,:),E0(:),P0(:,:)!,P_nk(:,:,:)
   !哈密顿量的本征值与本征矢   
   integer :: nefre,nphfre
   integer :: ierr
@@ -43,6 +43,11 @@ module hamiltonian
     
   end subroutine set_H0_nk
   
+
+  !ref: 1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
+  !     (3.20) (6.4)
+  !ref: 1 F. Giustino, Reviews of Modern Physics 89 (2017) 015003.
+  !     (1)  
   subroutine set_H_nk(ph_Q,H_nk)
     use kinds,only: dp
     
@@ -63,11 +68,7 @@ module hamiltonian
           do iband=1,nband !|iband,ik>
             do jband=1,nband !|jband,ikq>
               H_nk(jband,ikq,iband,ik) = H_nk(jband,ikq,iband,ik)+&
-              ph_Q(nu,iq)*sqrt(2.0*wf(nu,iq))*epcq(iband,jband,ik,nu,iq)/sqrt(real(nq))
-              !1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
-              !(3.20) (6.4)
-              !1 F. Giustino, Reviews of Modern Physics 89 (2017) 015003.
-              !(1)
+              ph_Q(nu,iq)*sqrt(2.0*wf(nu,iq)/nq)*epcq(iband,jband,ik,nu,iq)
             enddo
           enddo
         enddo
@@ -82,7 +83,7 @@ module hamiltonian
   !========================================!
   != calculate eigenenergy and eigenstate =!
   !========================================!  
-  subroutine calculate_eigen_energy_state(nk,nband,H,ee,p_nk)
+  subroutine calculate_eigen_energy_state(nk,nband,H,ee,pp)
     !use kinds,only : dp
     !use mkl95_precision
     !use mkl95_lapack
@@ -91,9 +92,9 @@ module hamiltonian
     implicit none
     integer ,intent(in) :: nk,nband
     real(kind=dp),intent(in) :: H(nband*nk,nband*nk)
-    real(kind=dp),intent(out):: ee(nband*nk),p_nk(nband,nk,nband*nk) 
+    real(kind=dp),intent(out):: ee(nband*nk),pp(nband*nk,nband*nk) 
     
-    real(kind=dp):: pp(nband*nk,nband*nk)
+    !real(kind=dp):: pp(nband*nk,nband*nk)
     pp = H
     ! pp=reshape(H_nk,(/ nband*nk,nband*nk/))
     
@@ -102,7 +103,7 @@ module hamiltonian
     !!On exit, hh array is overwritten
     !call heev(pp,ee,'V','U')    !P1143 MKL
     
-    p_nk = reshape(pp,(/ nband,nk,nband*nk/))
+    !p_nk = reshape(pp,(/ nband,nk,nband*nk/))
     
   end subroutine calculate_eigen_energy_state
   
