@@ -19,7 +19,6 @@ module dynamics
   !=======================================================================!
   != ref: http://en.wikipedia.org/wiki/runge_kutta_methods               =!
   !=======================================================================!
-
   subroutine rk4_nuclei(pp_nk,xx,vv,tt)
     implicit none
     real(kind=dp),intent(in)   :: pp_nk(nband,nk,nefre)
@@ -46,7 +45,10 @@ module dynamics
   !====================================================!
   != ref: notebook page 630                           =!
   !====================================================!
-
+  ! ref : Huangkun <固体物理> (3-10)
+  ! ref : 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
+  ! ref : PPT-92
+  ! ref : 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
   subroutine derivs_nuclei(pp_nk,xx,vv,dx,dv)
     implicit none
     real(kind=dp),intent(in)   :: pp_nk(nband,nk,nefre)

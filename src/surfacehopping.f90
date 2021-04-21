@@ -157,7 +157,8 @@ module surfacehopping
   
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% calculate nonadiabatic coupling %!
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  ! ref : PPT-91
   subroutine calculate_nonadiabatic_coupling(nmodes,ee,p_nk,dd)
     use kinds,only :  dp
     implicit none
@@ -189,7 +190,6 @@ module surfacehopping
         !dd(iefre,jefre,:,:) = dd(iefre,jefre,:,:)/(ee(jefre)-ee(iefre))
         dd(jefre,iefre,:,:) = - dd(iefre,jefre,:,:)
       enddo
-      !dE_dqv(iefre,:,:) = dd(iefre,iefre,:,:)
     enddo    
     
   end subroutine calculate_nonadiabatic_coupling

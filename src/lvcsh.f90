@@ -32,7 +32,7 @@ program lvcsh
   use readphout,only      : readph_out
   use readepw,only        : readepwout
   use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,temp,&
-                            nsnap,nstep,dt,inputfilename,init_ik,llaser
+                            nsnap,nstep,dt,inputfilename,init_ik,llaser,methodsh
   use hamiltonian,only    : H_nk,set_H_nk,set_H0_nk,calculate_eigen_energy_state
   use randoms,only        : init_random_seed
   use initialsh,only      : init_normalmode_coordinate_velocity,init_dynamical_variable
@@ -94,11 +94,19 @@ program lvcsh
         !==============================!
         
         !use rk4 to calculate the dynamical of phonon normal modes
+        !update phQ,phP in time t+dt
         call rk4_nuclei(p0,phQ,phP,dt)
+        !electron and hole wave function is propagated in diabatic representation
+        !update c_e,c_h in time t+dt
         call rk4_electron_diabatic(phQ0,celec_nk,dt,lelec)
         call rk4_electron_diabatic(phQ0,chole_nk,dt,lhole)
+        
+        ! hamiltonian in time t+dt
+        ! update H_nk
         call set_H_nk(phQ,H_nk)
+        ! update e,p in time t+dt
         call calculate_eigen_energy_state(nktotf,nbndfst,H_nk,e,p)
+        ! update d in time t+dt
         call calculate_nonadiabatic_coupling(nmodes,e,p,d)
         call convert_diabatic_adiabatic(p,celec_nk,w_e)
         call convert_diabatic_adiabatic(p,chole_nk,w_h)

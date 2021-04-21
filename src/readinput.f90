@@ -6,7 +6,7 @@ module readinput
                         naver,nstep,nsnap,gamma,dt,temp,&
                         init_kx,init_ky,init_kz,init_cband,init_vband,&
                         llaser,efield,efield_cart,w_laser,fwhm,&
-                        lsetthreads,mkl_threads
+                        lsetthreads,mkl_threads,methodsh
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
   implicit none
@@ -156,6 +156,7 @@ module readinput
     rewind(incar_unit)
     
     !   set default values for variables in namelist
+    methodsh   = "FSSH"
     lreadscfout= .false.
     scfoutname = "scf.out"
     lreadphout = .false.
