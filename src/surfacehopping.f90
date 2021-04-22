@@ -194,6 +194,7 @@ module surfacehopping
     
   end subroutine calculate_nonadiabatic_coupling
   
+  
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% calculate eigenenergy and eigenstate %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
@@ -212,7 +213,12 @@ module surfacehopping
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% REF: NOTEBOOK PAGE 631        %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  !call calculate_hopping_probability(w0_e,phP0,d0,dt,g,g1)
+  !call calculate_hopping_probability(w0_e,phP0,d0,dt,g,g1) using FSSH in adiabatic representation
+  !ref : 1 J. C. Tully, J. Chem. Phys. 93 (1990) 1061.
+  !ref : 2 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
+  !ref : eq(2)
+  ! 其中gg1为原始跃迁几率，gg为采用FSSH方法，令跃迁几率小于0的部分等于0
+  ! if(gg(iefre) < 0.0) gg(iefre) = 0.0
   subroutine calculate_hopping_probability(isurface,WW,VV,dd,tt,gg,gg1)
     use modes,only : nmodes
     implicit none
@@ -252,71 +258,95 @@ module surfacehopping
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% CALCULATE SUMG0,SUMG1,MINDE %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  subroutine calculate_sumg_pes(sumg0,sumg1,w0,w,gg1,gg,isurface,minde)
+  subroutine calculate_sumg_pes(sumg0,sumg1,w0,w,gg1,gg,isurface,isurface_j,minde)
+    use constants,only : cmplx_0
     implicit none
     real(kind=dp),intent(out):: sumg0,sumg1
     complex(kind=dpc),intent(in) :: w0(nefre),w(nefre)
     real(kind=dp),intent(in) :: gg1(nefre)
     real(kind=dp),intent(out):: gg(nefre)
     integer,intent(in)       :: isurface 
+    integer,intent(out)      :: isurface_j
     real(kind=dp),intent(out):: minde 
-    
-    integer :: iefre
+    real(kind=dp),allocatable :: S_ai(:)
+    real(kind=dp) :: S_aa,SUM_S
+    integer :: max_Sai(1)
+    integer :: iefre,isurface_a
+    logical :: lallocate
     
     ! sumg0 总的跃迁几率(透热表象下计算得出)
     ! SC_FSSH
-    ! ref: 1 L. Wang, and O. V. Prezhdo, Journal of Physical Chemistry Letters 5 (2014) 713.
-    sumg0 = (ABS(W0(ISURFACE))**2-ABS(W(ISURFACE))**2)/ABS(W0(ISURFACE))**2
-    sumg1 = SUM(gg1)
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-    !% CHANGE POTENTIAL ENERGY SURFACE %!
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!      
-    IF(ISURFACE == 1) THEN
-      MINDE=(E0(ISURFACE+1)-E0(ISURFACE))
-      iefre=isurface+1
-    ELSEIF(ISURFACE == nefre) THEN
-      MINDE=(E0(ISURFACE)-E0(ISURFACE-1))
-      iefre = isurface-1
-    ELSEIF((E0(ISURFACE+1)-E0(ISURFACE)) < (E0(ISURFACE)-E0(ISURFACE-1))) THEN
-      MINDE=(E0(ISURFACE+1)-E0(ISURFACE))
-      iefre= isurface+1
-    ELSE
-      MINDE=(E0(ISURFACE)-E0(ISURFACE-1))
-      iefre= isurface-1
-    ENDIF 
-    
-    gg(iefre) = sumg0 - (sumg1-gg1(iefre))
-    if(gg(iefre) < 0.0) gg(iefre)=0.0
-    if(SUM(GG) > 1.0 ) GG=GG/SUM(GG)
-
-    !elseif(trim(adjustl(MMSH)) == "CC-FSSH") then
-    !  lallocate = allocated(S_ai)
-    !  if(.not. lallocate) allocate(S_ai(nbasis))
-    !  S_ai = cmplx_0
-    !  isurface_a = isurface
-    !  S_aa = SUM(pp0(:,isurface_a)*pp(:,isurface_a))
-    !  !S_aa = SUM(CONJG(pp0(:,isurface_a))*pp(:,isurface_a))
-    !  if(S_aa**2 >= 0.5) then
-    !    isurface_j = isurface_a
-    !  else
-    !    do ibasis = 1,nbasis
-    !      S_ai(ibasis) = SUM(pp0(:,isurface_a)*pp(:,ibasis))
-    !      !S_ai(ibasis) = SUM(CONJG(pp0(:,isurface_a))*pp(:,ibasis))
-    !    enddo
-    !    S_ai = S_ai**2
-    !    !S_ai = CONJG(S_ai)*S_ai
-    !    max_Sai =  MAXLOC(S_ai)
-    !    isurface_j = max_Sai(1)
-    !  endif
-    !  if(isurface_j == isurface) then
-    !    gg = gg1
-    !  else
-    !    GG(itrival) = sumg0 - (SUM(GG1)-GG1(itrival))
-    !    if(GG(itrival) < 0.0d0) GG(itrival) = 0.0d0
-    !    if(SUM(GG) > 1.0d0) GG=GG/SUM(GG)
-    !  endif
+    if(methodsh == "SC-FSSH") then
+      ! ref: 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
+      ! eq(4) ,eq(5)
+      ! ref: 1 L. Wang, and O. V. Prezhdo, Journal of Physical Chemistry Letters 5 (2014) 713.
+      ! eq(4)-eq(12)
+      ! Assumption at most one trivial crossing is encountered during a time step.
+      sumg0 = (ABS(W0(ISURFACE))**2-ABS(W(ISURFACE))**2)/ABS(W0(ISURFACE))**2
+      sumg1 = SUM(gg1)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+      !% CHANGE POTENTIAL ENERGY SURFACE %!
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!      
+      IF(ISURFACE == 1) THEN
+        MINDE=(E0(ISURFACE+1)-E0(ISURFACE))
+        iefre=isurface+1
+      ELSEIF(ISURFACE == nefre) THEN
+        MINDE=(E0(ISURFACE)-E0(ISURFACE-1))
+        iefre = isurface-1
+      ELSEIF((E0(ISURFACE+1)-E0(ISURFACE)) < (E0(ISURFACE)-E0(ISURFACE-1))) THEN
+        MINDE=(E0(ISURFACE+1)-E0(ISURFACE))
+        iefre= isurface+1
+      ELSE
+        MINDE=(E0(ISURFACE)-E0(ISURFACE-1))
+        iefre= isurface-1
+      ENDIF 
+      
+      ! eq(13)
+      gg(iefre) = sumg0 - (sumg1-gg1(iefre))
+      if(gg(iefre) < 0.0) gg(iefre)=0.0
+      if(SUM(GG) > 1.0 ) GG=GG/SUM(GG)
+    elseif(methodsh == "CC-FSSH") then
+      ! ref : 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
+      lallocate = allocated(S_ai)
+      if(.not. lallocate) allocate(S_ai(nefre))
+      S_ai = 0.0
+      isurface_a = isurface
+      S_aa = 0.0
+      !do iefre=1,nefre
+      !  S_aa = S_aa+p0(iefre,isurface_a)*p(iefre,isurface_a)
+      !enddo
+      S_aa = SUM(p0(:,isurface_a)*p(:,isurface_a))
+      
+      !S_aa = SUM(CONJG(pp0(:,isurface_a))*pp(:,isurface_a))
+      if(S_aa**2 >= 0.5) then
+        !type(1) or type(3)
+        isurface_j = isurface_a
+      else
+        !type(2) or type(4)
+        do iefre = 1,nefre
+          S_ai(iefre) = SUM(p0(:,isurface_a)*p(:,iefre))
+          !S_ai(ibasis) = SUM(CONJG(pp0(:,isurface_a))*pp(:,ibasis))
+        enddo
+        SUM_S = SUM(S_ai) 
+        S_ai = S_ai**2
+        SUM_S = SUM(S_ai)
+        !S_ai = CONJG(S_ai)*S_ai
+        max_Sai =  MAXLOC(S_ai)
+        isurface_j = max_Sai(1)
+      endif
+      if(isurface_j == isurface) then
+        ! type(1) or type(3)
+        gg = gg1
+      else
+        sumg0 = (ABS(W0(ISURFACE))**2-ABS(W(ISURFACE))**2)/ABS(W0(ISURFACE))**2
+        sumg1 = SUM(gg1)
+        gg = gg1
+        gg(isurface_j) = sumg0 - (SUM(GG1)-GG1(isurface_j))
+        if(GG(isurface_j) < 0.0d0) GG(isurface_j) = 0.0d0
+        if(SUM(GG) > 1.0d0) GG=GG/SUM(GG)
+      endif
     !
-    !endif    
+    endif    
 
     
   end subroutine calculate_sumg_pes
@@ -327,12 +357,14 @@ module surfacehopping
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% REF: NOTEBOOK PAGE 635  %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  subroutine nonadiabatic_transition(lelec,isurface,EE,PP,DD,GG,WW,VV)
+  subroutine nonadiabatic_transition(lelec,isurface,isurface_j,surface_type,EE,PP,DD,GG,WW,VV)
     use randoms,only :more_random
     use modes,only : nmodes
     implicit none
     logical , intent(in) :: lelec
     integer , intent(inout)  :: isurface
+    integer , intent(in)     :: isurface_j
+    integer , intent(out)    :: surface_type
     real(kind=dp),intent(in) :: EE(nefre)
     real(kind=dp),intent(in) :: PP(nefre,nefre)
     real(kind=dp),intent(in) :: DD(nefre,nefre,nmodes,nqtotf)
@@ -340,9 +372,13 @@ module surfacehopping
     real(kind=dp),intent(inout) :: VV(nmodes,nqtotf)
     complex(kind=dpc),intent(in) :: WW(nefre)
     
+    real(kind=dp),allocatable :: S_bi(:)
     real(kind=dp) :: sumvd,sumdd,sumgg,flagr,flagd,detaE
-    integer :: iefre,imode,iq
+    integer :: iefre,jefre,imode,iq,isurface_a,isurface_b,isurface_k
+    logical :: lallocate
+    real(kind=dp) :: SUM_S,max_Sbi(1)
     
+    isurface_a = isurface
     call more_random()
     call random_number(flagr)
     sumgg = 0.0d0
@@ -350,26 +386,96 @@ module surfacehopping
       if(iefre /= isurface) then
         sumgg = sumgg + GG(iefre)
         if(flagr < sumgg) then
+          isurface_b = iefre
+          if(methodsh == "CC-FSSH") then
+            !if(isurface_b /= isurface_j) then
+            lallocate = allocated(S_bi)
+            if(.not. lallocate) allocate(S_bi(nefre))
+            S_bi = 0.0
+
+            do jefre = 1,nefre
+              S_bi(jefre) = SUM(p0(:,isurface_b)*p(:,jefre))
+              !S_bi(ibasis) = SUM(CONJG(pp0(:,isurface_b))*pp(:,ibasis))
+            enddo
+            SUM_S = SUM(S_bi) 
+            S_bi = S_bi**2
+            SUM_S = SUM(S_bi)
+            !S_ai = CONJG(S_ai)*S_ai
+            max_Sbi =  MAXLOC(S_bi)
+            isurface_k = max_Sbi(1)
+            !endif
+            if(isurface_j == isurface_a) then   ! type (1) and (3)
+              if(isurface_k == isurface_b) then
+                surface_type = 1
+              else
+                surface_type = 3
+              endif
+            else !(j/=a) type (2) and (4)
+              if(isurface_k == isurface_b .or. isurface_b == isurface_j ) then
+                surface_type = 3
+              else!(isurface_k /= isurface_b .and. isurface_b /= isurface_j )
+                surface_type = 4
+              endif
+            endif
+          endif
+          
+          ! ref:1 L. Wang, and D. Beljonne, Journal of Physical Chemistry Letters 4 (2013) 1888.
+          ! eq(16)
           sumvd = 0.0
           sumdd = 0.0
           do iq=1,nqtotf
             do imode=1,nmodes
-              sumvd = sumvd + PP(imode,iq)*DD(isurface,iefre,imode,iq)
-              sumdd = sumdd + DD(isurface,iefre,imode,iq)**2
+              sumvd = sumvd + VV(imode,iq)*DD(isurface_a,iefre,imode,iq) ! A
+              sumdd = sumdd + DD(isurface_a,iefre,imode,iq)**2           ! B
             enddo
           enddo
-          detaE = EE(isurface)-EE(iefre)
+          detaE = EE(isurface_a)-EE(iefre)
           if(.not. lelec) detaE = -1.0*detaE  ! 针对空穴修改能量
           flagd = 1.0+2.0*detaE*sumdd/sumvd**2  
           
-          if(flagd > 0.0) then
-            flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
-            do iq=1,nqtotf
-              do imode=1,nmodes
-                VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,iefre,imode,iq)
+          if(methodsh == "CC-FSSH") then
+            if(isurface_j == isurface_a) then ! type (1) (3)
+              if(flagd > 0.0) then
+                flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
+                do iq=1,nqtotf
+                  do imode=1,nmodes
+                    VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,iefre,imode,iq)
+                  enddo
+                enddo
+                isurface = isurface_k
+              else
+                isurface = isurface_a
+              endif
+            elseif(isurface_j /= isurface_a) then !type (2)(4)
+              if(isurface_b /= isurface_j) then!b/=j
+                if(flagd > 0.0) then
+                  flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
+                  do iq=1,nqtotf
+                    do imode=1,nmodes
+                      VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,iefre,imode,iq)
+                    enddo
+                  enddo
+                  isurface = isurface_k
+                else
+                  isurface = isurface_j
+                endif
+              else  !b=j
+                isurface = isurface_j
+              endif
+            
+            endif
+            
+            
+          else
+            if(flagd > 0.0) then
+              flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
+              do iq=1,nqtotf
+                do imode=1,nmodes
+                  VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,iefre,imode,iq)
+                enddo
               enddo
-            enddo
-            isurface = iefre
+              isurface = iefre          
+            endif
           endif
           
           exit

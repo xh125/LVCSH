@@ -3,7 +3,7 @@ module surfacecom
   implicit none
   integer :: iaver
   integer :: isnap,istep
-  integer :: iesurface,ihsurface
+  integer :: iesurface,ihsurface,iesurface_j,ihsurface_j,esurface_type,hsurface_type
   integer :: ierr
   
   !method of surface hopping

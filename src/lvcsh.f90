@@ -37,7 +37,8 @@ program lvcsh
   use randoms,only        : init_random_seed
   use initialsh,only      : init_normalmode_coordinate_velocity,init_dynamical_variable
   use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,phQ0,phP0,e,p,e0,p0,d,d0,ge,ge1,gh,gh1,&
-                            allocatesh,celec_nk,chole_nk,w_e,w_h,w0_e,w0_h,iesurface,ihsurface,&
+                            allocatesh,celec_nk,chole_nk,w_e,w_h,w0_e,w0_h,&
+                            iesurface,ihsurface,iesurface_j,ihsurface_j&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability,calculate_sumg_pes,minde_e,minde_h,&
                             sumg0_e,sumg0_h,sumg1_e,sumg1_h,nonadiabatic_transition
@@ -96,31 +97,46 @@ program lvcsh
         !use rk4 to calculate the dynamical of phonon normal modes
         !update phQ,phP in time t+dt
         call rk4_nuclei(p0,phQ,phP,dt)
-        !electron and hole wave function is propagated in diabatic representation
-        !update c_e,c_h in time t+dt
-        call rk4_electron_diabatic(phQ0,celec_nk,dt,lelec)
-        call rk4_electron_diabatic(phQ0,chole_nk,dt,lhole)
+          
+        if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
+          !electron and hole wave function is propagated in diabatic representation
+          !update c_e,c_h in time t+dt
+          call rk4_electron_diabatic(phQ0,celec_nk,dt,lelec)
+          call rk4_electron_diabatic(phQ0,chole_nk,dt,lhole)        
+        
+        endif
+        
+
         
         ! hamiltonian in time t+dt
         ! update H_nk
         call set_H_nk(phQ,H_nk)
         ! update e,p in time t+dt
         call calculate_eigen_energy_state(nktotf,nbndfst,H_nk,e,p)
+        ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
         ! update d in time t+dt
         call calculate_nonadiabatic_coupling(nmodes,e,p,d)
-        call convert_diabatic_adiabatic(p,celec_nk,w_e)
-        call convert_diabatic_adiabatic(p,chole_nk,w_h)
+        
+        if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
+          ! use p in time t+dt, to convert celec_nk(t+dt) to w_e(t+dt) 
+          call convert_diabatic_adiabatic(p,celec_nk,w_e)
+          call convert_diabatic_adiabatic(p,chole_nk,w_h)
+        endif
+        
+        ! use FSSH calculation hopping probability in adiabatic representation
         call calculate_hopping_probability(iesurface,w0_e,phP0,d0,dt,ge,ge1)
         call calculate_hopping_probability(ihsurface,w0_h,phP0,d0,dt,gh,gh1)
+        
+        
         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
         !% CALCULATE SUMG0,SUMG1,MINDE and CHANGE POTENTIAL ENERGY SURFACE %!
         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!        
-        call calculate_sumg_pes(sumg0_e,sumg1_e,w0_e,w_e,ge1,ge,iesurface,minde_e)
-        call calculate_sumg_pes(sumg0_h,sumg1_h,w0_h,w_h,gh1,gh,ihsurface,minde_h)
+        call calculate_sumg_pes(sumg0_e,sumg1_e,w0_e,w_e,ge1,ge,iesurface,iesurface_j,minde_e)
+        call calculate_sumg_pes(sumg0_h,sumg1_h,w0_h,w_h,gh1,gh,ihsurface,ihsurface_j,minde_h)
         
         
-        call nonadiabatic_transition(lelec,iesurface,E0,P0,d0,ge,w_e,phP)
-        call nonadiabatic_transition(lhole,ihsurface,E0,P0,d0,ge,w_h,phP)        
+        call nonadiabatic_transition(lelec,iesurface,iesurface_j,E0,P0,d0,ge,w_e,phP)
+        call nonadiabatic_transition(lhole,ihsurface,ihsurface_j,E0,P0,d0,ge,w_h,phP)        
    
         !===================!
         != add bath effect =!
