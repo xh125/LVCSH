@@ -24,7 +24,7 @@ program lvcsh
   !!=================================================================================================  
   use mkl_service
   use omp_lib
-  use constants,only      : maxlen
+  use constants,only      : maxlen,ryd2eV
   use environments,only   : environment_start,mkl_threads,&
                             set_mkl_threads,lsetthreads
   use readinput,only      : get_inputfile
@@ -38,10 +38,11 @@ program lvcsh
   use initialsh,only      : init_normalmode_coordinate_velocity,init_dynamical_variable
   use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,phQ0,phP0,e,p,e0,p0,d,d0,ge,ge1,gh,gh1,&
                             allocatesh,celec_nk,chole_nk,w_e,w_h,w0_e,w0_h,&
-                            iesurface,ihsurface,iesurface_j,ihsurface_j&
+                            iesurface,ihsurface,iesurface_j,ihsurface_j,esurface_type,hsurface_type,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability,calculate_sumg_pes,minde_e,minde_h,&
-                            sumg0_e,sumg0_h,sumg1_e,sumg1_h,nonadiabatic_transition
+                            sumg0_e,sumg0_h,sumg1_e,sumg1_h,nonadiabatic_transition,&
+                            SUM_ph_U,SUM_ph_T,SUM_ph_E
   use elph2,only          : wf,nqtotf,nktotf,nbndfst
   use disp,only           : ph_configuration
   use modes,only          : nmodes
@@ -87,6 +88,7 @@ program lvcsh
     !=======================!
 
     do isnap=1,nsnap
+      write(stdout,"(/,A)") "isnap istep runtime iesur ihsur en_e(eV) en_h(eV) en_eh(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)" 
       do istep=1,nstep
         
         time1   = io_time()  
@@ -135,8 +137,8 @@ program lvcsh
         call calculate_sumg_pes(sumg0_h,sumg1_h,w0_h,w_h,gh1,gh,ihsurface,ihsurface_j,minde_h)
         
         
-        call nonadiabatic_transition(lelec,iesurface,iesurface_j,E0,P0,d0,ge,w_e,phP)
-        call nonadiabatic_transition(lhole,ihsurface,ihsurface_j,E0,P0,d0,ge,w_h,phP)        
+        call nonadiabatic_transition(lelec,iesurface,iesurface_j,esurface_type,E0,P0,d0,ge,w_e,phP)
+        call nonadiabatic_transition(lhole,ihsurface,ihsurface_j,hsurface_type,E0,P0,d0,ge,w_h,phP)        
    
         !===================!
         != add bath effect =!
@@ -149,7 +151,11 @@ program lvcsh
 
         phQ0=phQ; phP0=phP; e0=e; p0=p; d0=d; w0_e=w_e; w0_h=w_h
         time2   = io_time()
-        write(stdout,"(A5,1X,I10,1X,F15.6,1X,A10)") 'Step=',istep,(time2-time1),"seconds"        
+        !write(stdout,"(/,A)") "isnap istep runtime(s) iesur ihsur en_elec(eV) en_hole(eV) en_exiton(eV)"
+        write(stdout,"(I5,1X,I5,1X,F8.4,I5,I5,7(1X,F8.4))") isnap,istep,(time2-time1),iesurface,ihsurface,&
+        e(iesurface)*ryd2eV,e(ihsurface)*ryd2eV,(e(iesurface)-e(ihsurface))*ryd2eV,&
+        SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(e(iesurface)-e(ihsurface)+SUM_ph_E)*ryd2eV
+
       enddo
       
       !=====================!

@@ -6,7 +6,7 @@ module parameters
   use constants,only    : maxlen
   use environments,only : mkl_threads,lsetthreads
   use lasercom,only     : llaser,efield,efield_cart,w_laser,fwhm
-  use surfacecom,only   ：methodsh
+  use surfacecom,only   : methodsh
   implicit none
   
   integer,parameter :: npk = 40000 ! max number of k-points in pw.x calculation

@@ -173,7 +173,8 @@ module dynamics
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
     use parameters,only : gamma,temp
     use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7
-    use surfacehopping,only : iesurface,ihsurface,E0
+    use surfacehopping,only : iesurface,ihsurface,E0,SUM_ph_U,SUM_ph_T,SUM_ph_E,&
+                              ph_T,ph_U
     implicit none
     
     real(kind=dp), intent(in) :: EE(nefre)
@@ -218,8 +219,15 @@ module dynamics
         Z4=TT**3*(R1/24.0D0+R2*SQRT3/40.0D0+R3/SQRT5/24.0D0+R4/SQRT7/120.0D0) ! V*T**3
         XX(imode,iq)=XX(imode,iq)+(Z2-GAMMA*Z3+(-wwf2+GAMMA**2)*Z4)
         VV(imode,iq)=VV(imode,iq)+(Z1-GAMMA*Z2+(-wwf2+GAMMA**2)*Z3+(2.0*gamma*wwf2-GAMMA**3)*Z4)
+        
       enddo
     enddo
+    ph_T = 0.5*VV**2
+    ph_U = 0.5*(wf**2)*(XX**2)
+    SUM_ph_U=SUM(ph_U)
+    SUM_ph_T=SUM(ph_T)
+    SUM_ph_E=SUM_ph_T+SUM_ph_U
+    
   ENDSUBROUTINE  
   
   

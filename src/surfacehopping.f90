@@ -50,6 +50,10 @@ module surfacehopping
     if(ierr /=0) call errore('surfacehopping','Error allocating phQ0',1)
     allocate(phP0(nmodes,nqtotf),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating phP0',1)    
+    allocate(ph_U(nmodes,nqtotf),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating ph_U',1)
+    allocate(ph_T(nmodes,nqtotf),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating ph_T',1)            
     allocate(e0(1:nefre),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating e0',1)
     allocate(p0(nefre,nefre),stat=ierr)
@@ -311,14 +315,10 @@ module surfacehopping
       if(.not. lallocate) allocate(S_ai(nefre))
       S_ai = 0.0
       isurface_a = isurface
-      S_aa = 0.0
-      !do iefre=1,nefre
-      !  S_aa = S_aa+p0(iefre,isurface_a)*p(iefre,isurface_a)
-      !enddo
       S_aa = SUM(p0(:,isurface_a)*p(:,isurface_a))
       
-      !S_aa = SUM(CONJG(pp0(:,isurface_a))*pp(:,isurface_a))
-      if(S_aa**2 >= 0.5) then
+      !S_aa = SUM(CONJG(p0(:,isurface_a))*p(:,isurface_a))
+      if(S_aa**2 > 0.5) then
         !type(1) or type(3)
         isurface_j = isurface_a
       else
@@ -327,20 +327,19 @@ module surfacehopping
           S_ai(iefre) = SUM(p0(:,isurface_a)*p(:,iefre))
           !S_ai(ibasis) = SUM(CONJG(pp0(:,isurface_a))*pp(:,ibasis))
         enddo
-        SUM_S = SUM(S_ai) 
         S_ai = S_ai**2
-        SUM_S = SUM(S_ai)
+        SUM_S = SUM(S_ai)   ! = 1.00
         !S_ai = CONJG(S_ai)*S_ai
         max_Sai =  MAXLOC(S_ai)
         isurface_j = max_Sai(1)
       endif
+      
+      sumg0 = (ABS(W0(ISURFACE))**2-ABS(W(ISURFACE))**2)/ABS(W0(ISURFACE))**2
+      sumg1 = SUM(gg1)      
       if(isurface_j == isurface) then
         ! type(1) or type(3)
-        gg = gg1
+        gg = gg
       else
-        sumg0 = (ABS(W0(ISURFACE))**2-ABS(W(ISURFACE))**2)/ABS(W0(ISURFACE))**2
-        sumg1 = SUM(gg1)
-        gg = gg1
         gg(isurface_j) = sumg0 - (SUM(GG1)-GG1(isurface_j))
         if(GG(isurface_j) < 0.0d0) GG(isurface_j) = 0.0d0
         if(SUM(GG) > 1.0d0) GG=GG/SUM(GG)
@@ -376,12 +375,13 @@ module surfacehopping
     real(kind=dp) :: sumvd,sumdd,sumgg,flagr,flagd,detaE
     integer :: iefre,jefre,imode,iq,isurface_a,isurface_b,isurface_k
     logical :: lallocate
-    real(kind=dp) :: SUM_S,max_Sbi(1)
+    real(kind=dp) :: SUM_S,max_Sbi(1),SUM_G
     
     isurface_a = isurface
     call more_random()
     call random_number(flagr)
     sumgg = 0.0d0
+    SUM_G = SUM(GG)
     do iefre=1,nefre
       if(iefre /= isurface) then
         sumgg = sumgg + GG(iefre)

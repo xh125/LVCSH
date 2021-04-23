@@ -14,6 +14,10 @@ module surfacecom
   ! CC-FSSH ref:
   ! phonons normal mode coordinate,and phonons P
   real(kind=dp),allocatable :: phQ(:,:),phP(:,:),phQ0(:,:),phP0(:,:)
+  ! phonons normal mode 
+  ! ref : <固体物理> (3-44) (3-45)
+  real(kind=dp),allocatable :: ph_U(:,:),ph_T(:,:)
+  real(kind=dp) :: SUM_ph_U,SUM_ph_T,SUM_ph_E  
   real(kind=dp),allocatable :: e(:),p(:,:),p_nk(:,:,:),d(:,:,:,:),ge(:),gh(:)
   real(kind=dp),allocatable :: e0(:),p0(:,:),d0(:,:,:,:),ge1(:),gh1(:)  
   real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
