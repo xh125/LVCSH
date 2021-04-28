@@ -6,6 +6,17 @@ module surfacecom
   integer :: iesurface,ihsurface,iesurface_j,ihsurface_j,esurface_type,hsurface_type
   integer :: ierr
   
+  integer         :: naver
+  integer         :: nstep
+  integer         :: nsnap
+  real(kind=dp)   :: dt
+  real(kind=dp)   :: temp
+  real(kind=dp)   :: gamma    ! gamma is the friction coefficient,dimention is 1/t(ps-1)  THZ  
+  
+  logical :: lelecsh
+  logical :: lholesh
+  logical :: lehpairsh
+  
   !method of surface hopping
   character(len=8) :: MethodSH
   ! FSSH, SC-FSSH, CC-FSSH

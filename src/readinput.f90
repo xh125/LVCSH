@@ -6,7 +6,7 @@ module readinput
                         naver,nstep,nsnap,gamma,dt,temp,&
                         init_kx,init_ky,init_kz,init_cband,init_vband,&
                         llaser,efield,efield_cart,w_laser,fwhm,&
-                        lsetthreads,mkl_threads,methodsh
+                        lsetthreads,mkl_threads,methodsh,lelecsh,lholesh,lehpairsh
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
   implicit none
@@ -157,6 +157,9 @@ module readinput
     
     !   set default values for variables in namelist
     methodsh   = "FSSH"
+    lelecsh    = .false.
+    lholesh    = .true.
+    lehpairsh  = .false.
     lreadscfout= .false.
     scfoutname = "scf.out"
     lreadphout = .false.
@@ -198,6 +201,10 @@ module readinput
       call io_error(msg)
     endif  
     close(incar_unit)
+    if(lehpairsh) then
+      lelecsh = .true.
+      lholesh = .true.
+    endif
     write(stdout,"(/,1X,A)") "Read parameter Successful!" 
     write(stdout,*)   repeat("=",67)
     

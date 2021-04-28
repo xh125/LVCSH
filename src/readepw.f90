@@ -63,6 +63,7 @@ module readepw
     use elph2,    only : nqtotf,xqf,nbndfst
     use grid,     only : loadqmesh,kq2k_map,loadkmesh_fullBZ,get_ikq
     use modes,    only : nmodes
+    use lr_symm_base,only : l_nsymq_le_1,minus_q,nsymq
     implicit none
     character(len=*) ,intent(in) :: fepwout
     integer :: unitepwout
@@ -107,6 +108,12 @@ module readepw
       read(unitepwout,"(33X,1PE12.1)") exx_fraction
     endif               
     
+    !  !  Here add a message if this is a noncollinear or a spin_orbit calculation
+    !epw_summary.f90 line 79
+    !IF (noncolin) THEN
+    !  IF (lspinorb) THEN
+    !    IF (domag) THEN
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     read(unitepwout,"(A)") ctmp    
     if(ctmp(6:45)=="Noncollinear calculation with spin-orbit") then
       domag = .true.
@@ -122,13 +129,19 @@ module readepw
     else
       noncolin = .false.
     endif    
-    
+
+    !
+    ! Description of the unit cell
+    !    
     read(unitepwout,*)
     read(unitepwout,"(2(3X,3(12X,F11.5),/))") (celldm(i),i=1,6)
     read(unitepwout,"(/,3(23X,3F8.4,/))") ((at(ipol,apol),ipol=1,3),apol=1,3)
     read(unitepwout,"(/,3(23X,3F8.4,/))") ((bg(ipol,apol),ipol=1,3),apol=1,3)
     read(unitepwout,"(/////)")
-    
+
+    !
+    ! Description of the atoms inside the unit cell
+    !    
     if(.not. allocated(iatm)) then 
       allocate(iatm(nat),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating iatm',1)    
@@ -145,7 +158,36 @@ module readepw
       read(unitepwout,"(17X,a3,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
     enddo
     ! atoms mass in "Rydberg" atomic units
-    !iamass = iamass * amu_ry
+    iamass = iamass * amu_ry
+    
+    !
+    ! Description of symmetries
+    !
+    read(unitepwout,*)
+    read(unitepwout,"(A)") ctmp
+    if(ctmp(6:17)=="No symmetry!") then
+      l_nsymq_le_1 = .true.
+      minus_q = .false.
+    else
+      if(ctmp(8:34)==" Sym.Ops. (with q -> -q+G )") then
+        minus_q = .true.
+        backspace(unitepwout)
+        read(unitepwout,"(5X,i2)") nsymq
+        nsymq = nsymq -1
+      else
+        minus_q = .false.
+        backspace(unitepwout)
+        read(unitepwout,"(5X,i2)") nsymq
+      endif
+    endif
+
+    !IF (iverbosity == 1) THEN
+    !WRITE(stdout, '(36x,"s",24x,"frac. trans.")')
+    
+    !
+    !     Description of the reciprocal lattice vectors
+    !    
+    
     
     
     call findkline(unitepwout,"number of k points=",6,24)
