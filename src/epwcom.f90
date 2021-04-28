@@ -431,6 +431,9 @@
     REAL(KIND = DP), ALLOCATABLE :: xk_loc(:, :)
     !! List of local (each cores) kpoints in cartesian coordinates
     REAL(KIND = DP), ALLOCATABLE :: xk_all(:, :)
+    real(kind = dp), allocatable :: xkg_all(:,:)
+    !  !! k point in crystal coordinates
+    
     !! List of all kpoints in cartesian coordinates
     REAL(KIND = DP), ALLOCATABLE :: xk_cryst(:, :)
     !! List of all kpoints in crystal coordinates

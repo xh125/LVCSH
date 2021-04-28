@@ -3,7 +3,7 @@ module readepw
   use constants,only : maxlen,amu_ry,rytoev,ryd2mev
   use io, only : io_file_unit,open_file,close_file,findkword,findkline,stdout,io_error
   use klist, only : lgauss, degauss, ngauss, nkstot, wk
-  use klist_epw, only : xk_all
+  use klist_epw, only : xk_all,xkg_all
   use epwcom, only : nkc1,nkc2,nkc3,nqf1,nqf2,nqf3,nkf1,nkf2,nkf3,nbndsub,kqmap,scdm_proj,vme
   use pwcom, only : ef
   use elph2, only : nkqf,nkqtotf,wf,wqf,xkf,wkf,etf,epcq,nkf,&
@@ -64,6 +64,8 @@ module readepw
     use grid,     only : loadqmesh,kq2k_map,loadkmesh_fullBZ,get_ikq
     use modes,    only : nmodes
     use lr_symm_base,only : l_nsymq_le_1,minus_q,nsymq
+    use gvect,only : gcutm,ngm
+    use gvecs,only : gcutms,ngms,doublegrid
     implicit none
     character(len=*) ,intent(in) :: fepwout
     integer :: unitepwout
@@ -187,10 +189,18 @@ module readepw
     !
     !     Description of the reciprocal lattice vectors
     !    
-    
-    
-    
-    call findkline(unitepwout,"number of k points=",6,24)
+    call findkline(unitepwout,"G cutoff =",6,15)
+    read(unitepwout,"(15X,f10.4,3X,i7)") gcutm,ngm
+    read(unitepwout,"(A)") ctmp
+    backspace(unitepwout)
+    if(ctmp(6:15)=="G cutoff =") then
+      doublegrid = .true.
+      read(unitepwout,"(15X,f10.4,3X,i7)") gcutms,ngms
+    else
+      doublegrid = .false.
+    endif
+
+    !call findkline(unitepwout,"number of k points=",6,24)
     read(unitepwout,"(A)") ctmp
     backspace(unit=unitepwout)
     if(len(trim(adjustl(ctmp)))==24) then
@@ -201,6 +211,7 @@ module readepw
       lgauss = .true.
       read(unitepwout,"(24X,I5,23X,f8.4,14X,i3)") nkstot,degauss,ngauss
     endif
+    
     if(.not. allocated(xk_all)) then 
       allocate(xk_all(3,nkstot),stat=ierr)
       !! List of all kpoints in cartesian coordinates
@@ -213,13 +224,39 @@ module readepw
     !! weight of k points of nkstot
     if(ierr /=0) call errore('readepw','Error allocating wk',1)    
     
+    
+    !IF (iverbosity == 1 .OR. nkstot < 10000) THEN
+      !WRITE(stdout, '(23x,"cart. coord. in units 2pi/a_0")')
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     read(unitepwout,"(A)") ctmp
+    backspace(unitepwout)
     if(trim(adjustl(ctmp))=="cart. coord. in units 2pi/a_0") then
+      read(unitepwout,*)
       do ik=1,nkstot
         read(unitepwout,"(20X,3f12.7,7X,f12.7)") &
              (xk_all(ipol, ik) , ipol = 1, 3), wk(ik)
       enddo
     endif
+    
+    read(unitepwout,"(/23X,A)") ctmp
+    backspace(unitepwout)
+    backspace(unitepwout)
+    if(ctmp == "cryst. coord.") then
+      read(unitepwout,"(/23X,A)") ctmp
+      if(.not. allocated(xkg_all)) then 
+        allocate(xkg_all(3,nkstot),stat=ierr)
+        !xkg_all are the components of xk in the reciprocal lattice basis
+        if(ierr /=0) call errore('readepw','Error allocating xkg_all',1)    
+      endif
+      
+      do ik=1,nkstot
+        read(unitepwout,"(20X,3f12.7,7X,f12.7)") (xkg_all(ipol,ik),ipol=1,3),wk(ik)
+      enddo
+    endif
+    
+    !CALL print_ps_info()
+    !End call epw_summary()
+    
     
     
     call findkline(unitepwout,"     Wannierization on ",1,23) 
