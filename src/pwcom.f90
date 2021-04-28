@@ -320,7 +320,7 @@ MODULE wvfct
   INTEGER ::  nbndx
   !! max number of bands use in iterative diag
   INTEGER ::  nbnd
-  !! number of bands
+  !! number of bands in pwscf calculation
   INTEGER ::  npw
   !! the number of plane waves
   INTEGER ::  current_k

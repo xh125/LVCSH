@@ -162,6 +162,7 @@ module readepw
     if(.not. allocated(xk_all)) then 
       allocate(xk_all(3,nkstot),stat=ierr)
       !! List of all kpoints in cartesian coordinates
+      !! cart. coord. in units 2pi/a_0
       if(ierr /=0) call errore('readepw','Error allocating xk_all',1)    
     endif
     
@@ -405,6 +406,9 @@ module readepw
     enddo
     
     wf = wf/ryd2mev
+    do nu=1,3
+      epcq(:,:,:,nu,1) = 0.0
+    enddo
     epcq = epcq/ryd2mev
     !do iq=1,nqf
     !  do nu=1,nmodes

@@ -88,7 +88,8 @@ program lvcsh
     !=======================!
 
     do isnap=1,nsnap
-      write(stdout,"(/,A)") "isnap istep runtime iesur ihsur en_e(eV) en_h(eV) en_eh(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)" 
+      write(stdout,"(/,A)") "isnap istep runtime iesur ihsur  &
+      &en_e(eV)  en_h(eV)  en_eh(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)" 
       do istep=1,nstep
         
         time1   = io_time()  
