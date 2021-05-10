@@ -35,7 +35,7 @@ program lvcsh
                             nsnap,nstep,dt,inputfilename,init_ik,llaser,methodsh
   use hamiltonian,only    : H_nk,set_H_nk,set_H0_nk,calculate_eigen_energy_state
   use randoms,only        : init_random_seed
-  use initialsh,only      : init_normalmode_coordinate_velocity,init_dynamical_variable
+  use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_dynamical_variable
   use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,phQ0,phP0,e,p,e0,p0,d,d0,ge,ge1,gh,gh1,&
                             allocatesh,celec_nk,chole_nk,w_e,w_h,w0_e,w0_h,&
                             iesurface,ihsurface,iesurface_j,ihsurface_j,esurface_type,hsurface_type,&
@@ -43,6 +43,7 @@ program lvcsh
                             calculate_hopping_probability,calculate_sumg_pes,minde_e,minde_h,&
                             sumg0_e,sumg0_h,sumg1_e,sumg1_h,nonadiabatic_transition,&
                             SUM_ph_U,SUM_ph_T,SUM_ph_E
+  use surfacecom,only     : lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max
   use elph2,only          : wf,nqtotf,nktotf,nbndfst
   use disp,only           : ph_configuration
   use modes,only          : nmodes
@@ -61,10 +62,11 @@ program lvcsh
   if(lreadscfout) call readpwscf_out(scfoutname)
   if(lreadphout) call readph_out(phoutname)
   call readepwout(epwoutname)
+  call set_subband(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
   call set_H0_nk()
   call init_random_seed()
   if(lsetthreads) call set_mkl_threads(mkl_threads)
-  call allocatesh(nmodes)
+  call allocatesh(lelecsh,lholesh,nmodes)
   
   
   !==========================!

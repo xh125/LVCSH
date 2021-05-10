@@ -5,7 +5,6 @@
   !!
   !
   USE kinds,      ONLY : DP
-  USE parameters, ONLY : npk
   !
   SAVE
   !

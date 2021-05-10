@@ -1,11 +1,12 @@
 module readepw
   use kinds ,only :dp
-  use constants,only : maxlen,amu_ry,rytoev,ryd2mev
+  use constants,only : maxlen,amu_ry,rytoev,ryd2mev,ryd2eV
   use io, only : io_file_unit,open_file,close_file,findkword,findkline,stdout,io_error
-  use klist, only : lgauss, degauss, ngauss, nkstot, wk
+  use klist, only : nelec,lgauss, degauss, ngauss, nkstot, wk
   use klist_epw, only : xk_all,xkg_all
   use epwcom, only : nkc1,nkc2,nkc3,nqf1,nqf2,nqf3,nkf1,nkf2,nkf3,nbndsub,kqmap,scdm_proj,vme
   use pwcom, only : ef
+  use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max
   use elph2, only : nkqf,nkqtotf,wf,wqf,xkf,wkf,etf,epcq,nkf,&
                     nktotf,nqf,nqtotf,ibndmin,ibndmax,efnew,vmef,dmef
   use cell_base,only : ibrav,alat,omega,at,bg,celldm
@@ -20,6 +21,7 @@ module readepw
   implicit none
   
   character(len=maxlen) :: epw_info,ctmp
+  integer ::  icbm
   integer ::  lower_bnd,           &!
               upper_bnd,           &!
               ik       ,           &! K-point index
@@ -64,6 +66,7 @@ module readepw
     use elph2,    only : nqtotf,xqf,nbndfst
     use grid,     only : loadqmesh,kq2k_map,loadkmesh_fullBZ,get_ikq
     use modes,    only : nmodes
+    use control_epw, only : eig_read,epbread,epbwrite,efermi_read,scissor
     use lr_symm_base,only : l_nsymq_le_1,minus_q,nsymq
     use gvect,only : gcutm,ngm
     use gvecs,only : gcutms,ngms,doublegrid
@@ -73,7 +76,7 @@ module readepw
     integer :: ipol,ik_,ibnd_,jbnd_,nu_
     real(kind=dp) :: epc_
     real(kind=dp) :: xiq(3),xik(3)
-    !real(kind=dp) :: E_nk,E_mkq
+
     integer :: ierr
     !! error status
     logical :: alive
@@ -91,7 +94,10 @@ module readepw
     integer :: ik
     character(len=maxlen) :: scdm_entanglement
     real(kind=dp) :: scdm_mu,scdm_sigma
-    logical :: eig_read,epbread,epbwrite
+    !logical :: eig_read,epbread,epbwrite,efermi_read
+    LOGICAL :: already_skipped
+    !! Skipping band during the Wannierization
+    integer :: nbndskip
     
     integer :: itmp,count_piv_spin
     
@@ -165,14 +171,17 @@ module readepw
     if(.not. allocated(iatm)) then 
       allocate(iatm(nat),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating iatm',1)    
+      iatm = ' '
     endif
     if(.not. allocated(iamass)) then 
       allocate(iamass(nat),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating iamass',1)    
+      iamass = 0.0
     endif  
     if(.not. allocated(tau)) then 
       allocate(tau(3,nat),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating tau',1)    
+      tau = 0.0
     endif    
     do iat =1 ,nat
       read(unitepwout,"(17X,a3,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
@@ -218,6 +227,14 @@ module readepw
       doublegrid = .false.
     endif
 
+    !IF (.NOT.lgauss) THEN
+    !  WRITE(stdout, '(5x,"number of k points=",i5)') nkstot
+    !ELSE
+    !  WRITE(stdout, '(5x,"number of k points=",i5, &
+    !        &             "  gaussian broad. (Ry)=",f8.4,5x, &
+    !        &             "ngauss",i3)') nkstot, degauss, ngauss
+    !ENDIF
+
     !call findkline(unitepwout,"number of k points=",6,24)
     read(unitepwout,"(A)") ctmp
     backspace(unit=unitepwout)
@@ -235,13 +252,14 @@ module readepw
       !! List of all kpoints in cartesian coordinates
       !! cart. coord. in units 2pi/a_0
       if(ierr /=0) call errore('readepw','Error allocating xk_all',1)    
+      xk_all = 0.0
     endif
     
     if( allocated(wk)) deallocate(wk) 
     allocate(wk(nkstot),stat=ierr)
     !! weight of k points of nkstot
     if(ierr /=0) call errore('readepw','Error allocating wk',1)    
-    
+    wk = 0.0
     
     !IF (iverbosity == 1 .OR. nkstot < 10000) THEN
       !WRITE(stdout, '(23x,"cart. coord. in units 2pi/a_0")')
@@ -264,7 +282,8 @@ module readepw
       if(.not. allocated(xkg_all)) then 
         allocate(xkg_all(3,nkstot),stat=ierr)
         !xkg_all are the components of xk in the reciprocal lattice basis
-        if(ierr /=0) call errore('readepw','Error allocating xkg_all',1)    
+        if(ierr /=0) call errore('readepw','Error allocating xkg_all',1)
+        xkg_all = 0.0
       endif
       
       do ik=1,nkstot
@@ -296,34 +315,34 @@ module readepw
     !CALL pw2wan90epw()
     read(unitepwout,*)
     read(unitepwout,"(A)") ctmp
-    select case(trim(ctmp))
-    case('Spin CASE ( up )')
+    !select case(trim(adjustl(ctmp)))
+    if(trim(adjustl(ctmp))=='Spin CASE ( up )') then
       spin_component = 'up'
       ispinw  = 1
       ikstart = 1
       ikstop  = nkstot / 2
       iknum   = nkstot / 2     
-    case('Spin CASE ( down )')
+    elseif(trim(adjustl(ctmp))=='Spin CASE ( down )') then
       spin_component = 'down'
       ispinw  = 2
       ikstart = nkstot/2+1
       ikstop  = nkstot
       iknum   = nkstot / 2     
-    case('Spin CASE ( non-collinear )')
+    elseif(trim(adjustl(ctmp))=='Spin CASE ( non-collinear )') then
       spin_component = 'none'
       noncolin = .true.
       ispinw  = 0
       ikstart = 1
       ikstop  = nkstot
       iknum   = nkstot      
-    case('Spin CASE ( default = unpolarized )')
+    elseif(trim(adjustl(ctmp))=='Spin CASE ( default = unpolarized )') then
       spin_component = 'none'
       noncolin = .false.
       ispinw  = 0
       ikstart = 1
       ikstop  = nkstot
       iknum   = nkstot      
-    end select  
+    end if 
 
     !!
     !WRITE(stdout, *)
@@ -353,10 +372,13 @@ module readepw
       
       allocate(center_w(3,n_wannier),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating center_w',1) 
-      allocate(l_w(nbnd),stat=ierr)
+      center_w = 0.0
+      allocate(l_w(n_wannier),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating l_w',1) 
-      allocate(mr_w(nbnd),stat=ierr)
+      l_w = 0
+      allocate(mr_w(n_wannier),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating mr_w',1)       
+      mr_w = 0
       do iw=1,n_proj
         read(unitepwout,"(6x,3f10.5,9x,i3,6x,i3)") &
                       (center_w(ipol,iw),ipol=1,3),l_w(iw),mr_w(iw)
@@ -366,37 +388,17 @@ module readepw
 
     !WRITE(stdout, '(/, "      - Number of bands is (", i3, ")")') num_bands
     !call findkline(unitepwout,"      - Number of bands is (",1,28)
-    read(unitepwout,"(/,28X,i3)") num_bands
-    read(unitepwout,"(34X,i3)") nbnd
-    read(unitepwout,"(37X,i3)") nexband
-    read(unitepwout,"(40X,i3)") n_wannier
+    read(unitepwout,"(/,28X,i3)") num_bands      ! as Wanner90 num_bands,defined in wannierEPW
+    read(unitepwout,"(34X,i3)")   nbnd           ! as Wanner90 num_bands_tot,is define in pwcom.f90 wvfct
+    read(unitepwout,"(37X,i3)")   nexband        ! number of excluded bands,defined in wannierEPW
+                                                 ! ref: exclude_bands in wannier90:User Guide
+    read(unitepwout,"(40X,i3)")   n_wannier      ! as Wanner90 num_wann,defined in wannierEPW
     nbndsub = n_wannier
+    nbndskip = nexband
     
     if((nbnd-nexband)/=num_bands) &
     call errore('setup_nnkp', ' something wrong with num_bands', 1)
     
-    !if(allocated(center_w)==.flase.) then
-    !  allocate(center_w(3,n_wannier),stat=ierr)
-    !  if(ierr /=0) call errore('readepw','Error allocating center_w',1) 
-    !endif
-    !if(allocated(l_w)==.false.) then
-    !  allocate(l_w(nbnd),stat=ierr)
-    !  if(ierr /=0) call errore('readepw','Error allocating l_w',1) 
-    !endif
-    !if(allocated(mr_w)==.false.) then
-    !  allocate(mr_w(nbnd),stat=ierr)
-    !  if(ierr /=0) call errore('readepw','Error allocating mr_w',1)     
-    !endif
-    
-    !if (.not. scdm_proj) then
-    !  do i=1,n_wannier+5
-    !    backspace(unitepwout)
-    !  enddo
-    !  do iw=1,n_wannier
-    !    read(unitepwout,"(6x,3f10.5,9x,i3,6x,i3)") &
-    !                  (center_w(ipol,iw),ipol=1,3),l_w(iw),mr_w(iw)
-    !  enddo
-    !endif
     !!
     !IF (.NOT. scdm_proj) WRITE(stdout, *) '     - All guiding functions are given '
     !!
@@ -463,13 +465,16 @@ module readepw
       !CALL compute_amn_para()
       !!
       !WRITE(stdout, '(5x, a)') 'AMN'
-      !!      
+      !! 
+      call findkline(unitepwout,"AMN",6,8)
       read(unitepwout,*)
 !#if defined(__MPI)
 !    WRITE(stdout, '(6x, a, i5, a, i4, a)') 'k points = ', iknum, ' in ', npool, ' pools'
 !#endif      
       read(unitepwout, '(17x,  i5, 4x, i4)')  iknum,  npool
       
+      read(unitepwout,"(17X,i4)") nks
+      backspace(unitepwout)
       do ik=1,nks
         !read(unitepwout, '(5x, i8, " of ", i4, a)') ik , nks, ' on ionode'
         read(unitepwout,*)
@@ -535,10 +540,12 @@ module readepw
     !if( allocated(wann_centers) == .flase. ) then
       allocate(wann_centers(3,n_wannier),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating wann_centers',1) 
+      wann_centers = 0.0
     !endif
     !if(allocated(wann_spreads)==.flase.) then
       allocate(wann_spreads(n_wannier),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating wann_spreads',1) 
+      wann_spreads = 0.0
     !endif    
     read(unitepwout,"(/,A,/)") ctmp
     do iw=1,n_wannier
@@ -592,6 +599,12 @@ module readepw
     
     
     
+    
+    !! Load the fine-grid q and k grids.
+    !! nkqtotf is computed inside
+    !CALL loadqmesh_serial
+    !CALL loadkmesh_para
+    !------------------------------------------------------------
     call findkline(unitepwout,"     Using uniform q-mesh: ",1,27)
     read(unitepwout,"(27X,3i4)") nqf1,nqf2,nqf3
     !!! qx,qy,qz sizes of the uniform phonon fine mesh to be used
@@ -600,12 +613,14 @@ module readepw
     if(.not. allocated(xqf)) then 
       allocate(xqf(3,nqtotf),stat=ierr)
       !  fine q point grid
-      if(ierr /=0) call errore('readepw','Error allocating xqf',1)    
+      if(ierr /=0) call errore('readepw','Error allocating xqf',1)
+      xqf = 0.0
     endif        
     if(.not. allocated(wqf)) then 
       allocate(wqf(nqtotf),stat=ierr)
       !  weights on the fine q grid
       if(ierr /=0) call errore('readepw','Error allocating wqf',1)    
+      wqf = 0.0
     endif
     wqf = 1.0d0/(dble(nqtotf))
     
@@ -624,7 +639,15 @@ module readepw
     !! set xqf(3,nqtotf) wqf(nqtotf)
     !call loadqmesh()      
     
-    !WRITE(stdout, '(5x,"Size of q point mesh for interpolation: ",i10)') nqtotf
+    !IF (ABS(SUM(wqf) - 1.d0) > eps4) &
+    !  WRITE(stdout,'(5x,"WARNING: q-point weigths do not add up to 1 [loadqmesh_serial]")')
+    !!
+    !WRITE(stdout, '(5x,"Size of q point mesh for interpolation: ",i10)' ) nqtotf
+    !!
+    !!-----------------------------------------------------------------------
+    !END SUBROUTINE loadqmesh_serial
+    read(unitepwout,"(A)") ctmp
+    if(ctmp(6:13)/= "WARNING:") backspace(unitepwout)   
     read(unitepwout,"(45X,i10)") nqtotf
     
     
@@ -658,54 +681,201 @@ module readepw
         ENDDO
       ENDDO
     ENDDO       
-    
-    read(unitepwout,"(45X,i10)") nkqtotf    
+
+
+    !!
+    !IF (ABS(SUM(wkf_ (:)) - 2.d0) > eps4) &
+    !  WRITE(stdout, '(5x,"WARNING: k-point weigths do not add up to 1 [loadkmesh_para]")')
+    !!
+    !WRITE(stdout, '(5x,"Size of k point mesh for interpolation: ",i10)') nkqtotf
+    !WRITE(stdout, '(5x,"Max number of k points per pool:",7x,i10)') nkqf
+    !!
+    !DEALLOCATE(xkf_, STAT = ierr)
+    !IF (ierr /= 0) CALL errore('loadkmesh_para', 'Error deallocating xkf_', 1)
+    !DEALLOCATE(wkf_, STAT = ierr)
+    !IF (ierr /= 0) CALL errore('loadkmesh_para', 'Error deallocating wkf_', 1)
+    !!
+    !!-----------------------------------------------------------------------
+    !END SUBROUTINE loadkmesh_para 
+    !!-----------------------------------------------------------------------    
+    read(unitepwout,"(A)") ctmp
+    if(ctmp(6:13)/= "WARNING:") backspace(unitepwout)   
+    read(unitepwout,"(45X,i10)") nkqtotf
+    read(unitepwout,*)
     nkf = nkqtotf/2
     nkqf= nkqtotf
-
+    
+    ! Defines the total number of k-points
+    nktotf = nkqtotf / 2    
     
     
-    call findkline(unitepwout,"Fermi energy coarse grid = ",6,32)
-    read(unitepwout,"(32X,f10.6)") ef
-    ef = ef /rytoev  
-    call findkline(unitepwout,"Fermi energy is calculated from the fine k-mesh: Ef =",6,58)
-    read(unitepwout,"(58X,f10.6)") efnew   
-    efnew = efnew /rytoev
-    ef = efnew
-    
-    ! set xkf_bz(3,nktotf)
-    !call loadkmesh_fullBZ()
-    !call kq2k_map()
-    
-    
-    !icbm = 1
-    !IF (noncolin) THEN
-    !  icbm = FLOOR(nelec / 1.0d0) + 1
+    !!
+    !! Allocate velocity and dipole matrix elements after getting grid size
+    !!
+    !IF (vme) THEN
+    !  ALLOCATE(vmef(3, nbndsub, nbndsub, 2 * nkf), STAT = ierr)
+    !  IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error allocating vmef', 1)
+    !  vmef(:, :, :, :) = czero
     !ELSE
-    !  icbm = FLOOR(nelec / 2.0d0) + 1
-    !ENDIF       
-    call findkword(unitepwout,"ibndmin")
-    read(unitepwout,"(14X,10X,i5,2x,10X,f9.3)") ibndmin, ebndmin
-    ebndmin = ebndmin/rytoev
-    read(unitepwout,"(14X,10X,i5,2x,10X,f9.3)") ibndmax, ebndmax
-    ebndmax = ebndmax/rytoev
+    !  ALLOCATE(dmef(3, nbndsub, nbndsub, 2 * nkf), STAT = ierr)
+    !  IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error allocating dmef', 1)
+    !  dmef(:, :, :, :) = czero
+    !ENDIF
+    !!    
+
+    !!
+    !WRITE(stdout,'(/5x,a,f10.6,a)') 'Fermi energy coarse grid = ', ef * ryd2ev, ' eV'
+    !!        
+    read(unitepwout,"(/32X,f10.6)") ef
+    ef = ef /ryd2ev
     
+    if(nelec == 0.0) then
+      write(stdout,"(5X,A,F8.4)") "WARNING! The nelec =",nelec
+      write(stdout,"(5X,A)") "Need to set nelec right in LVCSH.in .OR. set lreadscfout= .true."
+    endif
+    
+    !IF (efermi_read) THEN
+    read(unitepwout,"(/5X,A)") ctmp
+    read(unitepwout,"(/5X,A)") ctmp
+    if(ctmp(1:47)=="Fermi energy is read from the input file: Ef = ") then
+      efermi_read = .true.
+      backspace(unitepwout)
+      read(unitepwout,"(47X,f10.6)") ef
+      ef = ef/ryd2ev
+      read(unitepwout,"(/5X,A)") ctmp
+      !
+      ! SP: even when reading from input the number of electron needs to be correct  
+      already_skipped = .FALSE.
+      IF (nbndskip > 0) THEN
+        IF (.NOT. already_skipped) THEN
+          !IF (noncolin) THEN
+          !  nelec = nelec - one * nbndskip
+          !ELSE
+          !  nelec = nelec - two * nbndskip
+          !ENDIF
+          already_skipped = .TRUE.
+          !WRITE(stdout, '(/5x,"Skipping the first ", i4, " bands:")') nbndskip
+          !WRITE(stdout, '(/5x,"The Fermi level will be determined with ", f9.5, " electrons")') nelec
+          read(unitepwout,"(/5x,19X,i4)") nbndskip
+          read(unitepwout,"(/5x,40X,f9.5)") nelec
+        ENDIF
+      ENDIF
+    !elseif(band_plot) then
+    elseif(ctmp(1:)=="Fermi energy corresponds to the coarse k-mesh") then
+      read(unitepwout,"(/5X,A)") ctmp
+    else
+      backspace(unitepwout)
+      backspace(unitepwout)
+      backspace(unitepwout)
+      backspace(unitepwout)
+      ! here we take into account that we may skip bands when we wannierize
+      ! (spin-unpolarized)
+      ! RM - add the noncolin case
+      already_skipped = .FALSE.
+      IF (nbndskip > 0) THEN
+        IF (.NOT. already_skipped) THEN
+          !IF (noncolin) THEN
+          !  nelec = nelec - one * nbndskip
+          !ELSE
+          !  nelec = nelec - two * nbndskip
+          !ENDIF
+          already_skipped = .TRUE.
+          !WRITE(stdout, '(/5x,"Skipping the first ", i4, " bands:")') nbndskip
+          read(unitepwout,"(/5X,19X,i4)") nbndskip
+          !WRITE(stdout, '(/5x,"The Fermi level will be determined with ", f9.5, " electrons")') nelec
+          read(unitepwout,"(/5X,40X,f9.5)") nelec
+        ENDIF
+      ENDIF 
+      ! Fermi energy
+      !WRITE(stdout, '(/5x,a,f10.6,a)') &
+      !  'Fermi energy is calculated from the fine k-mesh: Ef = ', efnew * ryd2ev, ' eV'
+      read(unitepwout,"(/5x,54X,f10.6)") efnew
+      efnew = efnew/ryd2ev
+
+      !! if 'fine' Fermi level differs by more than 250 meV, there is probably something wrong
+      !! with the wannier functions, or 'coarse' Fermi level is inaccurate
+      !IF (ABS(efnew - ef) * ryd2eV > 0.250d0 .AND. (.NOT. eig_read)) &
+      !   WRITE(stdout,'(/5x,a)') 'Warning: check if difference with Fermi level fine grid makes sense'
+      !WRITE(stdout,'(/5x,a)') REPEAT('=',67)
+      !!      
+      
+      read(unitepwout,"(/5X,A)") ctmp
+      if(trim(adjustl(ctmp))=="Warning: check if difference with Fermi level fine grid makes sense") then
+        WRITE(stdout,'(/5x,a)') 'Warning: check if difference with Fermi level fine grid makes sense'
+        read(unitepwout,"(/5X,A)") ctmp
+      endif
+      !
+      ef =efnew
+    endif
+
+    ! ------------------------------------------------------------
+    ! Apply a possible shift to eigenenergies (applied later)    
+    icbm = 1
+    read(unitepwout,"(5x,A)") ctmp
+    backspace(unitepwout)
+    !WRITE(stdout, '(5x,"Applying a scissor shift of ",f9.5," eV to the CB ",i6)' ) scissor * ryd2ev, icbm
+    if(ctmp(1:27)=="Applying a scissor shift of") then
+      read(unitepwout,"(5X,28X,f9.5,14X,i6)") scissor,icbm
+      scissor = scissor/ryd2eV
+    else
+      IF (noncolin) THEN
+        icbm = FLOOR(nelec / 1.0d0) + 1
+      ELSE
+        icbm = FLOOR(nelec / 2.0d0) + 1
+      ENDIF      
+    endif
+    
+    !
+    
+    !
+    ! Identify the bands within fsthick from the Fermi level
+    ! Return ibndmin and ibndmax    
+    !CALL fermiwindow()
+    !nbndfst = ibndmax - ibndmin + 1    
+    !WRITE(stdout,'(/14x,a,i5,2x,a,f9.3,a)') 'ibndmin = ', ibndmin, 'ebndmin = ', ebndmin * ryd2ev, ' eV'
+    !WRITE(stdout,'(14x,a,i5,2x,a,f9.3,a/)') 'ibndmax = ', ibndmax, 'ebndmax = ', ebndmax * ryd2ev, ' eV'
+    !!
+    !!----------------------------------------------------------------------
+    !END SUBROUTINE fermiwindow    
+    
+    read(unitepwout,"(/14x,10x,i5,2x,10x,f9.3)") ibndmin,ebndmin
+    ebndmin = ebndmin/ryd2eV
+    read(unitepwout,"(14X,10x,i5,2x,10x,f9.3)") ibndmax, ebndmax
+    ebndmax = ebndmax/ryd2eV
     nbndfst = ibndmax-ibndmin + 1
     
+    !ieband_min = icbm
+    !ieband_max = ibndmax
+    !ihband_min = ibndmin
+    !ihband_max = icbm - 1 
+           
     
     allocate(etf(nbndsub,nkqf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating etf',1)
     etf = 0.0d0
     
-    allocate(E_nk(nbndfst,nkf),stat=ierr)
-    if(ierr /=0) call errore("readepw",'Error allocating E_nk',1)
-    allocate(E_mkq(nbndfst,nkf),stat=ierr)
-    if(ierr /=0) call errore("readepw",'Error allocating E_mkq',1)
+    !allocate(E_nk(nbndfst,nkf),stat=ierr)
+    !if(ierr /=0) call errore("readepw",'Error allocating E_nk',1)
+    !allocate(E_mkq(nbndfst,nkf),stat=ierr)
+    !if(ierr /=0) call errore("readepw",'Error allocating E_mkq',1)
+    
+    !! Fine mesh set of g-matrices.  It is large for memory storage
+    !ALLOCATE(epf17(nbndfst, nbndfst, nmodes, nkf), STAT = ierr)
     allocate(epcq(nbndfst,nbndfst,nkf,nmodes,nqf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating epcq',1)
-    
+
+
+    !!
+    !! wf are the interpolated eigenfrequencies
+    !! (omega on fine grid)
+    !!
+    !IF (w2(nu) > -eps8) THEN
+    !  wf(nu, iq) =  DSQRT(ABS(w2(nu)))
+    !ELSE
+    !  wf(nu, iq) = -DSQRT(ABS(w2(nu)))
+    !ENDIF    
     if(.not. allocated(wf)) then 
-      allocate(wf(nmodes,nkqtotf),stat=ierr)
+      allocate(wf(nmodes,nqf),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating wf',1)    
     endif            
 
@@ -718,11 +888,11 @@ module readepw
     call findkline(unitepwout,"We only need to compute",6,28)
     read(unitepwout,"(29X,i8)") totq  ! totq = nqf
     nqf=totq
-    
-    !call findkline(unitepwout," Electron-phonon vertex |g| (meV)",6,38)     
+      
 
     ! 1160 DO iqq = iq_restart, totq
     do iq=1,nqf
+      !call print_gkk(iq)
       !WRITE(stdout, '(5x, a)') ' Electron-phonon vertex |g| (meV)'   printing.f90
       call findkline(unitepwout," Electron-phonon vertex |g| (meV)",6,38)  
       read(unitepwout,"(//,10x,i7,9x, 3f12.7)") iq_,(xiq(ipol),ipol=1,3) !(xqf(ipol,iq),ipol=1,3)
@@ -731,7 +901,12 @@ module readepw
       endif
       !xqf(:,iq) = xiq
       
+      !! This is a loop over k blocks in the pool (size of the local k-set)
+      !DO ik = 1, nkf
       do ik=1,nkf
+        !
+        ! xkf is assumed to be in crys coord
+        !
         ikk = 2*ik-1
         ikq = ikk + 1
         read(unitepwout,'(5x,5x,i7, 9x, 3f12.7)') ik_, (xik(ipol),ipol=1,3)
@@ -750,13 +925,12 @@ module readepw
               !ekk = etf_all(ibndmin - 1 + ibnd, ikk)
               !WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 1e20.10)') ibndmin - 1 + ibnd, ibndmin - 1 + jbnd, &
               !nu, ryd2ev * ekk, ryd2ev * ekq, ryd2mev * wf(nu, iq), ryd2mev * epc(ibnd, jbnd, nu, ik)
-              read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
-                   ekk,ekq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
-              ekk = ekk /rytoev
-              ekq = ekq /rytoev
+              read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,ekk,ekq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
+              ekk = ekk /ryd2eV
+              ekq = ekq /ryd2eV
               
-              E_nk(ibnd,ik) = ekk
-              E_mkq(jbnd,kqmap(ik,iq)) = ekq
+              !E_nk(ibnd,ik) = ekk
+              !E_mkq(jbnd,kqmap(ik,iq)) = ekq
               etf(ibndmin-1+ibnd,ikk) = ekk
               !read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
                    !E_nk,E_mkq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
@@ -779,21 +953,7 @@ module readepw
       epcq(:,:,:,nu,1) = 0.0
     enddo
     epcq = epcq/ryd2mev
-    !do iq=1,nqf
-    !  do nu=1,nmodes
-    !    epcq(:,:,:,nu,iq) = epcq(:,:,:,nu,iq) * sqrt(2.0 *wf(nu,iq))
-    !  enddo
-    !enddo
-    
-    ! Testing wrong in reading Energy
-    !do ik=1,nktotf
-    !  do ibnd=1,nbndfst
-    !    if (E_nk(ibnd,ik) /= E_mkq(ibnd,ik)) then
-    !      write(stdout,*) "E_nk /= E_mkq","ibnd=",ibnd,"ik=",ik
-    !    endif
-    !  enddo
-    !enddo
-    
+       
     call findkline(unitepwout,"matrix elements",15,29)
     read(unitepwout,"(A)") ctmp
     if(ctmp(32:35)=="vmef") then

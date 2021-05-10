@@ -5,8 +5,9 @@ module readinput
                         lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
                         naver,nstep,nsnap,gamma,dt,temp,&
                         init_kx,init_ky,init_kz,init_cband,init_vband,&
-                        llaser,efield,efield_cart,w_laser,fwhm,&
-                        lsetthreads,mkl_threads,methodsh,lelecsh,lholesh,lehpairsh
+                        llaser,efield,efield_cart,w_laser,fwhm,nelec,&
+                        lsetthreads,mkl_threads,methodsh,lelecsh,lholesh,lehpairsh,&
+                        ieband_min,ieband_max,ihband_min,ihband_max
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
   implicit none
@@ -167,6 +168,11 @@ module readinput
     lreadfildyn= .false.
     fildyn     = "prefix.dyn"
     epwoutname = "epw.out"
+    nelec      = 0.0    !!! number of electrons
+    ieband_min = 0
+    ieband_max = 0
+    ihband_min = 0
+    ihband_max = 0
     naver      = 100
     nstep      = 100
     nsnap      = 10

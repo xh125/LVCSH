@@ -7,6 +7,56 @@ module initialsh
   
   contains
   
+  subroutine set_subband(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
+    use readepw,only : icbm
+    use elph2  ,only : ibndmin,ibndmax 
+    use io,     only : stdout
+    implicit none
+    logical , intent(in) :: lelecsh
+    logical , intent(in) :: lholesh
+    integer , intent(inout) :: ieband_min,&
+                               ieband_max,&
+                               ihband_min,&
+                               ihband_max
+    if(lelecsh) then
+      if(ieband_min==0 .and. ieband_max==0) then
+        ieband_min = icbm
+        ieband_max = ibndmax
+      endif
+      if(ieband_min < ibndmin) then
+        write(stdout,"(/5X,A)") "Error! Need to reset ieband_min,for the reason ieband_min<ibndmin."
+        write(stdout,"(A)") "Check the ibndmin in epw.out"
+      endif
+      if(ieband_max > ibndmax) then
+        write(stdout,"(/5X,A)") "Error! Need to reset ieband_max,for the reason ieband_max>ibndmax."
+        write(stdout,"(A)") "Check the ibndmax in epw.out"
+      endif
+      if(ieband_min < icbm ) then
+        write(stdout,"(/5X,A)") "Electron can dynamical to the valence band."
+        write(stdout,"(A)") "Calculation the electron-hole Carrier recombination. "
+      endif
+    endif
+    
+    if(lholesh) then
+      if(ihband_min==0 .and. ihband_max==0) then
+        ihband_min = ibndmin
+        ihband_max = icbm - 1
+      endif
+      if(ihband_min < ibndmin) then
+        write(stdout,"(/5X,A)") "Error! Need to reset ihband_min,for the reason ihband_min<ibndmin."
+        write(stdout,"(A)") "Check the ibndmin in epw.out"
+      endif
+      if(ihband_max > ibndmax) then
+        write(stdout,"(/5X,A)") "Error! Need to reset ihband_max,for the reason ihband_max>ibndmax."
+        write(stdout,"(A)") "Check the ibndmax in epw.out"
+      endif
+      if(ihband_max >= icbm ) then
+        write(stdout,"(/5X,A)") "Hole can dynamical to the conductor band."
+        write(stdout,"(A)") "Calculation the electron-hole Carrier recombination. "
+      endif    
+    endif
+    
+  end subroutine set_subband
   
   ! ref: 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
   ! ref: 2. HuangKun <固体物理> (9-29) (9-31)

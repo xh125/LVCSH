@@ -1,11 +1,24 @@
+module pw_parameters
+  implicit none
+  
+  INTEGER, PARAMETER :: &
+       npk    = 40000,  &! max number of k-points               
+       ntypx  = 10,     &! max number of different types of atom
+       nsx    = ntypx,  &! max number of atomic species (CP)
+       natx   = 50,     &! max number of atoms for DFT+U+V calculations
+       sc_size = 1       ! Defines the supercell in DFT+U+V as composed by the unit cells located
+                         ! by (n1,n2,n3) in primitive vectors base with -sc_size <= ni <= sc_size,
+                         ! (2*sc_size+1)**3 is the number of cells
+
+end module pw_parameters
+
 module klist
   !
   !! This module contains the variables related to the k-points.
   !
   use kinds,      only : dp
-  use parameters, only : npk
-  !  integer,parameter :: npk = 40000 ! max number of k-points in pw.x calculation
   implicit none
+  
   character(len=32) :: smearing
   !! smearing type
   real(kind=dp),allocatable :: xk(:,:) !xk(3,npk)
@@ -213,7 +226,7 @@ MODULE vlocal
   !! The variables needed for the local potential in reciprocal space.
   !
   USE kinds,       ONLY : DP
-  USE parameters,  ONLY : ntypx
+  USE pw_parameters,  ONLY : ntypx
   !
   SAVE
   !
@@ -231,7 +244,7 @@ MODULE lsda_mod
   !! It contains the variables needed for the LSDA calculation.
   !
   USE kinds,      ONLY : DP
-  USE parameters, ONLY : ntypx, npk
+  USE pw_parameters, ONLY : ntypx, npk
   !
   IMPLICIT NONE
   !

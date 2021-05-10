@@ -1,5 +1,3 @@
-# Compiler mode   # options: release, debug
-CMODE = release             
 #compiler   # options:gnu,pgi,intel
 COMPILER = intel
 

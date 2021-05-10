@@ -30,7 +30,7 @@ ${EXE} : ${OBJ}
 all:${EXE}
 	  
 #make clean
-.PHONY : clean all
+.PHONY:
 clean:
 	rm -f $(OBJDIR)/*.mod
 	rm -f $(OBJDIR)/*.o
