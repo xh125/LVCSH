@@ -32,13 +32,22 @@ program lvcsh
   use readphout,only      : readph_out
   use readepw,only        : readepwout
   use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,temp,&
-                            nsnap,nstep,dt,inputfilename,init_ik,llaser,methodsh
-  use hamiltonian,only    : H_nk,set_H_nk,set_H0_nk,calculate_eigen_energy_state
+                            nsnap,nstep,dt,inputfilename,init_ik,init_eband,init_hband,&
+                            llaser,methodsh
+  use hamiltonian,only    : nefre,neband,H_e,E_e,P_e,P_e_nk,&
+                            nhfre,nhband,H_h,E_h,P_h,P_h_nk,&
+                            set_H_nk,set_H0_nk,&
+                            calculate_eigen_energy_state
   use randoms,only        : init_random_seed
-  use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_dynamical_variable
-  use surfacehopping,only : iaver,isnap,istep,naver,phQ,phP,phQ0,phP0,e,p,e0,p0,d,d0,ge,ge1,gh,gh1,&
-                            allocatesh,celec_nk,chole_nk,w_e,w_h,w0_e,w0_h,&
-                            iesurface,ihsurface,iesurface_j,ihsurface_j,esurface_type,hsurface_type,&
+  use lasercom,only       : fwhm,w_laser
+  use getwcvk,only        : get_Wcvk
+  use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_eh_stat_diabatic,&
+                            init_dynamical_variable
+  use surfacecom,only     : iaver,isnap,istep,naver,iesurface,ihsurface,iesurface_j,ihsurface_j
+  use surfacehopping,only : phQ,phP,phQ0,phP0,&
+                            c_e_nk,w_e,ge,ge1,esurface_type,&
+                            c_h_nk,w_h,gh,gh1,hsurface_type,&
+                            allocatesh,w0_e,w0_h,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability,calculate_sumg_pes,minde_e,minde_h,&
                             sumg0_e,sumg0_h,sumg1_e,sumg1_h,nonadiabatic_transition,&
@@ -63,6 +72,8 @@ program lvcsh
   if(lreadphout) call readph_out(phoutname)
   call readepwout(epwoutname)
   call set_subband(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
+  if(llaser) call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
+  !get W_cvk(icband,ivband,ik)
   call set_H0_nk()
   call init_random_seed()
   if(lsetthreads) call set_mkl_threads(mkl_threads)
@@ -80,9 +91,29 @@ program lvcsh
     !!Get the initial normal mode coordinate phQ and versity phP
     call init_normalmode_coordinate_velocity(wf,temp,phQ,phP)
     !!得到初始电子和空穴的状态
-    call init_dynamical_variable(phQ,llaser,celec_nk,chole_nk,e,p,w_e,w_h)
+    call init_eh_stat_diabatic(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
+    call set_H_nk(phQ) 
+    !get H_e_nk,H_h_nk
+    if(lelecsh) then
+      call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
+      P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
+      call init_dynamical_variable(neband,nktotf,P_e_nk,c_e_nk,w_e,iesurface)
+    endif
+    if(lholesh) then
+      call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
+      P_h_nk = reshape(P_h,(/ nhband,nktotf,nefre /))
+      call init_dynamical_variable(nhband,nktotf,P_h_nk,c_h_nk,w_h,ihsurface)
+    endif
+    
+    
+    
+    !call init_dynamical_variable(c_e_nk,c_h_nk,w_e,w_h)
+    
+    
     call calculate_nonadiabatic_coupling(nmodes,e,p,d)
-    phQ0=phQ; phP0=phP; e0=e; p0=p; d0=d; w0_e=w_e; w0_h=w_h
+    phQ0=phQ; phP0=phP; 
+    
+    e0=e; p0=p; d0=d; w0_e=w_e; w0_h=w_h
     
 
     !=======================!

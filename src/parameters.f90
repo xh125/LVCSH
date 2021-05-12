@@ -15,7 +15,7 @@ module parameters
   character(len=maxlen) :: scfoutname,phoutname,fildyn,epwoutname
 
   real(kind=dp)   :: init_kx,init_ky,init_kz  !激发后初始的电子(空穴)的k坐标
-  integer         :: init_cband,init_vband    !激发后初始的电子(空穴)所处的能带
+  integer         :: init_hband,init_eband    !激发后初始的电子(空穴)所处的能带
   integer         :: init_ikx,init_iky,init_ikz,init_ik 
   character(len=maxlen) :: inputfilename = "LVCSH.in"
   logical :: lreadscfout,lreadphout,lreadfildyn
@@ -26,7 +26,7 @@ module parameters
   namelist / shinput / &
            lreadscfout,lreadphout, scfoutname,phoutname,lreadfildyn,fildyn,epwoutname,&
            naver,nstep,nsnap,gamma,dt,temp,&
-           init_kx,init_ky,init_kz,init_cband,init_vband,&
+           init_kx,init_ky,init_kz,init_hband,init_eband,&
            llaser,efield,efield_cart,w_laser,fwhm,&
            nelec,&
            lsetthreads,mkl_threads,methodsh,lelecsh,lholesh,lehpairsh,&

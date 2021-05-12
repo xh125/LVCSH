@@ -60,42 +60,48 @@ module initialsh
   
   ! ref: 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
   ! ref: 2. HuangKun <固体物理> (9-29) (9-31)
-  subroutine init_eh_stat(laser,init_ik,cband,vband)
+  subroutine init_eh_stat_diabatic(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
     use parameters,only : init_ikx,init_iky,init_ikz,init_kx,init_ky,init_kz
     use epwcom,only : nkf1,nkf2,nkf3
-    use readepw,only : E_nk
+    use readepw,only : etf,icbm
+    use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,c_e_nk,c_h_nk
     use elph2,only  : vmef,ibndmin,ibndmax,nbndfst,nkf  !vmef(3,nbndsub,nbndsub,nkf)
-    use getmcvk,only: W_cvk,get_Mcvk !W_cvk(nbndfst,nbndfst,nkf)
+    use getwcvk,only: W_cvk !W_cvk(nbndfst,nbndfst,nkf)
     use constants,only :ryd2eV
     implicit none
     
-    logical,intent(in)    :: laser
+    logical , intent(in)  :: lelecsh
+    logical , intent(in)  :: lholesh    
+    logical,intent(in)    :: llaser
     integer,intent(out)   :: init_ik
-    integer,intent(inout) :: cband,vband
-    integer :: ik,ivband,icband
+    integer,intent(inout) :: init_eband,init_hband
+    integer :: ik,ihband,ieband
     real(kind=dp) :: flagr,flagd,W_cvk_all
     real(kind=dp) :: obsorbEn
-    !real(kind=dp),allocatable :: W_cvk(nbndfst,nbndfst,nkf) !光激发下的跃迁几率大小
-    if (laser) then
-      call get_Mcvk()
+    integer :: ivbm
+    
+    ivbm = icbm - 1
+    !allocate(W_cvk(icbm:ieband_max,ihband_min:ivbm,nkf) !光激发下的跃迁几率大小
+    if (llaser) then
+      !call get_Mcvk()
       W_cvk_all = SUM(W_cvk)
       call random_number(flagr)
       flagr = flagr*W_cvk_all
       flagd = 0.0
       outter:do ik=1,nkf
-               do ivband=1,nbndfst-1
-                 do icband=ivband+1,nbndfst
-                   flagd = flagd+W_cvk(icband,ivband,ik)
+               do ihband=ihband_min,ivbm
+                 do ieband=icbm,ieband_max
+                   flagd = flagd+W_cvk(ihband,ieband,ik)
                    if (flagr <= flagd) then
                      init_ik    = ik
-                     cband = icband
-                     vband = ivband
+                     init_eband = ieband
+                     init_hband = ihband
                      exit outter
                    endif
                  enddo
                enddo
       enddo outter
-      obsorbEn = (E_nk(cband,init_ik)-E_nk(vband,init_ik))*ryd2eV
+      obsorbEn = (etf(init_eband,2*init_ik-1)-etf(init_hband,2*init_ik-1))*ryd2eV
     else
       init_ikx = get_ik(init_kx,nkf1)
       init_iky = get_ik(init_ky,nkf2)
@@ -103,9 +109,18 @@ module initialsh
       init_ik  =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz
     endif
     
+    if(lelecsh) then 
+      init_eband = init_eband - ieband_min + 1
+      c_e_nk = 0.0d0
+      c_e_nk(init_eband,init_ik) = 1.0d0
+    endif
+    if(lholesh) then
+      init_hband = init_hband - ihband_min + 1
+      c_h_nk = 0.0d0
+      c_h_nk(init_hband,init_ik) = 1.0d0
+    endif
     
-    
-  end subroutine init_eh_stat
+  end subroutine init_eh_stat_diabatic
   
   function get_ik(kx,nkx)
     use kinds,only : dp
@@ -181,75 +196,60 @@ module initialsh
   !=============================================!
   != init dynamical varibale                   =!
   !=============================================!  
-  subroutine init_dynamical_variable(ph_Q,laser,c_nk,v_nk,ee,pp,ww_e,ww_h)
-    use parameters, only : init_cband,init_vband,init_ik
-    use hamiltonian,only : H0_nk,H_nk,set_H_nk,calculate_eigen_energy_state,nefre
-    use elph2,only       : nbndfst,nktotf
-    use epwcom,only      : kqmap
-    use surfacehopping,only : iesurface,ihsurface,convert_diabatic_adiabatic,p_nk
-    use io,only : stdout
-    use lasercom,only : w_laser
-    use readepw,only : E_nk
+  subroutine init_dynamical_variable(nband,nk,P_nk,c_nk,ww,isurface)
+                  
+    !use elph2,only       : nbndfst,nktotf
+    !use epwcom,only      : kqmap
+    use surfacehopping,only : convert_diabatic_adiabatic
+    !use io,only : stdout
+    !use readepw,only : E_nk,etf
+    
     implicit none
-    real(kind=dp),intent(in) :: ph_Q(nmodes,nq)
-    logical,intent(in) :: laser
-    real(kind=dp),intent(out) :: ee(nefre),pp(nefre,nefre)
-    complex(kind=dpc),intent(out) :: c_nk(nbndfst,nktotf),v_nk(nbndfst,nktotf),ww_e(nefre),ww_h(nefre)
-    integer :: iefre
+    integer , intent(inout) :: nband,nk
+    real(kind=dp) , intent(inout)    :: P_nk(nband,nk,nband*nk) 
+    complex(kind=dpc),intent(inout)  :: c_nk(nband,nk)
+    complex(kind=dpc),intent(out)    :: ww(nband*nk)
+    integer , intent(out) :: isurface
+    
+    integer :: nfre
+    integer :: ifre
     real(kind=dp) :: flagr,flagd
     real(kind=dp) :: en_eh
     
-    call init_eh_stat(laser,init_ik,init_cband,init_vband) 
-    c_nk = 0.0d0
-    v_nk = 0.0d0
-    c_nk(init_cband,init_ik) = 1.0d0
-    v_nk(init_vband,init_ik) = 1.0d0
-      
-    call set_H_nk(ph_Q,H_nk)
-    call calculate_eigen_energy_state(nktotf,nbndfst,H_nk,ee,pp)
-    p_nk = reshape(pp,(/ nbndfst,nktotf,nefre /))
-    call convert_diabatic_adiabatic(p_nk,c_nk,ww_e)
-    call convert_diabatic_adiabatic(p_nk,v_nk,ww_h)
+    nfre = nband*nk
+    
+    call convert_diabatic_adiabatic( nband,nk,p_nk,c_nk,ww )
    
     call random_number(flagr)
     flagd = 0.0d0
-    do iefre = 1,nefre
-      flagd = flagd + p_nk(init_cband,init_ik,iefre)**2
+    do ifre = 1,nfre
+      flagd = flagd + ww(ifre)**2
       if(flagr <= flagd) then
-        iesurface = iefre
+        isurface = ifre
         exit
       endif
     enddo
     
-    call random_number(flagr)
-    flagd = 0.0d0
-    do iefre = 1,nefre
-      flagd = flagd + p_nk(init_vband,init_ik,iefre)**2
-      if(flagr <= flagd) then
-        ihsurface = iefre
-        exit
-      endif
-    enddo    
     
-    en_eh = (ee(iesurface)-ee(ihsurface))*ryd2eV
-    write(stdout,"(/,5X,A)") "In the laser obsorbtion,the inital excited state as follow:"
-    write(stdout,"(5X,A22,F12.7,A3)")  "Laser centred energy :",w_laser*ryd2eV," eV"
-    
-    write(stdout,"(/,5X,A,I5)")"In diabatic base,electron excited :init_ik=",init_ik
-    write(stdout,"(5X,A,I5)")  "Electron in the conductor band:initi_cband=",init_cband
-    write(stdout,"(5X,A,I5)")  "Hole     in the valence   band:initi_vband=",init_vband
-    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of elctron:",E_nk(init_cband,init_ik)*ryd2eV," eV"
-    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of hole   :",E_nk(init_vband,init_ik)*ryd2eV," eV"
-    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of exciton:",&
-                                        (E_nk(init_cband,init_ik)-E_nk(init_vband,init_ik))*ryd2eV," eV"
-    
-    write(stdout,"(/,5X,A,I5)")"In adiabatic base,the elctron and hole state as follow"
-    write(stdout,"(5X,A,I5)")  "Electron in the energy surface:iesurface=",iesurface
-    write(stdout,"(5X,A,I5)")  "Hole in the energy surface    :ihsurface=",ihsurface
-    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of elctron:",ee(iesurface)*ryd2eV," eV"
-    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of hole   :",ee(ihsurface)*ryd2eV," eV"
-    write(stdout,"(5X,A22,F12.7,A3)")  "The energy of exciton:",&
-                                        (ee(iesurface)-ee(ihsurface))*ryd2eV," eV"    
+    !en_eh = (ee(iesurface)-ee(ihsurface))*ryd2eV
+    !write(stdout,"(/,5X,A)") "In the laser obsorbtion,the inital excited state as follow:"
+    !write(stdout,"(5X,A22,F12.7,A3)")  "Laser centred energy :",w_laser*ryd2eV," eV"
+    !
+    !write(stdout,"(/,5X,A,I5)")"In diabatic base,electron excited :init_ik=",init_ik
+    !write(stdout,"(5X,A,I5)")  "Electron in the conductor band:initi_init_eband=",init_init_eband
+    !write(stdout,"(5X,A,I5)")  "Hole     in the valence   band:initi_init_hband=",init_init_hband
+    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of elctron:",E_nk(init_init_eband,init_ik)*ryd2eV," eV"
+    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of hole   :",E_nk(init_init_hband,init_ik)*ryd2eV," eV"
+    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of exciton:",&
+    !                                    (E_nk(init_init_eband,init_ik)-E_nk(init_init_hband,init_ik))*ryd2eV," eV"
+    !
+    !write(stdout,"(/,5X,A,I5)")"In adiabatic base,the elctron and hole state as follow"
+    !write(stdout,"(5X,A,I5)")  "Electron in the energy surface:iesurface=",iesurface
+    !write(stdout,"(5X,A,I5)")  "Hole in the energy surface    :ihsurface=",ihsurface
+    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of elctron:",ee(iesurface)*ryd2eV," eV"
+    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of hole   :",ee(ihsurface)*ryd2eV," eV"
+    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of exciton:",&
+    !                                    (ee(iesurface)-ee(ihsurface))*ryd2eV," eV"    
     
   end subroutine init_dynamical_variable  
   

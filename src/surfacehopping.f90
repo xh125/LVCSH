@@ -6,11 +6,13 @@ module surfacehopping
                          E_e,P_e,P_e_nk,E0_e,P0_e,P0_e_nk,&
                          E_h,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
   use parameters, only : nsnap,naver
-  use surfacecom, only : phQ,phP,phQ0,phP0,ph_T,ph_U,&
+  use surfacecom, only : MethodSH,iesurface,ihsurface,esurface_type,hsurface_type,&
+                         phQ,phP,phQ0,phP0,ph_T,ph_U,SUM_ph_U,SUM_ph_T,SUM_ph_E,&
                          d_e,ge,ge1,c_e_nk,w_e,w0_e,&
                          d0_e,&
                          d_h,gh,gh1,c_h_nk,w_h,w0_h,&
-                         d0_h
+                         d0_h,&
+                         minde_e,minde_h,sumg0_e,sumg0_h,sumg1_e,sumg1_h
   implicit none
 
   contains
@@ -100,36 +102,36 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating d0_h',1)
     endif
     
-      allocate(pes(0:nefre,1:nsnap,1:naver),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating pes',1)
-      pes = 0.0
-      allocate(inf(1:3,1:nsnap,1:naver),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating inf',1)
-      inf = 0.0
-      allocate(csit(nefre,nsnap),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating csit',1)
-      csit = 0.0
-      allocate(wsit(nefre,nsnap),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating wsit',1)
-      wsit = 0.0 
-      allocate(psit(nefre,nsnap),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating psit',1)   
-      psit = 0.0
-      allocate(xsit(nefre,nsnap),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating xsit',1)  
-      xsit = 0.0
-      allocate(ksit(nefre,nsnap),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating ksit',1)    
-      ksit = 0.0
-      allocate(msd(nsnap),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating msd',1)
-      msd = 0.0
-      allocate(ipr(nsnap),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating ipr',1)
-      ipr = 0.0
-      allocate(msds(nsnap,naver),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating csit',1)
-      msds = 0.0
+      !allocate(pes(0:nefre,1:nsnap,1:naver),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating pes',1)
+      !pes = 0.0
+      !allocate(inf(1:3,1:nsnap,1:naver),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating inf',1)
+      !inf = 0.0
+      !allocate(csit(nefre,nsnap),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating csit',1)
+      !csit = 0.0
+      !allocate(wsit(nefre,nsnap),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating wsit',1)
+      !wsit = 0.0 
+      !allocate(psit(nefre,nsnap),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating psit',1)   
+      !psit = 0.0
+      !allocate(xsit(nefre,nsnap),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating xsit',1)  
+      !xsit = 0.0
+      !allocate(ksit(nefre,nsnap),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating ksit',1)    
+      !ksit = 0.0
+      !allocate(msd(nsnap),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating msd',1)
+      !msd = 0.0
+      !allocate(ipr(nsnap),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating ipr',1)
+      !ipr = 0.0
+      !allocate(msds(nsnap,naver),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating csit',1)
+      !msds = 0.0
     
     
   end subroutine allocatesh
@@ -140,23 +142,34 @@ module surfacehopping
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% convert wavefunction from diabatix to adiabatic basis %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  subroutine convert_diabatic_adiabatic(pp_nk,c_nk,ww)
+  subroutine convert_diabatic_adiabatic(nband,nk,P_nk,c_nk,ww)                                        
     use f95_precision
     use blas95
     implicit none
-    real(kind=dp),intent(in) :: pp_nk(nbndfst,nktotf,nefre)
-    complex(kind=dpc),intent(in) :: c_nk(nbndfst,nktotf)
-    complex(kind=dpc),intent(out):: ww(nefre)
+    integer,intent(in) :: nband,nk 
+    real(kind=dp),intent(in) :: P_nk(nband,nk,nband*nk)
+    complex(kind=dpc),intent(in) :: c_nk(nband,nk)
+    complex(kind=dpc),intent(out):: ww(nband*nk)
     
-    real(kind=dp) :: pp(nefre,nefre)
-    complex(kind=dpc) :: cc(nefre) 
+    integer :: nfre
+    !integer :: ifre,jfre,ik,jk,iband,jband 
+    real(kind=dp),allocatable :: pp(:,:)
+    complex(kind=dpc),allocatable :: cc(:)
     
-    integer :: iefre,jefre,ik,jk,iband,jband 
+    nfre = nband*nk
+    allocate( pp(nefre,nefre))
+    pp = 0.0
+    allocate( cc(nefre)) 
+    cc = 0.0
     
-    pp = reshape(pp_nk,(/nefre,nefre/))
-    cc = reshape(c_nk,(/nefre/))
+    
+    pp = reshape(P_nk,(/nfre,nfre/))
+    cc = reshape(c_nk,(/nfre/))
     ww= 0.0d0
     call gemv(pp,cc,ww,trans='T')
+    
+    deallocate(pp)
+    deallocate(cc)
     
     !ww=0.0d0
     !do ik=1,nktotf
@@ -284,20 +297,23 @@ module surfacehopping
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% CALCULATE SUMG0,SUMG1,MINDE %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  subroutine calculate_sumg_pes(sumg0,sumg1,w0,w,gg1,gg,isurface,isurface_j,minde)
+  subroutine calculate_sumg_pes(sumg0,sumg1,nfre,E0,P,P0,w0,w,gg1,gg,isurface,isurface_j,minde)
     use constants,only : cmplx_0
     implicit none
     real(kind=dp),intent(out):: sumg0,sumg1
-    complex(kind=dpc),intent(in) :: w0(nefre),w(nefre)
-    real(kind=dp),intent(in) :: gg1(nefre)
-    real(kind=dp),intent(out):: gg(nefre)
+    integer , intent(in)     :: nfre
+    complex(kind=dpc),intent(in) :: w0(nfre),w(nfre)
+    real(kind=dp),intent(in) :: gg1(nfre)
+    real(kind=dp),intent(out):: gg(nfre)
     integer,intent(in)       :: isurface 
     integer,intent(out)      :: isurface_j
     real(kind=dp),intent(out):: minde 
+    real(kind=dp),intent(in) :: E0(nfre)
+    real(kind=dp),intent(in) :: P(nfre,nfre),P0(nfre,nfre)
     real(kind=dp),allocatable :: S_ai(:)
     real(kind=dp) :: S_aa,SUM_S
     integer :: max_Sai(1)
-    integer :: iefre,isurface_a
+    integer :: ifre,isurface_a
     logical :: lallocate
     
     ! sumg0 总的跃迁几率(透热表象下计算得出)
@@ -315,26 +331,26 @@ module surfacehopping
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!      
       IF(ISURFACE == 1) THEN
         MINDE=(E0(ISURFACE+1)-E0(ISURFACE))
-        iefre=isurface+1
-      ELSEIF(ISURFACE == nefre) THEN
+        ifre=isurface+1
+      ELSEIF(ISURFACE == nfre) THEN
         MINDE=(E0(ISURFACE)-E0(ISURFACE-1))
-        iefre = isurface-1
+        ifre = isurface-1
       ELSEIF((E0(ISURFACE+1)-E0(ISURFACE)) < (E0(ISURFACE)-E0(ISURFACE-1))) THEN
         MINDE=(E0(ISURFACE+1)-E0(ISURFACE))
-        iefre= isurface+1
+        ifre= isurface+1
       ELSE
         MINDE=(E0(ISURFACE)-E0(ISURFACE-1))
-        iefre= isurface-1
+        ifre= isurface-1
       ENDIF 
       
       ! eq(13)
-      gg(iefre) = sumg0 - (sumg1-gg1(iefre))
-      if(gg(iefre) < 0.0) gg(iefre)=0.0
+      gg(ifre) = sumg0 - (sumg1-gg1(ifre))
+      if(gg(ifre) < 0.0) gg(ifre)=0.0
       if(SUM(GG) > 1.0 ) GG=GG/SUM(GG)
     elseif(methodsh == "CC-FSSH") then
       ! ref : 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
       lallocate = allocated(S_ai)
-      if(.not. lallocate) allocate(S_ai(nefre))
+      if(.not. lallocate) allocate(S_ai(nfre))
       S_ai = 0.0
       isurface_a = isurface
       S_aa = SUM(p0(:,isurface_a)*p(:,isurface_a))
@@ -345,8 +361,8 @@ module surfacehopping
         isurface_j = isurface_a
       else
         !type(2) or type(4)
-        do iefre = 1,nefre
-          S_ai(iefre) = SUM(p0(:,isurface_a)*p(:,iefre))
+        do ifre = 1,nfre
+          S_ai(ifre) = SUM(p0(:,isurface_a)*p(:,ifre))
           !S_ai(ibasis) = SUM(CONJG(pp0(:,isurface_a))*pp(:,ibasis))
         enddo
         S_ai = S_ai**2
@@ -378,24 +394,25 @@ module surfacehopping
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% REF: NOTEBOOK PAGE 635  %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  subroutine nonadiabatic_transition(lelec,isurface,isurface_j,surface_type,EE,PP,DD,GG,WW,VV)
+  subroutine nonadiabatic_transition(lelec,nfre,isurface,isurface_j,surface_type,EE,P,P0,DD,GG,WW,VV)
     use randoms,only :more_random
     use modes,only : nmodes
     implicit none
     logical , intent(in) :: lelec
+    integer , intent(in)     :: nfre
     integer , intent(inout)  :: isurface
     integer , intent(in)     :: isurface_j
     integer , intent(out)    :: surface_type
-    real(kind=dp),intent(in) :: EE(nefre)
-    real(kind=dp),intent(in) :: PP(nefre,nefre)
-    real(kind=dp),intent(in) :: DD(nefre,nefre,nmodes,nqtotf)
-    real(kind=dp),intent(in) :: GG(nefre)
+    real(kind=dp),intent(in) :: EE(nfre)
+    real(kind=dp),intent(in) :: P(nfre,nfre),P0(nfre,nfre)
+    real(kind=dp),intent(in) :: DD(nfre,nfre,nmodes,nqtotf)
+    real(kind=dp),intent(in) :: GG(nfre)
     real(kind=dp),intent(inout) :: VV(nmodes,nqtotf)
-    complex(kind=dpc),intent(in) :: WW(nefre)
+    complex(kind=dpc),intent(in) :: WW(nfre)
     
     real(kind=dp),allocatable :: S_bi(:)
     real(kind=dp) :: sumvd,sumdd,sumgg,flagr,flagd,detaE
-    integer :: iefre,jefre,imode,iq,isurface_a,isurface_b,isurface_k
+    integer :: ifre,jfre,imode,iq,isurface_a,isurface_b,isurface_k
     logical :: lallocate
     real(kind=dp) :: SUM_S,max_Sbi(1),SUM_G
     
@@ -404,19 +421,19 @@ module surfacehopping
     call random_number(flagr)
     sumgg = 0.0d0
     SUM_G = SUM(GG)
-    do iefre=1,nefre
-      if(iefre /= isurface) then
-        sumgg = sumgg + GG(iefre)
+    do ifre=1,nfre
+      if(ifre /= isurface) then
+        sumgg = sumgg + GG(ifre)
         if(flagr < sumgg) then
-          isurface_b = iefre
+          isurface_b = ifre
           if(methodsh == "CC-FSSH") then
             !if(isurface_b /= isurface_j) then
             lallocate = allocated(S_bi)
-            if(.not. lallocate) allocate(S_bi(nefre))
+            if(.not. lallocate) allocate(S_bi(nfre))
             S_bi = 0.0
 
-            do jefre = 1,nefre
-              S_bi(jefre) = SUM(p0(:,isurface_b)*p(:,jefre))
+            do jfre = 1,nfre
+              S_bi(jfre) = SUM(p0(:,isurface_b)*p(:,jfre))
               !S_bi(ibasis) = SUM(CONJG(pp0(:,isurface_b))*pp(:,ibasis))
             enddo
             SUM_S = SUM(S_bi) 
@@ -447,11 +464,11 @@ module surfacehopping
           sumdd = 0.0
           do iq=1,nqtotf
             do imode=1,nmodes
-              sumvd = sumvd + VV(imode,iq)*DD(isurface_a,iefre,imode,iq) ! A
-              sumdd = sumdd + DD(isurface_a,iefre,imode,iq)**2           ! B
+              sumvd = sumvd + VV(imode,iq)*DD(isurface_a,ifre,imode,iq) ! A
+              sumdd = sumdd + DD(isurface_a,ifre,imode,iq)**2           ! B
             enddo
           enddo
-          detaE = EE(isurface_a)-EE(iefre)
+          detaE = EE(isurface_a)-EE(ifre)
           if(.not. lelec) detaE = -1.0*detaE  ! 针对空穴修改能量
           flagd = 1.0+2.0*detaE*sumdd/sumvd**2  
           
@@ -461,7 +478,7 @@ module surfacehopping
                 flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
                 do iq=1,nqtotf
                   do imode=1,nmodes
-                    VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,iefre,imode,iq)
+                    VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
                   enddo
                 enddo
                 isurface = isurface_k
@@ -474,7 +491,7 @@ module surfacehopping
                   flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
                   do iq=1,nqtotf
                     do imode=1,nmodes
-                      VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,iefre,imode,iq)
+                      VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
                     enddo
                   enddo
                   isurface = isurface_k
@@ -493,10 +510,10 @@ module surfacehopping
               flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
               do iq=1,nqtotf
                 do imode=1,nmodes
-                  VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,iefre,imode,iq)
+                  VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
                 enddo
               enddo
-              isurface = iefre          
+              isurface = ifre          
             endif
           endif
           

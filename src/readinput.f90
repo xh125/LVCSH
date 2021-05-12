@@ -4,7 +4,7 @@ module readinput
   use parameters,only : &
                         lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
                         naver,nstep,nsnap,gamma,dt,temp,&
-                        init_kx,init_ky,init_kz,init_cband,init_vband,&
+                        init_kx,init_ky,init_kz,init_hband,init_eband,&
                         llaser,efield,efield_cart,w_laser,fwhm,nelec,&
                         lsetthreads,mkl_threads,methodsh,lelecsh,lholesh,lehpairsh,&
                         ieband_min,ieband_max,ihband_min,ihband_max
@@ -182,8 +182,8 @@ module readinput
     init_kx    = 0.0    ! in unit of b_x
     init_ky    = 0.0
     init_kz    = 0.0
-    init_cband = 1      ! the initial electron band
-    init_vband = 2      ! the initial hole band
+    init_eband = 1      ! the initial electron band
+    init_hband = 1      ! the initial hole band
     llaser     = .true.
     efield     = 1.0    ! V/m
     efield_cart= (/ 0.0,0.0,1.0 /)  ! V/m
@@ -232,25 +232,6 @@ module readinput
     
   end subroutine param_in_atomicunits
   
-  subroutine init_eh_stat(init_ik)
-    use parameters,only : init_ikx,init_iky,init_ikz
-    use epwcom,only : nkf1,nkf2,nkf3
-    implicit none
-    
-    integer,intent(out) :: init_ik
-    if (llaser) then
-      
-      init_ik    = 1
-      init_cband = 1
-      init_vband = 2
-    else
-      init_ikx = get_ik(init_kx,nkf1)
-      init_iky = get_ik(init_ky,nkf2)
-      init_ikz = get_ik(init_kz,nkf3)
-      init_ik  =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz
-    endif
-    
-  end subroutine init_eh_stat
   
   function get_ik(kx,nkx)
     use kinds,only : dp

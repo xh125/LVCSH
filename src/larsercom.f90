@@ -16,10 +16,10 @@ module lasercom
   real(kind=dp),allocatable :: W_cvk(:,:,:) !光激发下的跃迁几率大小
   contains
   
-  real function f_t(t)
+  real function f_t(t,fwhm_2T2)
     implicit none
     real(kind=dp), intent(in) :: t
-    
+    real(kind=dp), intent(in) :: fwhm_2T2
     ! fwhm_2T2 = fwhm**2.0/4.0*log(2.0)
     f_t = exp(-1.0*t**2/fwhm_2T2)
     return
@@ -27,9 +27,10 @@ module lasercom
   
   
   !ref : 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
-  real function f_w(w)
+  real function f_w(w,fwhm_2T2)
     implicit none
     real(kind=dp),intent(in) :: w
+    real(kind=dp),intent(in) :: fwhm_2T2
     real(kind=dp) :: wfwhm
     wfwhm = (w-w_laser)**2 *fwhm_2T2
     wfwhm = -0.25*wfwhm

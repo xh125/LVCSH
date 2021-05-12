@@ -95,7 +95,7 @@ module dynamics
     
     complex(kind=dpc) :: c(nefre),dc(nefre)
     real(kind=dp) :: HH(nefre,nefre)
-    call set_H_nk(xx,HH)
+    call set_H_nk(xx)
     
     c = reshape(c_nk,(/nefre/))
     dc= cmplx_0
@@ -168,22 +168,23 @@ module dynamics
   != ref: notebook page 462 and 638              =!
   !===============================================!
   ! ref: 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
-  SUBROUTINE ADD_BATH_EFFECT(EE,PP,DD,TT,XX,VV)
+  SUBROUTINE ADD_BATH_EFFECT(nfre,EE,E0,PP,DD,TT,XX,VV)
     use kinds,only : dp,dpc
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
     use parameters,only : gamma,temp
     use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7
-    use surfacehopping,only : iesurface,ihsurface,E0,SUM_ph_U,SUM_ph_T,SUM_ph_E,&
+    use surfacehopping,only : iesurface,ihsurface,SUM_ph_U,SUM_ph_T,SUM_ph_E,&
                               ph_T,ph_U
     implicit none
     
-    real(kind=dp), intent(in) :: EE(nefre)
-    real(kind=dp), intent(in) :: PP(nefre,nefre)
-    real(kind=dp), intent(in) :: DD(nefre,nefre,nmodes,nq)
+    integer , intent(in)      :: nfre
+    real(kind=dp), intent(in) :: EE(nfre),E0(nfre)
+    real(kind=dp), intent(in) :: PP(nfre,nfre)
+    real(kind=dp), intent(in) :: DD(nfre,nfre,nmodes,nq)
     real(kind=dp), intent(in) :: tt
     real(kind=dp), intent(inout) :: XX(nmodes,nq),VV(nmodes,nq)
     
-    integer :: imode,iq,iefre
+    integer :: imode,iq,ifre
     real(kind=dp) :: SIGMAR,R1,R2,R3,R4,Z1,Z2,Z3,Z4!,GAUSSIAN_RANDOM_NUMBER_FAST
     !EXTERNAL GAUSSIAN_RANDOM_NUMBER_FAST
     real(kind=dp) :: wwf2
@@ -193,14 +194,14 @@ module dynamics
     DO iq=1,nq
       do imode=1,nmodes
         dEa2_dQ2 = 0.0
-        do iefre=1,nefre
-          if(iefre /= iesurface) then
-            dEa2_dQ2 = dEa2_dQ2 + (EE(iefre)-EE(iesurface))*DD(iefre,iesurface,imode,iq)*DD(iesurface,iefre,imode,iq)
-          endif
-          if(iefre /= ihsurface) then
-            dEa2_dQ2 = dEa2_dQ2 + (ee(iefre)-ee(ihsurface))*dd(iefre,ihsurface,imode,iq)*dd(ihsurface,iefre,imode,iq)
-          endif
-        enddo
+        !do ifre=1,nfre
+        !  if(iefre /= iesurface) then
+        !    dEa2_dQ2 = dEa2_dQ2 + (EE(iefre)-EE(iesurface))*DD(iefre,iesurface,imode,iq)*DD(iesurface,iefre,imode,iq)
+        !  endif
+        !  if(iefre /= ihsurface) then
+        !    dEa2_dQ2 = dEa2_dQ2 + (ee(iefre)-ee(ihsurface))*dd(iefre,ihsurface,imode,iq)*dd(ihsurface,iefre,imode,iq)
+        !  endif
+        !enddo
         wwf2 = wf(imode,iq)**2+dEa2_dQ2
       
    

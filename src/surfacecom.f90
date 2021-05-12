@@ -3,7 +3,8 @@ module surfacecom
   implicit none
   integer :: iaver
   integer :: isnap,istep
-  integer :: iesurface,ihsurface,iesurface_j,ihsurface_j,esurface_type,hsurface_type
+  integer :: iesurface,ihsurface,iesurface_j,ihsurface_j,&
+             esurface_type,hsurface_type
   integer :: ierr
   
   integer         :: naver
@@ -43,8 +44,10 @@ module surfacecom
   real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
                                psit(:,:),xsit(:,:),ksit(:,:) 
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
+  
   complex(kind=dpc),allocatable :: c_e_nk(:,:),w_e(:),w0_e(:)
   complex(kind=dpc),allocatable :: c_h_nk(:,:),w_h(:),w0_h(:)
+  
   real(kind=dp) :: minde_e,minde_h,sumg0_e,sumg0_h,sumg1_e,sumg1_h
   contains
   
