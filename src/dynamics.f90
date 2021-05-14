@@ -1,84 +1,27 @@
 module dynamics
   use kinds,only : dp,dpc
   use io,only :
-  use parameters,only : gamma,temp
-  use hamiltonian,only : nphfre,nefre,set_H_nk
+  use parameters,only : temp
   use elph2,only          : nktotf,nqtotf,wf
   use modes,only          : nmodes
   use epwcom,only         : kqmap
   
   implicit none
-  !logical :: lelec = .true.
-  !logical :: lhole = .false.
   
   contains
-  
-  !=======================================================================!
-  != rk4 method to obtain coordinate and velocitie after a time interval =!
-  !=======================================================================!
-  != ref: http://en.wikipedia.org/wiki/runge_kutta_methods               =!
-  !=======================================================================!
-  subroutine rk4_nuclei(nmodes,nq,dEa_dx,xx,vv,tt)
-    implicit none
-    integer , intent(in) :: nmodes,nq
-    real(kind=dp),intent(in)   :: dEa_dx(nmodes,nq)
-    real(kind=dp),intent(inout):: xx(nmodes,nq),vv(nmodes,nq)
-    real(kind=dp),intent(in)   :: tt
-    real(kind=dp):: tt2,tt6
-    real(kind=dp):: xx0(nmodes,nq),dx1(nmodes,nq),dx2(nmodes,nq),dx3(nmodes,nq),dx4(nmodes,nq)
-    real(kind=dp):: vv0(nmodes,nq),dv1(nmodes,nq),dv2(nmodes,nq),dv3(nmodes,nq),dv4(nmodes,nq)
 
-    tt2=tt/2.0d0; tt6=tt/6.0d0
-    call derivs_nuclei(nmodes,nq,dEa_dx,wf,gamma,xx,vv,dx1,dv1)
-    xx0=xx+tt2*dx1; vv0=vv+tt2*dv1
-    call derivs_nuclei(nmodes,nq,dEa_dx,wf,gamma,xx0,vv0,dx2,dv2)
-    xx0=xx+tt2*dx2; vv0=vv+tt2*dv2
-    call derivs_nuclei(nmodes,nq,dEa_dx,wf,gamma,xx0,vv0,dx3,dv3)
-    xx0=xx+tt*dx3; vv0=vv+tt*dv3
-    call derivs_nuclei(nmodes,nq,dEa_dx,wf,gamma,xx0,vv0,dx4,dv4)
-    xx=xx+tt6*(dx1+2.0d0*dx2+2.0d0*dx3+dx4)
-    vv=vv+tt6*(dv1+2.0d0*dv2+2.0d0*dv3+dv4)
-  endsubroutine
-  
-  subroutine get_dEa_dQ(lelecsh,lholesh,nmodes,nq,wf,dEa_dQ)
-    use hamiltonian,only: neband,P_e_nk,epcq_e,&
-                          nhband,P_h_nk,epcq_h
-    use elph2,only : nk=>nktotf
-    use surfacecom,only : dEa_dQ_e,dEa_dQ_h
-    use surfacehopping,only : iesurface,ihsurface
-    implicit none
-    logical,intent(in) :: lelecsh,lholesh
-    integer,intent(in) :: nmodes,nq
-    real(kind=dp),intent(in)  :: wf(nmodes,nq)
-    real(kind=dp),intent(out) :: dEa_dQ(nmodes,nq)
-    
-    dEa_dQ = 0.0
-    
-    if(lelecsh) then
-      dEa_dQ_e = 0.0
-      call get_dEa_dQ_eh(nmodes,nq,neband,nk,wf,P_e_nk,epcq_e,iesurface,dEa_dQ_e)
-      dEa_dQ = dEa_dQ + dEa_dQ_e
-    endif
-    if(lholesh) then
-      dEa_dQ_h = 0.0
-      call get_dEa_dQ_eh(nmodes,nq,nhband,nk,wf,P_h_nk,epcq_h,ihsurface,dEa_dQ_h)
-      dEa_dQ = dEa_dQ - dEa_dQ_h
-    endif
-    
-  end subroutine get_dEa_dQ
-
-  subroutine get_dEa_dQ_eh(nmodes,nq,nband,nk,wf,P_nk,epcq,isurface,dEa_dQ_eh)
+  subroutine get_dEa_dQ(nmodes,nq,nband,nk,wf,P_nk,epcq,isurface,dEa_dQ)
     implicit none
     integer,intent(in) :: nmodes,nq,nband,nk
     integer,intent(in) :: isurface
     real(kind=dp),intent(in)  :: wf(nmodes,nq)
     real(kind=dp),intent(in)  :: P_nk(nband,nk,nband*nk)
     real(kind=dp),intent(in)  :: epcq(nband,nband,nk,nmodes,nq)
-    real(kind=dp),intent(out) :: dEa_dQ_eh(nmodes,nq)
+    real(kind=dp),intent(out) :: dEa_dQ(nmodes,nq)
     
     integer :: iq,imode,ik,ikq,iband1,iband2
     
-    dEa_dQ_eh = 0.0
+    dEa_dQ = 0.0
     do iq=1,nq
       do imode=1,nmodes
         do ik=1,nk
@@ -86,20 +29,45 @@ module dynamics
           do iband1=1,nband
             do iband2=1,nband
               ! 电子能量随简正模的变化
-              dEa_dQ_eh = dEa_dQ_eh + &
-              P_nk(iband1,ik,isurface)*P_nk(iband2,ikq,isurface)*epcq(iband1,iband2,ik,imode,iq)
-              !! 空穴能量随简正模的变化
-              !dEa_dQ = dEa_dQ - &
-              !pp_nk(iband1,ik,ihsurface)*pp_nk(iband2,ikq,iesurface)*epcq(iband1,iband2,ik,imode,iq)                    
+              dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
+              P_nk(iband1,ik,isurface)*P_nk(iband2,ikq,isurface)*epcq(iband1,iband2,ik,imode,iq)                 
             enddo
           enddo
         enddo
-        dEa_dQ_eh = sqrt(2.0*wf(imode,iq)/nq) * dEa_dQ_eh
+        dEa_dQ(imode,iq) = sqrt(2.0*wf(imode,iq)/nq) * dEa_dQ(imode,iq)
       enddo
     enddo
     
-  end subroutine get_dEa_dQ_eh
+  end subroutine get_dEa_dQ
+  
+  !=======================================================================!
+  != rk4 method to obtain coordinate and velocitie after a time interval =!
+  !=======================================================================!
+  != ref: http://en.wikipedia.org/wiki/runge_kutta_methods               =!
+  !=======================================================================!
+  subroutine rk4_nuclei(nmodes,nq,dEa_dQ,gamma,wf,xx,vv,tt)
+    implicit none
+    integer , intent(in) :: nmodes,nq
+    real(kind=dp),intent(in)   :: gamma
+    real(kind=dp),intent(in)   :: dEa_dQ(nmodes,nq)
+    real(kind=dp),intent(in)   :: wf(nmodes,nq)
+    real(kind=dp),intent(inout):: xx(nmodes,nq),vv(nmodes,nq)
+    real(kind=dp),intent(in)   :: tt
+    real(kind=dp):: tt2,tt6
+    real(kind=dp):: xx0(nmodes,nq),dx1(nmodes,nq),dx2(nmodes,nq),dx3(nmodes,nq),dx4(nmodes,nq)
+    real(kind=dp):: vv0(nmodes,nq),dv1(nmodes,nq),dv2(nmodes,nq),dv3(nmodes,nq),dv4(nmodes,nq)
 
+    tt2=tt/2.0d0; tt6=tt/6.0d0
+    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,gamma,xx,vv,dx1,dv1)
+    xx0=xx+tt2*dx1; vv0=vv+tt2*dv1
+    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,gamma,xx0,vv0,dx2,dv2)
+    xx0=xx+tt2*dx2; vv0=vv+tt2*dv2
+    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,gamma,xx0,vv0,dx3,dv3)
+    xx0=xx+tt*dx3; vv0=vv+tt*dv3
+    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,gamma,xx0,vv0,dx4,dv4)
+    xx=xx+tt6*(dx1+2.0d0*dx2+2.0d0*dx3+dx4)
+    vv=vv+tt6*(dv1+2.0d0*dv2+2.0d0*dv3+dv4)
+  endsubroutine
   
   !====================================================!
   != calculate derivative of coordinate and velocitie =!
@@ -110,13 +78,13 @@ module dynamics
   ! ref : 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
   ! ref : PPT-92
   ! ref : 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
-  subroutine derivs_nuclei(nmodes,nq,dEa_dx,wf,gamma,xx,vv,dx,dv)
+  subroutine derivs_nuclei(nmodes,nq,dEa_dQ,wf,gamma,xx,vv,dx,dv)
     !use surfacecom,only : lelecsh,lholesh
     !use hamiltonian,only: neband,P_e_nk,epcq_e,&
     !                      nhband,P_h_nk,epcq_h
     implicit none
     integer,intent(in) :: nmodes,nq
-    real(kind=dp),intent(in)  ::  dEa_dx(nmodes,nq),wf(nmodes,nq)
+    real(kind=dp),intent(in)  ::  dEa_dQ(nmodes,nq),wf(nmodes,nq)
     real(kind=dp),intent(in)  ::  gamma
     real(kind=dp),intent(in)  ::  xx(nmodes,nq),vv(nmodes,nq)
     real(kind=dp),intent(out) ::  dx(nmodes,nq),dv(nmodes,nq)
@@ -126,7 +94,7 @@ module dynamics
     do iq=1,nq
       do imode=1,nmodes
         dx(imode,iq) = vv(imode,iq)
-        dv(imode,iq) = -wf(imode,iq)**2*xx(imode,iq)-dEa_dx(imode,iq)-gamma*vv(imode,iq)
+        dv(imode,iq) = -wf(imode,iq)**2*xx(imode,iq)-dEa_dQ(imode,iq)-gamma*vv(imode,iq)
       enddo
     enddo
     
@@ -160,17 +128,16 @@ module dynamics
   != ref: http://en.wikipedia.org/wiki/runge_kutta_methods   =!
   !===========================================================!
 
-  subroutine rk4_electron_diabatic(nmodes,nq,nfre,xx,HH,cc,cc0,dc1,dc2,dc3,dc4,nn,tt)
+  subroutine rk4_electron_diabatic(nfre,HH,cc,cc0,dc1,dc2,dc3,dc4,nn,tt)
     implicit none
-    integer,intent(in)              :: nmodes,nq,nfre
-    real(kind=dp),intent(in)        :: xx(nmodes,nq)
+    integer,intent(in)              :: nfre
     complex(kind=dpc),intent(inout) :: cc(nfre)
-    real(kind=dp),intent(in)        :: tt
-    real(kind=dp):: tt2,tt6
     real(kind=dp),intent(in) :: HH(nfre)
     complex(kind=dpc),intent(inout):: cc0(nfre),dc1(nfre),&
                         dc2(nfre),dc3(nfre),dc4(nfre)
     real(kind=dp),intent(inout) :: nn(nfre) 
+    real(kind=dp),intent(in)        :: tt
+    real(kind=dp):: tt2,tt6
     real(kind=dp) ::sum_nn
     
     nn=CONJG(cc)*cc

@@ -273,41 +273,149 @@ module surfacehopping
   !ref : eq(2)
   ! 其中gg1为原始跃迁几率，gg为采用FSSH方法，令跃迁几率小于0的部分等于0
   ! if(gg(iefre) < 0.0) gg(iefre) = 0.0
-  subroutine calculate_hopping_probability(isurface,WW,VV,dd,tt,gg,gg1)
-    use modes,only : nmodes
+  subroutine calculate_hopping_probability(isurface,nfre,nmodes,nq,WW,VV,dd,tt,gg,gg1)
     implicit none
-    integer,intent(in)           :: isurface
-    complex(kind=dpc),intent(in) :: WW(nefre)
-    real(kind=dp),intent(in)     :: VV(nmodes,nqtotf)
-    real(kind=dp),intent(in)     :: dd(nefre,nefre,nmodes,nqtotf)
+    integer,intent(in)           :: isurface,nfre,nmodes,nq
+    complex(kind=dpc),intent(in) :: WW(nfre)
+    real(kind=dp),intent(in)     :: VV(nmodes,nq)
+    real(kind=dp),intent(in)     :: dd(nfre,nfre,nmodes,nq)
     real(kind=dp),intent(in)     :: tt
-    real(kind=dp),intent(out)     :: gg(nefre)
-    real(kind=dp),intent(out)     :: gg1(nefre)
+    real(kind=dp),intent(out)    :: gg(nfre)
+    real(kind=dp),intent(out)    :: gg1(nfre)
     
     real(kind=dp) :: sumvd
-    integer :: iefre,iq,imode
+    integer :: ifre,iq,imode
     
-    gg = 0.0
-    gg1= 0.0
+    gg = 0.0d0
+    gg1= 0.0d0
     ! FSSH
     ! ref: 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
-    do iefre=1,nefre
-      if(iefre /= isurface) then
+    do ifre=1,nfre
+      if(ifre /= isurface) then
         sumvd = 0.0
-        do iq=1,nqtotf
+        do iq=1,nq
           do imode=1,nmodes
-            sumvd = sumvd+VV(imode,iq)*dd(isurface,iefre,imode,iq)
+            sumvd = sumvd+VV(imode,iq)*dd(isurface,ifre,imode,iq)
           enddo
         enddo
         ! in adiabatic representation：the switching probabilities from the active surface isurface to another surface iefre 
-        gg(iefre)=2.0*tt*Real(CONJG(WW(isurface))*WW(iefre))*sumvd/REAL(CONJG(WW(isurface))*WW(isurface))
-        gg1(iefre) = gg(iefre)  ! 绝热表象原始的跃迁几率
+        gg(ifre)=2.0*tt*Real(CONJG(WW(isurface))*WW(ifre))*sumvd/REAL(CONJG(WW(isurface))*WW(isurface))
+        gg1(ifre) = gg(ifre)  ! 绝热表象原始的跃迁几率
         !FSSH if g_ij<0,reset to g_ij=0
-        if(gg(iefre) < 0.0) gg(iefre) = 0.0
+        if(gg(ifre) < 0.0d0) gg(ifre) = 0.0d0
       endif
     enddo
       
   end subroutine calculate_hopping_probability
+
+  subroutine get_G_SC_FSSH(isurface,nfre,e0,w0,w,g1,g)
+    use constants ,only   : ryd2eV
+    implicit none
+    integer,intent(in) :: isurface
+    integer,intent(in) :: nfre
+    real(kind=dp),intent(in)     :: e0(nfre)
+    complex(kind=dpc),intent(in) :: w0(nfre),w(nfre)
+    real(kind=dp),intent(in)     :: g1(nfre)
+    real(kind=dp),intent(inout)  :: g(nfre)
+    
+    integer :: ifre
+    real(kind=dp) :: sumg0,sumg1
+    real(kind=dp) :: minde
+    
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    !% calculate sumg0,sumg1,minde %!
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+
+    ! sumg0 总的跃迁几率(透热表象下计算得出)
+    ! ref: 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
+    ! eq(4) ,eq(5)
+    ! ref: 1 L. Wang, and O. V. Prezhdo, Journal of Physical Chemistry Letters 5 (2014) 713.
+    ! eq(4)-eq(12)
+    ! Assumption at most one trivial crossing is encountered during a time step.    
+    
+    sumg0=(abs(w0(isurface))**2-abs(w(isurface))**2)/abs(w0(isurface))**2
+    sumg1=sum(g1)
+    if(isurface == 1) then
+      minde=(e0(isurface+1)-e0(isurface))*ryd2eV
+    elseif(isurface == nfre) then
+      minde=(e0(isurface)-e0(isurface-1))*ryd2eV
+    elseif((e0(isurface+1)-e0(isurface)) < (e0(isurface)-e0(isurface-1))) then
+      minde=(e0(isurface+1)-e0(isurface))*ryd2eV
+    else
+      minde=(e0(isurface)-e0(isurface-1))*ryd2eV
+    endif    
+
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    !% fixed g                         %!
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+
+    if(isurface == 1) then
+      ifre=isurface+1
+    elseif(isurface == nfre) then
+      ifre=isurface-1
+    elseif((e0(isurface+1)-e0(isurface)) < (e0(isurface)-e0(isurface-1))) then
+      ifre=isurface+1
+    else
+      ifre=isurface-1
+    endif
+    g(ifre)=sumg0-(sum(g1)-g1(ifre))
+    if(g(ifre).lt.0.0d0) g(ifre)=0.0d0
+    if(sum(g).ge.1.0d0) g=g/sum(g)    
+    
+  end subroutine get_G_SC_FSSH
+
+  subroutine get_G_CC_FSSH(nfre,isurface,p0,p,w0,w,S_ai,g1,g)
+    implicit none
+    integer,intent(in) :: nfre,isurface
+    real(kind=dp),intent(in) :: p0(nfre,nfre)
+    real(kind=dp),intent(in) :: p(nfre,nfre)
+    complex(kind=dpc),intent(in):: w0(nfre),w(nfre)
+    real(kind=dp),intent(inout) :: S_ai(nfre)
+    real(kind=dp),intent(in)  :: g1(nfre)
+    real(kind=dp),intent(inout) :: g(nfre)
+    
+    integer :: ifre
+    integer :: isurface_a,isurface_b,isurface_j,isurface_k
+    real(kind=dp) :: S_aa,SUM_S
+    integer :: max_Sai(1)
+    real(kind=dp) :: sumg0,sumg1
+    
+    ! ref : 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
+    !lallocate = allocated(S_ai)
+    !if(.not. lallocate) allocate(S_ai(nfre))
+    S_ai = 0.0
+    isurface_a = isurface
+    S_aa = SUM(p0(:,isurface_a)*p(:,isurface_a))
+    
+    !S_aa = SUM(CONJG(p0(:,isurface_a))*p(:,isurface_a))
+    if(S_aa**2 > 0.5) then
+      !type(1) or type(3)
+      isurface_j = isurface_a
+    else
+      !type(2) or type(4)
+      do ifre = 1,nfre
+        S_ai(ifre) = SUM(p0(:,isurface_a)*p(:,ifre))
+        !S_ai(ibasis) = SUM(CONJG(pp0(:,isurface_a))*pp(:,ibasis))
+      enddo
+      S_ai = S_ai**2
+      SUM_S = SUM(S_ai)   ! = 1.00
+      !S_ai = CONJG(S_ai)*S_ai
+      max_Sai =  MAXLOC(S_ai)
+      isurface_j = max_Sai(1)
+    endif
+    
+    sumg0 = (ABS(W0(ISURFACE))**2-ABS(W(ISURFACE))**2)/ABS(W0(ISURFACE))**2
+    sumg1 = SUM(g1)      
+    if(isurface_j == isurface) then
+      ! type(1) or type(3)
+      g = g
+    else
+      g(isurface_j) = sumg0 - (SUM(G1)-G1(isurface_j))
+      if(G(isurface_j) < 0.0d0) G(isurface_j) = 0.0d0
+      if(SUM(G) > 1.0d0) G=G/SUM(G)
+    endif
+    !    
+  end subroutine get_G_CC_FSSH
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% CALCULATE SUMG0,SUMG1,MINDE %!
