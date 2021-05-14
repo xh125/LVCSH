@@ -60,14 +60,15 @@ module initialsh
   
   ! ref: 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
   ! ref: 2. HuangKun <固体物理> (9-29) (9-31)
-  subroutine init_eh_stat_diabatic(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
+  subroutine init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
     use parameters,only : init_ikx,init_iky,init_ikz,init_kx,init_ky,init_kz
     use epwcom,only : nkf1,nkf2,nkf3
     use readepw,only : etf,icbm
     use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,c_e_nk,c_h_nk
     use elph2,only  : vmef,ibndmin,ibndmax,nbndfst,nkf  !vmef(3,nbndsub,nbndsub,nkf)
-    use getwcvk,only: W_cvk !W_cvk(nbndfst,nbndfst,nkf)
+    use getwcvk,only: W_cvk !(W_cvk(icbm:ieband_max,ihband_min:ivbm,nkf)
     use constants,only :ryd2eV
+    use io,only : stdout
     implicit none
     
     logical , intent(in)  :: lelecsh
@@ -83,7 +84,6 @@ module initialsh
     ivbm = icbm - 1
     !allocate(W_cvk(icbm:ieband_max,ihband_min:ivbm,nkf) !光激发下的跃迁几率大小
     if (llaser) then
-      !call get_Mcvk()
       W_cvk_all = SUM(W_cvk)
       call random_number(flagr)
       flagr = flagr*W_cvk_all
@@ -107,20 +107,42 @@ module initialsh
       init_iky = get_ik(init_ky,nkf2)
       init_ikz = get_ik(init_kz,nkf3)
       init_ik  =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz
+      if(init_eband < icbm .or. init_eband > ieband_max) then
+        write(stdout,"(/5X,A29,I5)") "Wrong! The init_eband set as:",init_eband
+        write(stdout,"(5X,A29,I5,A16,I5)") "The init_eband need to set : ",icbm,"<= init_eband <=",ieband_max
+      endif
+      if(init_hband < ihband_min .or. init_hband > ivbm) then
+        write(stdout,"(/5X,A29,I5)") "Wrong! The init_hband set as:",init_hband
+        write(stdout,"(5X,A29,I5,A16,I5)") "The init_hband need to set : ",ihband_min,"<= init_hband <=",ivbm
+      endif      
     endif
     
-    if(lelecsh) then 
-      init_eband = init_eband - ieband_min + 1
-      c_e_nk = 0.0d0
-      c_e_nk(init_eband,init_ik) = 1.0d0
-    endif
-    if(lholesh) then
-      init_hband = init_hband - ihband_min + 1
-      c_h_nk = 0.0d0
-      c_h_nk(init_hband,init_ik) = 1.0d0
-    endif
+    !if(lelecsh) then 
+    !  init_eband = init_eband - ieband_min + 1
+    !  c_e_nk = 0.0d0
+    !  c_e_nk(init_eband,init_ik) = 1.0d0
+    !endif
+    !if(lholesh) then
+    !  init_hband = init_hband - ihband_min + 1
+    !  c_h_nk = 0.0d0
+    !  c_h_nk(init_hband,init_ik) = 1.0d0
+    !endif
     
-  end subroutine init_eh_stat_diabatic
+  end subroutine init_eh_KSstat
+  
+  subroutine init_stat_diabatic(init_ik,init_band,iband_min,nband,nk,c_nk)
+    implicit none
+    integer,intent(in)    :: init_ik
+    integer,intent(inout) :: init_band
+    integer,intent(in)    :: iband_min
+    integer,intent(in)    :: nband,nk
+    complex(kind=dpc),intent(out) :: c_nk(nband,nk) 
+    
+    init_band = init_band - iband_min + 1
+    c_nk = 0.0d0
+    c_nk(init_band,init_ik) = 1.0d0
+    
+  end subroutine init_stat_diabatic
   
   function get_ik(kx,nkx)
     use kinds,only : dp
@@ -194,36 +216,22 @@ module initialsh
   end subroutine init_normalmode_coordinate_velocity
   
   !=============================================!
-  != init dynamical varibale                   =!
+  != init dynamical surface                    =!
   !=============================================!  
-  subroutine init_dynamical_variable(nband,nk,P_nk,c_nk,ww,isurface)
-                  
-    !use elph2,only       : nbndfst,nktotf
-    !use epwcom,only      : kqmap
-    use surfacehopping,only : convert_diabatic_adiabatic
-    !use io,only : stdout
-    !use readepw,only : E_nk,etf
-    
+  subroutine init_surface(nfre,ww,isurface)
     implicit none
-    integer , intent(inout) :: nband,nk
-    real(kind=dp) , intent(inout)    :: P_nk(nband,nk,nband*nk) 
-    complex(kind=dpc),intent(inout)  :: c_nk(nband,nk)
-    complex(kind=dpc),intent(out)    :: ww(nband*nk)
+    
+    integer , intent(in) :: nfre
+    complex(kind=dpc),intent(in)    :: ww(nfre)
     integer , intent(out) :: isurface
     
-    integer :: nfre
     integer :: ifre
     real(kind=dp) :: flagr,flagd
-    real(kind=dp) :: en_eh
-    
-    nfre = nband*nk
-    
-    call convert_diabatic_adiabatic( nband,nk,p_nk,c_nk,ww )
    
     call random_number(flagr)
     flagd = 0.0d0
     do ifre = 1,nfre
-      flagd = flagd + ww(ifre)**2
+      flagd = flagd + ww(ifre)*CONJG(ww(ifre))
       if(flagr <= flagd) then
         isurface = ifre
         exit
@@ -251,7 +259,7 @@ module initialsh
     !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of exciton:",&
     !                                    (ee(iesurface)-ee(ihsurface))*ryd2eV," eV"    
     
-  end subroutine init_dynamical_variable  
+  end subroutine init_surface 
   
   
 end module initialsh 

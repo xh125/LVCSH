@@ -1,7 +1,7 @@
 module surfacehopping
   use kinds, only : dp,dpc
   use epwcom,only : nkf1,nkf2,nkf3,nqf1,nqf2,nqf3,kqmap
-  use elph2,only  : wf,epcq,nktotf,nbndfst,nqtotf,ibndmin,ibndmax
+  use elph2,only  : wf,nktotf,nbndfst,nqtotf,ibndmin,ibndmax
   use hamiltonian,only : nphfre,neband,nhband,nefre,nhfre,&
                          E_e,P_e,P_e_nk,E0_e,P0_e,P0_e_nk,&
                          E_h,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
@@ -14,7 +14,11 @@ module surfacehopping
                          d0_h,&
                          minde_e,minde_h,sumg0_e,sumg0_h,sumg1_e,sumg1_h
   implicit none
-
+  
+  complex(kind=dpc),allocatable :: cc0_e(:),dc1_e(:),dc2_e(:),dc3_e(:),dc4_e(:)
+  complex(kind=dpc),allocatable :: cc0_h(:),dc1_h(:),dc2_h(:),dc3_h(:),dc4_h(:)
+  real(kind=dp),allocatable :: n_e(:),n_h(:)
+  
   contains
   
   subroutine allocatesh(lelecsh,lholesh,nmodes)
@@ -52,7 +56,20 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating d_e',1)
 
       allocate(c_e_nk(neband,nktotf),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)  
+      if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)
+      allocate(cc0_e(nefre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating cc0_e',1)
+      allocate(dc1_e(nefre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc1_e',1)
+      allocate(dc2_e(nefre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc2_e',1)
+      allocate(dc3_e(nefre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc3_e',1)
+      allocate(dc4_e(nefre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc4_e',1)
+      allocate(n_e(nefre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating n_e',1)            
+      
       allocate(w_e(nefre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating w_e',1)  
       allocate(w0_e(nefre),stat=ierr)
@@ -84,6 +101,18 @@ module surfacehopping
 
       allocate(c_h_nk(nhband,nktotf),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h_nk',1)  
+      allocate(cc0_h(nhfre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating cc0_h',1)
+      allocate(dc1_h(nhfre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc1_h',1)
+      allocate(dc2_h(nhfre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc2_h',1)
+      allocate(dc3_h(nhfre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc3_h',1)
+      allocate(dc4_h(nhfre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc4_h',1)
+      allocate(n_h(nhfre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating n_h',1)                  
       allocate(w_h(nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating w_h',1)  
       allocate(w0_h(nhfre),stat=ierr)
@@ -142,34 +171,18 @@ module surfacehopping
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% convert wavefunction from diabatix to adiabatic basis %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  subroutine convert_diabatic_adiabatic(nband,nk,P_nk,c_nk,ww)                                        
+  subroutine convert_diabatic_adiabatic(nfre,pp,cc,ww)                                        
     use f95_precision
     use blas95
     implicit none
-    integer,intent(in) :: nband,nk 
-    real(kind=dp),intent(in) :: P_nk(nband,nk,nband*nk)
-    complex(kind=dpc),intent(in) :: c_nk(nband,nk)
-    complex(kind=dpc),intent(out):: ww(nband*nk)
+    integer,intent(in) :: nfre 
+    real(kind=dp),intent(in) :: pp(nfre,nfre)
+    complex(kind=dpc),intent(in) :: cc(nfre)
+    complex(kind=dpc),intent(out):: ww(nfre)
     
-    integer :: nfre
-    !integer :: ifre,jfre,ik,jk,iband,jband 
-    real(kind=dp),allocatable :: pp(:,:)
-    complex(kind=dpc),allocatable :: cc(:)
-    
-    nfre = nband*nk
-    allocate( pp(nefre,nefre))
-    pp = 0.0
-    allocate( cc(nefre)) 
-    cc = 0.0
-    
-    
-    pp = reshape(P_nk,(/nfre,nfre/))
-    cc = reshape(c_nk,(/nfre/))
     ww= 0.0d0
     call gemv(pp,cc,ww,trans='T')
     
-    deallocate(pp)
-    deallocate(cc)
     
     !ww=0.0d0
     !do ik=1,nktotf
@@ -198,36 +211,38 @@ module surfacehopping
   !% calculate nonadiabatic coupling %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   ! ref : PPT-91
-  subroutine calculate_nonadiabatic_coupling(nmodes,ee,p_nk,dd)
+  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,wf,ee,p_nk,epcq,dd)
     use kinds,only :  dp
     implicit none
-    integer, intent(in) :: nmodes
-    real(kind=dp),intent(in) :: ee(nefre)
-    !real(kind=dp),intent(in) :: epcq(nbndfst,nbndfst,nktotf,nmodes,nqtotf)
-    real(kind=dp),intent(in) :: p_nk(nbndfst,nktotf,nefre)
-    real(kind=dp),intent(out):: dd(nefre,nefre,nmodes,nqtotf)
-    integer :: iefre,jefre,iq,imode 
+    integer, intent(in) :: nmodes,nq,nband,nk
+    real(kind=dp),intent(in) :: wf(nmodes,nq),ee(nband*nk)
+    real(kind=dp),intent(in) :: epcq(nband,nband,nk,nmodes,nq)
+    real(kind=dp),intent(in) :: p_nk(nband,nk,nband*nk)
+    real(kind=dp),intent(out):: dd(nband*nk,nband*nk,nmodes,nq)
+    integer :: nfre,ifre,jfre,iq,imode 
     integer :: ik,ikq,iband1,iband2
     
+    nfre = nband*nk
+    
     dd=0.0d0
-    do iefre=1,nefre-1
-      do jefre=iefre+1,nefre
-        do iq =1, nqtotf
+    do ifre=1,nfre-1
+      do jfre=ifre+1,nfre
+        do iq =1, nq
           do imode=1,nmodes
-            do ik=1,nktotf
+            do ik=1,nk
               ikq = kqmap(ik,iq)
-              do iband1=1,nbndfst
-                do iband2=1,nbndfst
-                  dd(iefre,jefre,imode,iq) = dd(iefre,jefre,imode,iq) + &
-                  p_nk(iband1,ik,iefre)*p_nk(iband2,ikq,jefre)*epcq(iband1,iband2,ik,imode,iq)
+              do iband1=1,nband
+                do iband2=1,nband
+                  dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq) + &
+                  p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)*epcq(iband1,iband2,ik,imode,iq)
                 enddo
               enddo
             enddo
-            dd(iefre,jefre,imode,iq) = sqrt(2.0*wf(imode,iq)/nqtotf)*dd(iefre,jefre,imode,iq)/(ee(jefre)-ee(iefre))
+            dd(ifre,jfre,imode,iq) = sqrt(2.0*wf(imode,iq)/nq)*dd(ifre,jfre,imode,iq)/(ee(jfre)-ee(ifre))
           enddo
         enddo
         !dd(iefre,jefre,:,:) = dd(iefre,jefre,:,:)/(ee(jefre)-ee(iefre))
-        dd(jefre,iefre,:,:) = - dd(iefre,jefre,:,:)
+        dd(jfre,ifre,:,:) = - dd(ifre,jfre,:,:)
       enddo
     enddo    
     

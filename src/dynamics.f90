@@ -3,14 +3,13 @@ module dynamics
   use io,only :
   use parameters,only : gamma,temp
   use hamiltonian,only : nphfre,nefre,set_H_nk
-  use elph2,only          : nk=>nktotf,nq=>nqtotf,wf,nband=>nbndfst,epcq
+  use elph2,only          : nktotf,nqtotf,wf
   use modes,only          : nmodes
   use epwcom,only         : kqmap
-  use surfacehopping,only : iesurface,ihsurface
   
   implicit none
-  logical :: lelec = .true.
-  logical :: lhole = .false.
+  !logical :: lelec = .true.
+  !logical :: lhole = .false.
   
   contains
   
@@ -19,9 +18,10 @@ module dynamics
   !=======================================================================!
   != ref: http://en.wikipedia.org/wiki/runge_kutta_methods               =!
   !=======================================================================!
-  subroutine rk4_nuclei(pp_nk,xx,vv,tt)
+  subroutine rk4_nuclei(nmodes,nq,dEa_dx,xx,vv,tt)
     implicit none
-    real(kind=dp),intent(in)   :: pp_nk(nband,nk,nefre)
+    integer , intent(in) :: nmodes,nq
+    real(kind=dp),intent(in)   :: dEa_dx(nmodes,nq)
     real(kind=dp),intent(inout):: xx(nmodes,nq),vv(nmodes,nq)
     real(kind=dp),intent(in)   :: tt
     real(kind=dp):: tt2,tt6
@@ -29,16 +29,77 @@ module dynamics
     real(kind=dp):: vv0(nmodes,nq),dv1(nmodes,nq),dv2(nmodes,nq),dv3(nmodes,nq),dv4(nmodes,nq)
 
     tt2=tt/2.0d0; tt6=tt/6.0d0
-    call derivs_nuclei(pp_nk,xx,vv,dx1,dv1)
+    call derivs_nuclei(nmodes,nq,dEa_dx,wf,gamma,xx,vv,dx1,dv1)
     xx0=xx+tt2*dx1; vv0=vv+tt2*dv1
-    call derivs_nuclei(pp_nk,xx0,vv0,dx2,dv2)
+    call derivs_nuclei(nmodes,nq,dEa_dx,wf,gamma,xx0,vv0,dx2,dv2)
     xx0=xx+tt2*dx2; vv0=vv+tt2*dv2
-    call derivs_nuclei(pp_nk,xx0,vv0,dx3,dv3)
+    call derivs_nuclei(nmodes,nq,dEa_dx,wf,gamma,xx0,vv0,dx3,dv3)
     xx0=xx+tt*dx3; vv0=vv+tt*dv3
-    call derivs_nuclei(pp_nk,xx0,vv0,dx4,dv4)
+    call derivs_nuclei(nmodes,nq,dEa_dx,wf,gamma,xx0,vv0,dx4,dv4)
     xx=xx+tt6*(dx1+2.0d0*dx2+2.0d0*dx3+dx4)
     vv=vv+tt6*(dv1+2.0d0*dv2+2.0d0*dv3+dv4)
   endsubroutine
+  
+  subroutine get_dEa_dQ(lelecsh,lholesh,nmodes,nq,wf,dEa_dQ)
+    use hamiltonian,only: neband,P_e_nk,epcq_e,&
+                          nhband,P_h_nk,epcq_h
+    use elph2,only : nk=>nktotf
+    use surfacecom,only : dEa_dQ_e,dEa_dQ_h
+    use surfacehopping,only : iesurface,ihsurface
+    implicit none
+    logical,intent(in) :: lelecsh,lholesh
+    integer,intent(in) :: nmodes,nq
+    real(kind=dp),intent(in)  :: wf(nmodes,nq)
+    real(kind=dp),intent(out) :: dEa_dQ(nmodes,nq)
+    
+    dEa_dQ = 0.0
+    
+    if(lelecsh) then
+      dEa_dQ_e = 0.0
+      call get_dEa_dQ_eh(nmodes,nq,neband,nk,wf,P_e_nk,epcq_e,iesurface,dEa_dQ_e)
+      dEa_dQ = dEa_dQ + dEa_dQ_e
+    endif
+    if(lholesh) then
+      dEa_dQ_h = 0.0
+      call get_dEa_dQ_eh(nmodes,nq,nhband,nk,wf,P_h_nk,epcq_h,ihsurface,dEa_dQ_h)
+      dEa_dQ = dEa_dQ - dEa_dQ_h
+    endif
+    
+  end subroutine get_dEa_dQ
+
+  subroutine get_dEa_dQ_eh(nmodes,nq,nband,nk,wf,P_nk,epcq,isurface,dEa_dQ_eh)
+    implicit none
+    integer,intent(in) :: nmodes,nq,nband,nk
+    integer,intent(in) :: isurface
+    real(kind=dp),intent(in)  :: wf(nmodes,nq)
+    real(kind=dp),intent(in)  :: P_nk(nband,nk,nband*nk)
+    real(kind=dp),intent(in)  :: epcq(nband,nband,nk,nmodes,nq)
+    real(kind=dp),intent(out) :: dEa_dQ_eh(nmodes,nq)
+    
+    integer :: iq,imode,ik,ikq,iband1,iband2
+    
+    dEa_dQ_eh = 0.0
+    do iq=1,nq
+      do imode=1,nmodes
+        do ik=1,nk
+          ikq = kqmap(ik,iq)
+          do iband1=1,nband
+            do iband2=1,nband
+              ! 电子能量随简正模的变化
+              dEa_dQ_eh = dEa_dQ_eh + &
+              P_nk(iband1,ik,isurface)*P_nk(iband2,ikq,isurface)*epcq(iband1,iband2,ik,imode,iq)
+              !! 空穴能量随简正模的变化
+              !dEa_dQ = dEa_dQ - &
+              !pp_nk(iband1,ik,ihsurface)*pp_nk(iband2,ikq,iesurface)*epcq(iband1,iband2,ik,imode,iq)                    
+            enddo
+          enddo
+        enddo
+        dEa_dQ_eh = sqrt(2.0*wf(imode,iq)/nq) * dEa_dQ_eh
+      enddo
+    enddo
+    
+  end subroutine get_dEa_dQ_eh
+
   
   !====================================================!
   != calculate derivative of coordinate and velocitie =!
@@ -49,67 +110,47 @@ module dynamics
   ! ref : 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
   ! ref : PPT-92
   ! ref : 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
-  subroutine derivs_nuclei(pp_nk,xx,vv,dx,dv)
+  subroutine derivs_nuclei(nmodes,nq,dEa_dx,wf,gamma,xx,vv,dx,dv)
+    !use surfacecom,only : lelecsh,lholesh
+    !use hamiltonian,only: neband,P_e_nk,epcq_e,&
+    !                      nhband,P_h_nk,epcq_h
     implicit none
-    real(kind=dp),intent(in)   :: pp_nk(nband,nk,nefre)
+    integer,intent(in) :: nmodes,nq
+    real(kind=dp),intent(in)  ::  dEa_dx(nmodes,nq),wf(nmodes,nq)
+    real(kind=dp),intent(in)  ::  gamma
     real(kind=dp),intent(in)  ::  xx(nmodes,nq),vv(nmodes,nq)
     real(kind=dp),intent(out) ::  dx(nmodes,nq),dv(nmodes,nq)
+    
     integer :: iq,imode,ik,iband1,iband2,ikq
-    real(kind=dp)::dEa_dQ
+    
     do iq=1,nq
       do imode=1,nmodes
         dx(imode,iq) = vv(imode,iq)
-        dv(imode,iq) = (-wf(imode,iq)**2*xx(imode,iq)-gamma*vv(imode,iq))
-        
-        dEa_dQ = 0.0
-        
-        do ik=1,nk
-          ikq = kqmap(ik,iq)
-          do iband1=1,nband
-            do iband2=1,nband
-              ! 电子能量随简正模的变化
-              dEa_dQ = dEa_dQ + &
-              pp_nk(iband1,ik,iesurface)*pp_nk(iband2,ikq,iesurface)*epcq(iband1,iband2,ik,imode,iq)
-              ! 空穴能量随简正模的变化
-              dEa_dQ = dEa_dQ - &
-              pp_nk(iband1,ik,ihsurface)*pp_nk(iband2,ikq,iesurface)*epcq(iband1,iband2,ik,imode,iq)                    
-            enddo
-          enddo
-        enddo
-        dEa_dQ = sqrt(2.0*wf(imode,iq)/nq) * dEa_dQ
-        dv(imode,iq) = dv(imode,iq) - dEa_dQ
+        dv(imode,iq) = -wf(imode,iq)**2*xx(imode,iq)-dEa_dx(imode,iq)-gamma*vv(imode,iq)
       enddo
     enddo
     
   endsubroutine derivs_nuclei
   
-  subroutine derivs_electron_diabatic(xx,c_nk,dc_nk,llelec)
+
+  
+  subroutine derivs_electron_diabatic(nfre,HH,cc,dc)
     use f95_precision
     use blas95
     use constants,only : cmplx_i,cmplx_0
     implicit none
-    real(kind=dp),intent(in)     :: xx(nmodes,nq)
-    complex(kind=dpc),intent(in) :: c_nk(nband,nk)
-    complex(kind=dpc),intent(inout):: dc_nk(nband,nk)
-    logical,intent(in) :: llelec
+    integer,intent(in)           :: nfre
+    real(kind=dp),intent(in)     :: HH(nfre,nfre)
+    complex(kind=dpc),intent(in) :: cc(nfre)
+    complex(kind=dpc),intent(inout):: dc(nfre)
     
-    complex(kind=dpc) :: c(nefre),dc(nefre)
-    real(kind=dp) :: HH(nefre,nefre)
-    call set_H_nk(xx)
-    
-    c = reshape(c_nk,(/nefre/))
     dc= cmplx_0
     
     !dc = MATMUL(HH,c)
-    call gemv(HH,c,dc)
-    
-    if(llelec) then
-      dc = dc *(-cmplx_i)
-    else
-      dc = dc *(cmplx_i)
-    endif
-    
-    dc_nk = reshape(dc,(/nband,nk/))
+    call gemv(HH,cc,dc)
+  
+    dc = dc *(-cmplx_i)
+
     
   endsubroutine derivs_electron_diabatic
 
@@ -119,42 +160,45 @@ module dynamics
   != ref: http://en.wikipedia.org/wiki/runge_kutta_methods   =!
   !===========================================================!
 
-  subroutine rk4_electron_diabatic(xx,cc,tt,llelec)
+  subroutine rk4_electron_diabatic(nmodes,nq,nfre,xx,HH,cc,cc0,dc1,dc2,dc3,dc4,nn,tt)
     implicit none
+    integer,intent(in)              :: nmodes,nq,nfre
     real(kind=dp),intent(in)        :: xx(nmodes,nq)
-    complex(kind=dpc),intent(inout) :: cc(nband,nk)
+    complex(kind=dpc),intent(inout) :: cc(nfre)
     real(kind=dp),intent(in)        :: tt
-    logical,intent(in)              :: llelec
     real(kind=dp):: tt2,tt6
-    complex(kind=dpc):: cc0(nband,nk),dc1(nband,nk),&
-                        dc2(nband,nk),dc3(nband,nk),dc4(nband,nk)
-    real(kind=dp)    :: nn(nband,nk) ,sum_nn
+    real(kind=dp),intent(in) :: HH(nfre)
+    complex(kind=dpc),intent(inout):: cc0(nfre),dc1(nfre),&
+                        dc2(nfre),dc3(nfre),dc4(nfre)
+    real(kind=dp),intent(inout) :: nn(nfre) 
+    real(kind=dp) ::sum_nn
     
     nn=CONJG(cc)*cc
     sum_nn = SUM(nn)
     
     tt2=tt/2.0d0; tt6=tt/6.0d0
     
-    call derivs_electron_diabatic(xx,cc,dc1,llelec)
+    call derivs_electron_diabatic(nfre,HH,cc,dc1)
     cc0=cc+tt2*dc1
     nn=CONJG(cc0)*cc0
     sum_nn = SUM(nn)    
-    call derivs_electron_diabatic(xx,cc0,dc2,llelec)
+    call derivs_electron_diabatic(nfre,HH,cc0,dc2)
     cc0=cc+tt2*dc2
     nn=CONJG(cc0)*cc0
     sum_nn = SUM(nn)       
-    call derivs_electron_diabatic(xx,cc0,dc3,llelec)
+    call derivs_electron_diabatic(nfre,HH,cc0,dc3)
     cc0=cc+tt*dc3
     nn=CONJG(cc0)*cc0
     sum_nn = SUM(nn)       
-    call derivs_electron_diabatic(xx,cc0,dc4,llelec)
+    call derivs_electron_diabatic(nfre,HH,cc0,dc4)
     cc=cc+tt6*(dc1+2.0d0*dc2+2.0d0*dc3+dc4)
     nn=CONJG(cc)*cc
     sum_nn = SUM(nn)
     
     !cc = cc/dsqrt(sum_nn)
     !nn=CONJG(cc)*cc    
-  endsubroutine rk4_electron_diabatic  
+  endsubroutine rk4_electron_diabatic
+      
   !===========================================================!
   != rk4 method to obtain wavefunction after a time interval =!
   !===========================================================!
@@ -168,7 +212,7 @@ module dynamics
   != ref: notebook page 462 and 638              =!
   !===============================================!
   ! ref: 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
-  SUBROUTINE ADD_BATH_EFFECT(nfre,EE,E0,PP,DD,TT,XX,VV)
+  SUBROUTINE ADD_BATH_EFFECT(nfre,nmodes,nq,EE,E0,PP,DD,TT,XX,VV)
     use kinds,only : dp,dpc
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
     use parameters,only : gamma,temp
@@ -177,7 +221,7 @@ module dynamics
                               ph_T,ph_U
     implicit none
     
-    integer , intent(in)      :: nfre
+    integer , intent(in)      :: nfre,nq,nmodes
     real(kind=dp), intent(in) :: EE(nfre),E0(nfre)
     real(kind=dp), intent(in) :: PP(nfre,nfre)
     real(kind=dp), intent(in) :: DD(nfre,nfre,nmodes,nq)

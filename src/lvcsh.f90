@@ -34,20 +34,23 @@ program lvcsh
   use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,temp,&
                             nsnap,nstep,dt,inputfilename,init_ik,init_eband,init_hband,&
                             llaser,methodsh
-  use hamiltonian,only    : nefre,neband,H_e,E_e,P_e,P_e_nk,&
-                            nhfre,nhband,H_h,E_h,P_h,P_h_nk,&
-                            set_H_nk,set_H0_nk,&
+  use hamiltonian,only    : nefre,neband,H_e,H_e_nk,E_e,P_e,P_e_nk,epcq_e,H0_e_nk,E0_e,P0_e,&
+                            nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,epcq_h,H0_h_nk,E0_h,P0_h,&
+                            allocate_hamiltonian,set_H_nk,set_H0_nk,&
                             calculate_eigen_energy_state
   use randoms,only        : init_random_seed
   use lasercom,only       : fwhm,w_laser
   use getwcvk,only        : get_Wcvk
-  use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_eh_stat_diabatic,&
-                            init_dynamical_variable
-  use surfacecom,only     : iaver,isnap,istep,naver,iesurface,ihsurface,iesurface_j,ihsurface_j
+  use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_eh_KSstat,&
+                            init_stat_diabatic,init_surface
+  use surfacecom,only     : iaver,isnap,istep,naver,iesurface,ihsurface,iesurface_j,ihsurface_j,&
+                            c_e,c_e_nk,d_e,d0_e,&
+                            c_h,c_h_nk,d_h,d0_h,&
+                            dEa_dQ
   use surfacehopping,only : phQ,phP,phQ0,phP0,&
-                            c_e_nk,w_e,ge,ge1,esurface_type,&
-                            c_h_nk,w_h,gh,gh1,hsurface_type,&
-                            allocatesh,w0_e,w0_h,&
+                            w_e,w0_e,ge,ge1,esurface_type,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,n_e,&
+                            w_h,w0_h,gh,gh1,hsurface_type,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,n_h,&
+                            allocatesh,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability,calculate_sumg_pes,minde_e,minde_h,&
                             sumg0_e,sumg0_h,sumg1_e,sumg1_h,nonadiabatic_transition,&
@@ -57,7 +60,7 @@ program lvcsh
   use disp,only           : ph_configuration
   use modes,only          : nmodes
   use io      ,only       : stdout,io_time,time1,time2
-  use dynamics,only       : rk4_nuclei,rk4_electron_diabatic,lelec,lhole,ADD_BATH_EFFECT
+  use dynamics,only       : get_dEa_dQ,rk4_nuclei,rk4_electron_diabatic,ADD_BATH_EFFECT
   !use dynamica
   implicit none
   !===============!
@@ -72,9 +75,15 @@ program lvcsh
   if(lreadphout) call readph_out(phoutname)
   call readepwout(epwoutname)
   call set_subband(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
+  !get ieband_min,ieband_max,ihband_min,ihband_max
+  call allocate_hamiltonian(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
+  if(lelecsh) call set_H0_nk(nktotf,neband,H0_e_nk,ieband_min,epcq_e)
+  if(lholesh) call set_H0_nk(nktotf,nhband,H0_h_nk,ihband_min,epcq_h)
+  !get H0_e_nk,epcq_e
+  !get H0_h_nk,epcq_h
+  
   if(llaser) call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
   !get W_cvk(icband,ivband,ik)
-  call set_H0_nk()
   call init_random_seed()
   if(lsetthreads) call set_mkl_threads(mkl_threads)
   call allocatesh(lelecsh,lholesh,nmodes)
@@ -90,31 +99,36 @@ program lvcsh
     !==================! 
     !!Get the initial normal mode coordinate phQ and versity phP
     call init_normalmode_coordinate_velocity(wf,temp,phQ,phP)
-    !!得到初始电子和空穴的状态
-    call init_eh_stat_diabatic(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
-    call set_H_nk(phQ) 
-    !get H_e_nk,H_h_nk
+    !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband
+    call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
+    
+    
     if(lelecsh) then
+      call init_stat_diabatic(init_ik,init_eband,ieband_min,neband,nktotf,c_e_nk)
+      c_e = reshape(c_e_nk,(/nefre/))
+      call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ,wf,epcq_e,H0_e_nk,H_e_nk)
+      H_e = reshape(H_e_nk,(/ nefre,nefre /))
       call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
       P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
-      call init_dynamical_variable(neband,nktotf,P_e_nk,c_e_nk,w_e,iesurface)
+      call convert_diabatic_adiabatic(nefre,P_e,c_e,w_e)
+      call init_surface(nefre,w_e,iesurface)
+      call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,P_e_nk,epcq_e,d_e)
+      E0_e = E_e;P0_e=P_e;d0_e=d_e;w0_e=w_e
     endif
     if(lholesh) then
+      call init_stat_diabatic(init_ik,init_hband,ihband_min,nhband,nktotf,c_h_nk)
+      c_h = reshape(c_h_nk,(/nhfre/))
+      call set_H_nk(nhband,nktotf,nmodes,nqtotf,phQ,wf,epcq_h,H0_h_nk,H_h_nk)
+      H_h = reshape(H_h_nk,(/ nhfre,nhfre /))    
       call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
       P_h_nk = reshape(P_h,(/ nhband,nktotf,nefre /))
-      call init_dynamical_variable(nhband,nktotf,P_h_nk,c_h_nk,w_h,ihsurface)
+      call convert_diabatic_adiabatic(nhfre,P_h,c_h,w_h)
+      call init_surface(nhfre,w_h,ihsurface)
+      call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,epcq_h,d_h)
+      E0_h = E_h;P0_h=P_h;d0_h=d_h;w0_h=w_h
     endif
     
-    
-    
-    !call init_dynamical_variable(c_e_nk,c_h_nk,w_e,w_h)
-    
-    
-    call calculate_nonadiabatic_coupling(nmodes,e,p,d)
-    phQ0=phQ; phP0=phP; 
-    
-    e0=e; p0=p; d0=d; w0_e=w_e; w0_h=w_h
-    
+    phQ0=phQ; phP0=phP    
 
     !=======================!
     != loop over snapshots =!
@@ -130,65 +144,91 @@ program lvcsh
         != update phQ,phP,c,e,p,d,w,g =!
         !==============================!
         
+        call get_dEa_dQ(lelecsh,lholesh,nmodes,nqtotf,wf,dEa_dQ)
+        
         !use rk4 to calculate the dynamical of phonon normal modes
         !update phQ,phP in time t+dt
-        call rk4_nuclei(p0,phQ,phP,dt)
-          
+        call rk4_nuclei(nmodes,nqtotf,dEa_dQ,phQ,phP,dt)
+        
+        
         if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
           !electron and hole wave function is propagated in diabatic representation
           !update c_e,c_h in time t+dt
-          call rk4_electron_diabatic(phQ0,celec_nk,dt,lelec)
-          call rk4_electron_diabatic(phQ0,chole_nk,dt,lhole)        
-        
+          if(lelecsh) then
+            call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ,wf,epcq_e,H0_e_nk,H_e_nk)
+            H_e = reshape(H_e_nk,(/ nefre,nefre /))          
+            call rk4_electron_diabatic(nmodes,nqtotf,nefre,phQ0,H_e,c_e,&
+                                      cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,n_e,dt)
+          endif
+          if(lholesh) then
+            call set_H_nk(nhband,nktotf,nmodes,nqtotf,phQ,wf,epcq_h,H0_h_nk,H_h_nk)
+            H_h = reshape(H_h_nk,(/ nhfre,nhfre /))
+            H_h = -1.0*H_h
+            call rk4_electron_diabatic(nmodes,nqtotf,nhfre,phQ0,H_h,c_h,&
+                                      cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,n_h,dt)        
+          endif
         endif
         
 
-        
-        ! hamiltonian in time t+dt
-        ! update H_nk
-        call set_H_nk(phQ,H_nk)
-        ! update e,p in time t+dt
-        call calculate_eigen_energy_state(nktotf,nbndfst,H_nk,e,p)
-        ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
-        ! update d in time t+dt
-        call calculate_nonadiabatic_coupling(nmodes,e,p,d)
+        if(lelecsh) then
+          ! hamiltonian in time t+dt
+          ! update H_nk
+          call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ,wf,epcq_e,H0_e_nk,H_e_nk)
+          H_e = reshape(H_e_nk,(/ nefre,nefre /))          
+          ! update e,p in time t+dt
+          call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
+          ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
+          ! update d in time t+dt
+          call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,p_e,epcq_e,d_e)
+        endif
+        if(lholesh) then
+          ! hamiltonian in time t+dt
+          ! update H_nk
+          call set_H_nk(nhband,nktotf,nmodes,nqtotf,phQ,wf,epcq_h,H0_h_nk,H_h_nk)
+          H_h = reshape(H_h_nk,(/ nhfre,nhfre /))          
+          ! update e,p in time t+dt
+          call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
+          ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
+          ! update d in time t+dt
+          call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_h,p_h,epcq_h,d_h)
+        endif
         
         if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
           ! use p in time t+dt, to convert celec_nk(t+dt) to w_e(t+dt) 
-          call convert_diabatic_adiabatic(p,celec_nk,w_e)
-          call convert_diabatic_adiabatic(p,chole_nk,w_h)
+          if(lelecsh) call convert_diabatic_adiabatic(nefre,p_e,c_e,w_e)
+          if(lholesh) call convert_diabatic_adiabatic(nhfre,p_h,c_h,w_h)
         endif
         
         ! use FSSH calculation hopping probability in adiabatic representation
-        call calculate_hopping_probability(iesurface,w0_e,phP0,d0,dt,ge,ge1)
-        call calculate_hopping_probability(ihsurface,w0_h,phP0,d0,dt,gh,gh1)
+        call calculate_hopping_probability(iesurface,w0_e,phP0,d0_e,dt,ge,ge1)
+        call calculate_hopping_probability(ihsurface,w0_h,phP0,d0_h,dt,gh,gh1)
         
         
         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
         !% CALCULATE SUMG0,SUMG1,MINDE and CHANGE POTENTIAL ENERGY SURFACE %!
         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!        
-        call calculate_sumg_pes(sumg0_e,sumg1_e,w0_e,w_e,ge1,ge,iesurface,iesurface_j,minde_e)
-        call calculate_sumg_pes(sumg0_h,sumg1_h,w0_h,w_h,gh1,gh,ihsurface,ihsurface_j,minde_h)
+        !call calculate_sumg_pes(sumg0_e,sumg1_e,w0_e,w_e,ge1,ge,iesurface,iesurface_j,minde_e)
+        !call calculate_sumg_pes(sumg0_h,sumg1_h,w0_h,w_h,gh1,gh,ihsurface,ihsurface_j,minde_h)
         
         
-        call nonadiabatic_transition(lelec,iesurface,iesurface_j,esurface_type,E0,P0,d0,ge,w_e,phP)
-        call nonadiabatic_transition(lhole,ihsurface,ihsurface_j,hsurface_type,E0,P0,d0,ge,w_h,phP)        
+        !call nonadiabatic_transition(iesurface,iesurface_j,esurface_type,E0_e,P0_e,d0_e,ge,w_e,phP)
+        !call nonadiabatic_transition(ihsurface,ihsurface_j,hsurface_type,E0_h,P0_h,d0_h,ge,w_h,phP)        
    
         !===================!
         != add bath effect =!
         !===================!        
-        call add_bath_effect(E0,P0,d0,dt,phQ,phP)
+        !call add_bath_effect(E0,P0,d0,dt,phQ,phP)
 
         !============================!
         != reset dynamical variable =!
         !============================!
 
-        phQ0=phQ; phP0=phP; e0=e; p0=p; d0=d; w0_e=w_e; w0_h=w_h
+        phQ0=phQ; phP0=phP; !e0=e; p0=p; d0=d; w0_e=w_e; w0_h=w_h
         time2   = io_time()
-        !write(stdout,"(/,A)") "isnap istep runtime(s) iesur ihsur en_elec(eV) en_hole(eV) en_exiton(eV)"
-        write(stdout,"(I5,1X,I5,1X,F8.4,I5,I5,7(1X,F8.4))") isnap,istep,(time2-time1),iesurface,ihsurface,&
-        e(iesurface)*ryd2eV,e(ihsurface)*ryd2eV,(e(iesurface)-e(ihsurface))*ryd2eV,&
-        SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(e(iesurface)-e(ihsurface)+SUM_ph_E)*ryd2eV
+        
+        !write(stdout,"(I5,1X,I5,1X,F8.4,I5,I5,7(1X,F8.4))") isnap,istep,(time2-time1),iesurface,ihsurface,&
+        !e(iesurface)*ryd2eV,e(ihsurface)*ryd2eV,(e(iesurface)-e(ihsurface))*ryd2eV,&
+        !SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(e(iesurface)-e(ihsurface)+SUM_ph_E)*ryd2eV
 
       enddo
       
