@@ -46,7 +46,7 @@ program lvcsh
   use surfacecom,only     : iaver,isnap,istep,naver,iesurface,ihsurface,iesurface_j,ihsurface_j,&
                             c_e,c_e_nk,d_e,d0_e,&
                             c_h,c_h_nk,d_h,d0_h,&
-                            dEa_dQ,dEa_dQ_e,dEa_dQ_h
+                            dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h
   use fssh,only           : nonadiabatic_transition_fssh
   use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
   use cc_fssh,only        : S_ai_e,S_ai_h,S_bi_e,S_bi_h,&
@@ -64,7 +64,7 @@ program lvcsh
   use disp,only           : ph_configuration
   use modes,only          : nmodes
   use io      ,only       : stdout,io_time,time1,time2
-  use dynamics,only       : get_dEa_dQ,rk4_nuclei,rk4_electron_diabatic,ADD_BATH_EFFECT
+  use dynamics,only       : get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,ADD_BATH_EFFECT
   !use dynamica
   implicit none
   !===============!
@@ -275,23 +275,22 @@ program lvcsh
                                                 hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,Gh,phP)
           endif          
           
-        endif
-                
-        
-        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-        !% CALCULATE SUMG0,SUMG1,MINDE and CHANGE POTENTIAL ENERGY SURFACE %!
-        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!        
-        !call calculate_sumg_pes(sumg0_e,sumg1_e,w0_e,w_e,ge1,ge,iesurface,iesurface_j,minde_e)
-        !call calculate_sumg_pes(sumg0_h,sumg1_h,w0_h,w_h,gh1,gh,ihsurface,ihsurface_j,minde_h)
-        !
-        !
-        !call nonadiabatic_transition(iesurface,iesurface_j,esurface_type,E0_e,P0_e,d0_e,ge,w_e,phP)
-        !call nonadiabatic_transition(ihsurface,ihsurface_j,hsurface_type,E0_h,P0_h,d0_h,ge,w_h,phP)        
+        endif 
    
         !===================!
         != add bath effect =!
-        !===================!        
-        !call add_bath_effect(E0,P0,d0,dt,phQ,phP)
+        !===================! 
+        dEa2_dQ2 = 0.0
+        !dEa2_dQ2 in time t0
+        if(lelecsh) then
+          call get_dEa2_dQ2(nmodes,nqtotf,nefre,iesurface,E0_e,d0_e,dEa_dQ_e)
+          dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_e
+        endif
+        if(lholesh) then
+          call get_dEa2_dQ2(nmodes,nqtotf,nhfre,ihsurface,E0_h,d0_h,dEa_dQ_h)
+          dEa2_dQ2 = dEa2_dQ2 - dEa2_dQ2_h
+        endif        
+        call add_bath_effect(nmodes,nqtotf,gamma,temp,dEa2_dQ2,dt,phQ,phP)
 
         !============================!
         != reset dynamical variable =!

@@ -172,6 +172,29 @@ module dynamics
   != ref: http://en.wikipedia.org/wiki/runge_kutta_methods   =!
   !===========================================================!
 
+
+  subroutine get_dEa2_dQ2(nmodes,nq,nfre,isurface,EE,dd,dEa2_dQ2)
+    implicit none
+    integer,intent(in) :: nmodes,nq,nfre
+    integer,intent(in) :: isurface
+    real(kind=dp),intent(in)  :: EE(nfre),dd(nfre,nfre,nmodes,nq)
+    real(kind=dp),intent(out) :: dEa2_dQ2(nmodes,nq)
+    
+    integer :: iq,imode,ifre
+    
+    dEa2_dQ2 = 0.0
+    do iq=1,nq
+      do imode=1,nmodes
+        do ifre=1,nfre
+          if(ifre /= isurface) then
+            dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + (EE(ifre)-EE(isurface))*DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iq)
+          endif
+        enddo
+      enddo
+    enddo 
+    
+  end subroutine get_dEa2_dQ2
+  
   
   !===============================================!
   != add bath effect to coordinate and velocitie =!
@@ -179,48 +202,30 @@ module dynamics
   != ref: notebook page 462 and 638              =!
   !===============================================!
   ! ref: 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
-  SUBROUTINE ADD_BATH_EFFECT(nfre,nmodes,nq,EE,E0,PP,DD,TT,XX,VV)
+  SUBROUTINE ADD_BATH_EFFECT(nmodes,nq,gamma,temp,dEa2_dQ2,TT,XX,VV)
     use kinds,only : dp,dpc
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
-    use parameters,only : gamma,temp
     use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7
-    use surfacehopping,only : iesurface,ihsurface,SUM_ph_U,SUM_ph_T,SUM_ph_E,&
+    use surfacehopping,only : SUM_ph_U,SUM_ph_T,SUM_ph_E,&
                               ph_T,ph_U
     implicit none
     
-    integer , intent(in)      :: nfre,nq,nmodes
-    real(kind=dp), intent(in) :: EE(nfre),E0(nfre)
-    real(kind=dp), intent(in) :: PP(nfre,nfre)
-    real(kind=dp), intent(in) :: DD(nfre,nfre,nmodes,nq)
+    integer , intent(in)      :: nq,nmodes
+    real(kind=dp), intent(in) :: gamma,temp
+    real(kind=dp), intent(in) :: dEa2_dQ2(nmodes,nq)
     real(kind=dp), intent(in) :: tt
     real(kind=dp), intent(inout) :: XX(nmodes,nq),VV(nmodes,nq)
     
-    integer :: imode,iq,ifre
+    integer :: imode,iq
     real(kind=dp) :: SIGMAR,R1,R2,R3,R4,Z1,Z2,Z3,Z4!,GAUSSIAN_RANDOM_NUMBER_FAST
     !EXTERNAL GAUSSIAN_RANDOM_NUMBER_FAST
     real(kind=dp) :: wwf2
-    real(kind=dp) :: dEa2_dQ2
     
     SIGMAR=DSQRT(2.0*gamma*KB*TEMP*TT)
     DO iq=1,nq
       do imode=1,nmodes
-        dEa2_dQ2 = 0.0
-        !do ifre=1,nfre
-        !  if(iefre /= iesurface) then
-        !    dEa2_dQ2 = dEa2_dQ2 + (EE(iefre)-EE(iesurface))*DD(iefre,iesurface,imode,iq)*DD(iesurface,iefre,imode,iq)
-        !  endif
-        !  if(iefre /= ihsurface) then
-        !    dEa2_dQ2 = dEa2_dQ2 + (ee(iefre)-ee(ihsurface))*dd(iefre,ihsurface,imode,iq)*dd(ihsurface,iefre,imode,iq)
-        !  endif
-        !enddo
-        wwf2 = wf(imode,iq)**2+dEa2_dQ2
+        wwf2 = wf(imode,iq)**2+dEa2_dQ2(imode,iq)
       
-   
-        !KK=K
-        !DO JSITE=1,NSITE
-        !  IF(JSITE.NE.ISURFACE) KK=KK+2.0D0*ALPHA*DD(JSITE,ISURFACE,ISITE)*PP(ISITE,ISURFACE)*PP(ISITE,JSITE)
-        !ENDDO
-    
         R1=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
         R2=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
         R3=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)

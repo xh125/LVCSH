@@ -31,8 +31,8 @@ module surfacecom
   
   ! phonons normal mode coordinate,and phonons P
   real(kind=dp),allocatable :: phQ(:,:),phP(:,:),phQ0(:,:),phP0(:,:)
-  real(kind=dp),allocatable :: dEa_dQ(:,:)
-  real(kind=dp),allocatable :: dEa_dQ_e(:,:),dEa_dQ_h(:,:)
+  real(kind=dp),allocatable :: dEa_dQ(:,:),dEa_dQ_e(:,:),dEa_dQ_h(:,:)
+  real(kind=dp),allocatable :: dEa2_dQ2(:,:),dEa2_dQ2_e(:,:),dEa2_dQ2_h(:,:)
   ! phonons normal mode 
   ! ref : <固体物理> (3-44) (3-45)
   real(kind=dp),allocatable :: ph_U(:,:),ph_T(:,:)
