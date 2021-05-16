@@ -20,8 +20,6 @@ module surfacecom
   
   integer :: ieband_min,ieband_max,ihband_min,ihband_max
   
-  
-  
   !method of surface hopping
   character(len=8) :: MethodSH
   ! FSSH, SC-FSSH, CC-FSSH
@@ -48,7 +46,7 @@ module surfacecom
   complex(kind=dpc),allocatable :: c_e(:),c_e_nk(:,:),w_e(:),w0_e(:)
   complex(kind=dpc),allocatable :: c_h(:),c_h_nk(:,:),w_h(:),w0_h(:)
   
-  real(kind=dp) :: minde_e,minde_h,sumg0_e,sumg0_h,sumg1_e,sumg1_h
+  real(kind=dp) :: sumg0_e,sumg0_h,sumg1_e,sumg1_h
   contains
   
   

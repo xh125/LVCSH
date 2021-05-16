@@ -11,8 +11,8 @@ module surfacehopping
                          d_e,ge,ge1,c_e_nk,w_e,w0_e,&
                          d0_e,&
                          d_h,gh,gh1,c_h_nk,w_h,w0_h,&
-                         d0_h,&
-                         minde_e,minde_h,sumg0_e,sumg0_h,sumg1_e,sumg1_h
+                         d0_h!,&
+                         !sumg0_e,sumg0_h,sumg1_e,sumg1_h
   implicit none
   
   complex(kind=dpc),allocatable :: cc0_e(:),dc1_e(:),dc2_e(:),dc3_e(:),dc4_e(:)

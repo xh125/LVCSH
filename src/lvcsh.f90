@@ -56,9 +56,7 @@ program lvcsh
                             w_h,w0_h,gh,gh1,hsurface_type,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,n_h,&
                             allocatesh,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
-                            calculate_hopping_probability,&
-                            sumg0_e,sumg0_h,sumg1_e,sumg1_h,&
-                            SUM_ph_U,SUM_ph_T,SUM_ph_E
+                            calculate_hopping_probability
   use surfacecom,only     : lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max
   use elph2,only          : wf,nqtotf,nktotf,nbndfst
   use disp,only           : ph_configuration

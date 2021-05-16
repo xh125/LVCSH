@@ -206,8 +206,6 @@ module dynamics
     use kinds,only : dp,dpc
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
     use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7
-    use surfacehopping,only : SUM_ph_U,SUM_ph_T,SUM_ph_E,&
-                              ph_T,ph_U
     implicit none
     
     integer , intent(in)      :: nq,nmodes
@@ -239,11 +237,6 @@ module dynamics
         
       enddo
     enddo
-    ph_T = 0.5*VV**2
-    ph_U = 0.5*(wf**2)*(XX**2)
-    SUM_ph_U=SUM(ph_U)
-    SUM_ph_T=SUM(ph_T)
-    SUM_ph_E=SUM_ph_T+SUM_ph_U
     
   ENDSUBROUTINE  
   
