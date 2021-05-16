@@ -8,6 +8,19 @@ module cc_fssh
   real(kind=dp),allocatable :: S_bi_e(:),S_bi_h(:)
  
   contains
+  
+  subroutine allocate_ccfssh(lelecsh,lholesh,nefre,nhfre)
+    implicit none
+    logical,intent(in) :: lelecsh,lholesh
+    integer,intent(in) :: nefre,nhfre
+    
+    allocate(S_ai_e(nefre))
+    allocate(S_ai_h(nhfre))
+    allocate(S_bi_e(nefre))
+    allocate(S_bi_h(nhfre))
+  
+  end subroutine allocate_ccfssh
+    
   subroutine get_G_CC_FSSH(nfre,isurface,isurface_j,p0,p,w0,w,S_ai,g1,g)
     implicit none
     integer,intent(in) :: nfre,isurface
