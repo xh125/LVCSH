@@ -47,13 +47,17 @@ program lvcsh
                             c_e,c_e_nk,d_e,d0_e,&
                             c_h,c_h_nk,d_h,d0_h,&
                             dEa_dQ,dEa_dQ_e,dEa_dQ_h
+  use fssh,only           : nonadiabatic_transition_fssh
+  use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
+  use cc_fssh,only        : S_ai_e,S_ai_h,S_bi_e,S_bi_h,&
+                            get_G_CC_FSSH,nonadiabatic_transition_ccfssh
   use surfacehopping,only : phQ,phP,phQ0,phP0,&
                             w_e,w0_e,ge,ge1,esurface_type,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,n_e,&
                             w_h,w0_h,gh,gh1,hsurface_type,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,n_h,&
-                            allocatesh,get_G_CC_FSSH,get_G_SC_FSSH,&
+                            allocatesh,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
-                            calculate_hopping_probability,calculate_sumg_pes,minde_e,minde_h,&
-                            sumg0_e,sumg0_h,sumg1_e,sumg1_h,nonadiabatic_transition,&
+                            calculate_hopping_probability,&
+                            sumg0_e,sumg0_h,sumg1_e,sumg1_h,&
                             SUM_ph_U,SUM_ph_T,SUM_ph_E
   use surfacecom,only     : lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max
   use elph2,only          : wf,nqtotf,nktotf,nbndfst
@@ -186,30 +190,32 @@ program lvcsh
           
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_e in time t0+dt, to convert c_e(t0+dt) to w_e(t0+dt) 
-            if(lelecsh) call convert_diabatic_adiabatic(nefre,p_e,c_e,w_e)
+            call convert_diabatic_adiabatic(nefre,p_e,c_e,w_e)
           endif          
           
           ! use FSSH calculation hopping probability in adiabatic representation,get ge,ge1
           call calculate_hopping_probability(iesurface,nefre,nmodes,nqtotf,w0_e,phP0,d0_e,dt,ge,ge1)          
           
-          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-          !% CALCULATE SUMG0,SUMG1,MINDE and CHANGE POTENTIAL ENERGY SURFACE %!
-          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+          
+          !dealwith trilvial crossing,fixed ge
           if(methodsh == "SC-FSSH") then
             !use SC-FSSH method to fixed ge
             call get_G_SC_FSSH(iesurface,nefre,E0_e,w0_e,w_e,ge1,ge)
+          elseif(methodsh == "CC-FSSH") then
+            !use CC-FSSH method to fixed ge
+            call get_G_CC_FSSH(nefre,iesurface,iesurface_j,p0_e,p_e,w0_e,w_e,S_ai_e,ge1,ge)
           endif
           
-          if(methodsh == "CC-FSSH") then
-            !
-            call get_G_CC_FSSH(nefre,iesurface,p0_e,p_e,w0_e,w_e,S_ai_e,ge1,ge)
-          endif
-          
-          
-          if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
-            !call calculate_sumg_pes(sumg0_e,sumg1_e,w0_e,w_e,ge1,ge,iesurface,iesurface_j,minde_e)
-            call nonadiabatic_transition(iesurface,iesurface_j,esurface_type,E0_e,P0_e,d0_e,ge,w_e,phP)              
-          
+          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+          !% change potential energy surface %!
+          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!          
+          if(methodsh == "FSSH") then
+            call nonadiabatic_transition_fssh(nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,Ge,phP)
+          elseif( methodsh == "SC-FSSH") then
+            call nonadiabatic_transition_scfssh(nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,Ge,phP)              
+          elseif(methodsh == "CC-FSSH") then
+            call nonadiabatic_transition_ccfssh(nefre,nqtotf,nmodes,iesurface,iesurface_j,&
+                                                esurface_type,E0_e,P0_e,P_e,d0_e,S_bi_e,Ge,phP)
           endif
           
         endif
@@ -239,6 +245,7 @@ program lvcsh
           ! update d_h in time t0+dt
           call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_h,p_h,epcq_h,d_h)          
 
+
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_h in time t0+dt, to convert c_h(t0+dt) to w_h(t0+dt) 
             if(lholesh) call convert_diabatic_adiabatic(nhfre,p_h,c_h,w_h)
@@ -247,12 +254,26 @@ program lvcsh
           ! use FSSH calculation hopping probability in adiabatic representation
           call calculate_hopping_probability(ihsurface,nhfre,nmodes,nqtotf,w0_h,phP0,d0_h,dt,gh,gh1)          
           
-          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-          !% CALCULATE SUMG0,SUMG1,MINDE and CHANGE POTENTIAL ENERGY SURFACE %!
-          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%! 
+          !dealwith trilvial crossing,fixed ge
+          if(methodsh == "SC-FSSH") then
+            !use SC-FSSH method to fixed ge
+            call get_G_SC_FSSH(ihsurface,nhfre,E0_h,w0_h,w_h,gh1,gh)
+          elseif(methodsh == "CC-FSSH") then
+            !use CC-FSSH method to fixed ge
+            call get_G_CC_FSSH(nhfre,ihsurface,ihsurface_j,p0_h,p_h,w0_h,w_h,S_ai_h,gh1,gh)
+          endif
           
-          call calculate_sumg_pes(sumg0_h,sumg1_h,w0_h,w_h,gh1,gh,ihsurface,ihsurface_j,minde_h)
-          call nonadiabatic_transition(ihsurface,ihsurface_j,hsurface_type,E0_h,P0_h,d0_h,ge,w_h,phP)                
+          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+          !% change potential energy surface %!
+          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!          
+          if(methodsh == "FSSH") then
+            call nonadiabatic_transition_fssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,Gh,phP)
+          elseif( methodsh == "SC-FSSH") then
+            call nonadiabatic_transition_scfssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,Gh,phP)              
+          elseif(methodsh == "CC-FSSH") then
+            call nonadiabatic_transition_ccfssh(nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,&
+                                                hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,Gh,phP)
+          endif          
           
         endif
                 
