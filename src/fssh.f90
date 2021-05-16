@@ -2,7 +2,6 @@ module fssh
   use kinds,only : dp,dpc
   implicit none
 
-
   contains
   subroutine nonadiabatic_transition_fssh(nfre,nq,nmodes,isurface,EE,P,DD,GG,VV)
     use randoms,only :more_random
