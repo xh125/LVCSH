@@ -21,6 +21,10 @@ module initialsh
         ieband_min = icbm
         ieband_max = ibndmax
       endif
+      
+      write(stdout,"(/,5X,A)") "The electron are non-diabatic dynamica in valence band."
+      WRITE(stdout,'(/14x,a,i5,2x,a,i5)') 'ieband_min = ', ieband_min, 'ieband_max = ', ieband_max
+      
       if(ieband_min < ibndmin) then
         write(stdout,"(/5X,A)") "Error! Need to reset ieband_min,for the reason ieband_min<ibndmin."
         write(stdout,"(A)") "Check the ibndmin in epw.out"
@@ -30,9 +34,10 @@ module initialsh
         write(stdout,"(A)") "Check the ibndmax in epw.out"
       endif
       if(ieband_min < icbm ) then
-        write(stdout,"(/5X,A)") "Electron can dynamical to the valence band."
+        write(stdout,"(/5X,A)") "Electron can dynamical to the conductor band."
         write(stdout,"(A)") "Calculation the electron-hole Carrier recombination. "
       endif
+      
     endif
     
     if(lholesh) then
@@ -40,6 +45,10 @@ module initialsh
         ihband_min = ibndmin
         ihband_max = icbm - 1
       endif
+
+      write(stdout,"(/,5X,A)") "The hole are non-diabatic dynamica in valance band."
+      WRITE(stdout,'(/14x,a,i5,2x,a,i5)') 'ihband_min = ', ihband_min, 'ihband_max = ', ihband_max      
+      
       if(ihband_min < ibndmin) then
         write(stdout,"(/5X,A)") "Error! Need to reset ihband_min,for the reason ihband_min<ibndmin."
         write(stdout,"(A)") "Check the ibndmin in epw.out"
@@ -53,6 +62,8 @@ module initialsh
         write(stdout,"(A)") "Calculation the electron-hole Carrier recombination. "
       endif    
     endif
+    
+    
     
   end subroutine set_subband
   
