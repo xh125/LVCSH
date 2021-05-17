@@ -294,7 +294,13 @@ program lvcsh
         != reset dynamical variable =!
         !============================!
 
-        phQ0=phQ; phP0=phP; !e0=e; p0=p; d0=d; w0_e=w_e; w0_h=w_h
+        phQ0=phQ; phP0=phP
+        if(lelecsh) then
+          E0_e = E_e;P0_e = P_e; d0_e = d_e;w0_e = w_e
+        endif
+        if(lholesh) then
+          E0_h = E_h;P0_h = P_h; d0_h = d_h;w0_h = w_h
+        endif
         time2   = io_time()
         
         !write(stdout,"(I5,1X,I5,1X,F8.4,I5,I5,7(1X,F8.4))") isnap,istep,(time2-time1),iesurface,ihsurface,&
