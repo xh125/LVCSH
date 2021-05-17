@@ -52,8 +52,8 @@ program lvcsh
   use cc_fssh,only        : S_ai_e,S_ai_h,S_bi_e,S_bi_h,&
                             get_G_CC_FSSH,nonadiabatic_transition_ccfssh
   use surfacehopping,only : phQ,phP,phQ0,phP0,&
-                            w_e,w0_e,ge,ge1,esurface_type,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,n_e,&
-                            w_h,w0_h,gh,gh1,hsurface_type,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,n_h,&
+                            w_e,w0_e,g_e,g1_e,esurface_type,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,n_e,&
+                            w_h,w0_h,g_h,g1_h,hsurface_type,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,n_h,&
                             allocatesh,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability
@@ -98,7 +98,7 @@ program lvcsh
     != initialization =!
     !==================! 
     !!Get the initial normal mode coordinate phQ and versity phP
-    call init_normalmode_coordinate_velocity(wf,temp,phQ,phP)
+    call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,phQ,phP)
     
     !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband
     call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
@@ -191,29 +191,29 @@ program lvcsh
             call convert_diabatic_adiabatic(nefre,p_e,c_e,w_e)
           endif          
           
-          ! use FSSH calculation hopping probability in adiabatic representation,get ge,ge1
-          call calculate_hopping_probability(iesurface,nefre,nmodes,nqtotf,w0_e,phP0,d0_e,dt,ge,ge1)          
+          ! use FSSH calculation hopping probability in adiabatic representation,get g_e,g1_e
+          call calculate_hopping_probability(iesurface,nefre,nmodes,nqtotf,w0_e,phP0,d0_e,dt,g_e,g1_e)          
           
           
           !dealwith trilvial crossing,fixed ge
           if(methodsh == "SC-FSSH") then
             !use SC-FSSH method to fixed ge
-            call get_G_SC_FSSH(iesurface,nefre,E0_e,w0_e,w_e,ge1,ge)
+            call get_G_SC_FSSH(iesurface,nefre,E0_e,w0_e,w_e,g1_e,g_e)
           elseif(methodsh == "CC-FSSH") then
             !use CC-FSSH method to fixed ge
-            call get_G_CC_FSSH(nefre,iesurface,iesurface_j,p0_e,p_e,w0_e,w_e,S_ai_e,ge1,ge)
+            call get_G_CC_FSSH(nefre,iesurface,iesurface_j,p0_e,p_e,w0_e,w_e,S_ai_e,g1_e,g_e)
           endif
           
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
           !% change potential energy surface %!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!          
           if(methodsh == "FSSH") then
-            call nonadiabatic_transition_fssh(nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,Ge,phP)
+            call nonadiabatic_transition_fssh(nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)
           elseif( methodsh == "SC-FSSH") then
-            call nonadiabatic_transition_scfssh(nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,Ge,phP)              
+            call nonadiabatic_transition_scfssh(nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)              
           elseif(methodsh == "CC-FSSH") then
             call nonadiabatic_transition_ccfssh(nefre,nqtotf,nmodes,iesurface,iesurface_j,&
-                                                esurface_type,E0_e,P0_e,P_e,d0_e,S_bi_e,Ge,phP)
+                                                esurface_type,E0_e,P0_e,P_e,d0_e,S_bi_e,g_e,phP)
           endif
           
         endif
@@ -250,27 +250,27 @@ program lvcsh
           endif          
 
           ! use FSSH calculation hopping probability in adiabatic representation
-          call calculate_hopping_probability(ihsurface,nhfre,nmodes,nqtotf,w0_h,phP0,d0_h,dt,gh,gh1)          
+          call calculate_hopping_probability(ihsurface,nhfre,nmodes,nqtotf,w0_h,phP0,d0_h,dt,g_h,g1_h)          
           
           !dealwith trilvial crossing,fixed ge
           if(methodsh == "SC-FSSH") then
             !use SC-FSSH method to fixed ge
-            call get_G_SC_FSSH(ihsurface,nhfre,E0_h,w0_h,w_h,gh1,gh)
+            call get_G_SC_FSSH(ihsurface,nhfre,E0_h,w0_h,w_h,g1_h,g_h)
           elseif(methodsh == "CC-FSSH") then
             !use CC-FSSH method to fixed ge
-            call get_G_CC_FSSH(nhfre,ihsurface,ihsurface_j,p0_h,p_h,w0_h,w_h,S_ai_h,gh1,gh)
+            call get_G_CC_FSSH(nhfre,ihsurface,ihsurface_j,p0_h,p_h,w0_h,w_h,S_ai_h,g1_h,g_h)
           endif
           
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
           !% change potential energy surface %!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!          
           if(methodsh == "FSSH") then
-            call nonadiabatic_transition_fssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,Gh,phP)
+            call nonadiabatic_transition_fssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)
           elseif( methodsh == "SC-FSSH") then
-            call nonadiabatic_transition_scfssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,Gh,phP)              
+            call nonadiabatic_transition_scfssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)              
           elseif(methodsh == "CC-FSSH") then
             call nonadiabatic_transition_ccfssh(nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,&
-                                                hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,Gh,phP)
+                                                hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
           endif          
           
         endif 
@@ -344,9 +344,9 @@ program lvcsh
 !  xsit=xsit/naver*Au2ang*dsqrt(au2amu)
 !  ksit=ksit/naver*Au2eV
 !
-!  !====================!
-!  != save information =!
-!  !====================!
+  !====================!
+  != save information =!
+  !====================!
 !  call saveresult()
   !call cpu_time(t1)
   !write(6,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'

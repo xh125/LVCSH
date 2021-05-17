@@ -8,16 +8,16 @@ module surfacehopping
   use parameters, only : nsnap,naver
   use surfacecom, only : MethodSH,iesurface,ihsurface,esurface_type,hsurface_type,&
                          phQ,phP,phQ0,phP0,ph_T,ph_U,SUM_ph_U,SUM_ph_T,SUM_ph_E,&
-                         d_e,ge,ge1,c_e_nk,w_e,w0_e,&
+                         d_e,g_e,g1_e,c_e_nk,w_e,w0_e,&
                          d0_e,&
-                         d_h,gh,gh1,c_h_nk,w_h,w0_h,&
-                         d0_h!,&
-                         !sumg0_e,sumg0_h,sumg1_e,sumg1_h
+                         d_h,g_h,g1_h,c_h_nk,w_h,w0_h,&
+                         d0_h
+                  
   implicit none
   
   complex(kind=dpc),allocatable :: cc0_e(:),dc1_e(:),dc2_e(:),dc3_e(:),dc4_e(:)
   complex(kind=dpc),allocatable :: cc0_h(:),dc1_h(:),dc2_h(:),dc3_h(:),dc4_h(:)
-  real(kind=dp),allocatable :: n_e(:),n_h(:)
+  real(kind=dp)    ,allocatable :: n_e(:),n_h(:)
   
   contains
   
@@ -75,10 +75,10 @@ module surfacehopping
       allocate(w0_e(nefre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating w0_e',1)
       
-      allocate(ge(1:nefre),stat=ierr)  !g_ij
-      if(ierr /=0) call errore('surfacehopping','Error allocating ge',1)
-      allocate(ge1(1:nefre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating ge1',1) 
+      allocate(g_e(1:nefre),stat=ierr)  !g_ij
+      if(ierr /=0) call errore('surfacehopping','Error allocating g_e',1)
+      allocate(g1_e(1:nefre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating g1_e',1) 
       
       allocate(E0_e(1:nefre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating E0_e',1)
@@ -118,10 +118,10 @@ module surfacehopping
       allocate(w0_h(nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating w0_h',1)
       
-      allocate(gh(1:nhfre),stat=ierr)  !g_ij
-      if(ierr /=0) call errore('surfacehopping','Error allocating gh',1)
-      allocate(gh1(1:nhfre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating gh1',1) 
+      allocate(g_h(1:nhfre),stat=ierr)  !g_ij
+      if(ierr /=0) call errore('surfacehopping','Error allocating g_h',1)
+      allocate(g1_h(1:nhfre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating g1_h',1) 
       
       allocate(E0_h(1:nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating E0_h',1)

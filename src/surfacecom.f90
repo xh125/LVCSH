@@ -5,7 +5,6 @@ module surfacecom
   integer :: isnap,istep
   integer :: iesurface,ihsurface,iesurface_j,ihsurface_j,&
              esurface_type,hsurface_type
-  integer :: ierr
   
   integer         :: naver
   integer         :: nstep
@@ -37,8 +36,8 @@ module surfacecom
   real(kind=dp) :: SUM_ph_U,SUM_ph_T,SUM_ph_E
 
   !
-  real(kind=dp),allocatable :: d_e(:,:,:,:) ,d_h(:,:,:,:) ,ge(:) ,gh(:)
-  real(kind=dp),allocatable :: d0_e(:,:,:,:),d0_h(:,:,:,:),ge1(:),gh1(:)  
+  real(kind=dp),allocatable :: d_e(:,:,:,:) ,d_h(:,:,:,:) ,g_e(:) ,g_h(:)
+  real(kind=dp),allocatable :: d0_e(:,:,:,:),d0_h(:,:,:,:),g1_e(:),g1_h(:)  
   real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
                                psit(:,:),xsit(:,:),ksit(:,:) 
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)

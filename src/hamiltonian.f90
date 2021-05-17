@@ -96,8 +96,8 @@ module hamiltonian
       enddo
     enddo  
       
-    iband = iehband_min-ibndmin+1
-    jband = iehband_min-ibndmin+nband
+    iband = iehband_min
+    jband = iehband_min+nband-1
     epcq_eh = epcq(iband:jband,iband:jband,:,:,:)    
     
   end subroutine set_H0_nk

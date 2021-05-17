@@ -267,7 +267,7 @@
   real(kind = dp), allocatable :: xkf_all(:, :) !xkf_all(3, nkqtotf)
   !! Collect k-point coordinate from all pools in parallel case  
   REAL(KIND = DP), ALLOCATABLE :: etf_all(:, :)  ! etf_all(nbndsub,nktotf)
-  real(kind = dp), allocatable :: etf_all2(:, :) ! etf_all2(nbndsub,nkqtotf)
+  !real(kind = dp), allocatable :: etf_all2(:, :) ! etf_all2(nbndsub,nkqtotf)
   !! Eigen-energies on the fine grid collected from all pools in parallel case
   COMPLEX(KIND = DP), ALLOCATABLE :: dmef_all(:, :, :, :)
   !! dipole matrix elements on the fine mesh among all pools
@@ -1720,19 +1720,21 @@
           ikk = 2*ik-1
           write(stdout,"(/5x,'ik = ', i7 ,' coord.:',3f12.7)") ik,xkf_all(:,ikk)
           if (vme) then
-            write(stdout,"(3x,a)") "ik  iband  jband Enk[eV] Emk[eV] vmef_x[Ryd*bohr] vmef_y[Ryd*bohr] vmef_z[Ryd*bohr]"
+            write(stdout,"(A)") "   ik ibnd jbnd Enk[eV] Emk[eV]   v_x[Ryd*bohr]&
+                  v_y[Ryd*bohr]                 v_z[Ryd*bohr]"
           else
-            write(stdout,"(3x,a)") "ik  iband  jband Enk[eV] Emk[eV] dmef_x[1/bohr]   dmef_y[1/bohr]   dmef_z[1/bohr]"
+            write(stdout,"(A)") "   ik ibnd jbnd Enk[eV] Emk[eV]     d_x[1/bohr]&
+                    d_y[1/bohr]                   d_z[1/bohr]"
           endif
           do ibnd=1,nbndsub
             do jbnd=1,nbndsub
               if (vme) then
                 write(stdout,"(3i5,2f8.4,3(2E16.6))") &
-                ik, ibnd , jbnd, etf_all2(ibnd,ikk)*ryd2ev,etf_all2(jbnd,ikk)*ryd2ev,&
+                ik, ibnd , jbnd, etf_all(ibnd,ikk)*ryd2ev,etf_all(jbnd,ikk)*ryd2ev,&
                 vmef_all(:,ibnd,jbnd,ikk)
               else 
                 write(stdout,"(3i5,2f8.4,3(2E16.6))") &
-                ik, ibnd , jbnd , etf_all2(ibnd,ikk)*ryd2ev,etf_all2(jbnd,ikk)*ryd2ev,&
+                ik, ibnd , jbnd , etf_all(ibnd,ikk)*ryd2ev,etf_all(jbnd,ikk)*ryd2ev,&
                 dmef_all(:,ibnd,jbnd,ikk)
               endif
             enddo

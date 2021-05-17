@@ -111,7 +111,7 @@ module readepw
     
     call findkword(unitepwout,"Program")
     read(unitepwout,"(A)") epw_info
-    write(stdout,*) epw_info
+    write(stdout,"(/,A)") trim(epw_info)
     
     call findkline(unitepwout,"bravais-lattice index     =",6,32)
     read(unitepwout,"(33X,i12)")   ibrav
@@ -742,6 +742,8 @@ module readepw
       backspace(unitepwout)
       read(unitepwout,"(47X,f10.6)") ef
       ef = ef/ryd2ev
+      write(stdout,"(5X,A,f10.6,A)") "Fermi energy is read from the input file: Ef =", ef * ryd2ev, ' eV'
+      
       read(unitepwout,"(/5X,A)") ctmp
       !
       ! SP: even when reading from input the number of electron needs to be correct  
@@ -791,6 +793,9 @@ module readepw
       !  'Fermi energy is calculated from the fine k-mesh: Ef = ', efnew * ryd2ev, ' eV'
       read(unitepwout,"(/5x,54X,f10.6)") efnew
       efnew = efnew/ryd2ev
+      WRITE(stdout, '(/5x,a,f10.6,a)') &
+        'Fermi energy is calculated from the fine k-mesh: Ef = ', efnew * ryd2ev, ' eV'
+
 
       !! if 'fine' Fermi level differs by more than 250 meV, there is probably something wrong
       !! with the wannier functions, or 'coarse' Fermi level is inaccurate
@@ -825,7 +830,9 @@ module readepw
       ENDIF      
     endif
     
-    !
+    WRITE(stdout, '(5x," icbm(conductor band max) = ",i6)' ) icbm
+    WRITE(stdout, '(5x," ivbm(valence   band min) = ",i6)' ) icbm-1
+    
     
     !
     ! Identify the bands within fsthick from the Fermi level
@@ -843,25 +850,16 @@ module readepw
     read(unitepwout,"(14X,10x,i5,2x,10x,f9.3)") ibndmax, ebndmax
     ebndmax = ebndmax/ryd2eV
     nbndfst = ibndmax-ibndmin + 1
-    
-    !ieband_min = icbm
-    !ieband_max = ibndmax
-    !ihband_min = ibndmin
-    !ihband_max = icbm - 1 
-           
+    WRITE(stdout,'(/14x,a,i5,2x,a,f9.3,a)') 'ibndmin = ', ibndmin, 'ebndmin = ', ebndmin * ryd2ev, ' eV'
+    WRITE(stdout,'(14x,a,i5,2x,a,f9.3,a/)') 'ibndmax = ', ibndmax, 'ebndmax = ', ebndmax * ryd2ev, ' eV'    
     
     allocate(etf(nbndsub,nkqf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating etf',1)
     etf = 0.0d0
     
-    !allocate(E_nk(nbndfst,nkf),stat=ierr)
-    !if(ierr /=0) call errore("readepw",'Error allocating E_nk',1)
-    !allocate(E_mkq(nbndfst,nkf),stat=ierr)
-    !if(ierr /=0) call errore("readepw",'Error allocating E_mkq',1)
-    
     !! Fine mesh set of g-matrices.  It is large for memory storage
     !ALLOCATE(epf17(nbndfst, nbndfst, nmodes, nkf), STAT = ierr)
-    allocate(epcq(nbndfst,nbndfst,nkf,nmodes,nqf),stat=ierr)
+    allocate(epcq(ibndmin:ibndmax,ibndmin:ibndmax,1:nkf,1:nmodes,1:nqf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating epcq',1)
 
 
@@ -917,8 +915,8 @@ module readepw
         
         read(unitepwout,*)
         read(unitepwout,*)
-        do ibnd = 1,nbndfst
-          do jbnd = 1, nbndfst
+        do ibnd = ibndmin,ibndmax ! ibnd = 1,nbndfst
+          do jbnd = ibndmin,ibndmax !jbnd= 1,nbndfst
             do nu = 1, nmodes
               !WRITE(stdout, '(5x, a)') ' ibnd     jbnd     imode   enk[eV]    enk+q[eV]  omega(q)[meV]   |g|[meV]'
               !ekq = etf_all(ibndmin - 1 + jbnd, ikq)
@@ -929,9 +927,8 @@ module readepw
               ekk = ekk /ryd2eV
               ekq = ekq /ryd2eV
               
-              !E_nk(ibnd,ik) = ekk
-              !E_mkq(jbnd,kqmap(ik,iq)) = ekq
-              etf(ibndmin-1+ibnd,ikk) = ekk
+              etf(ibnd,ikk) = ekk
+              etf(ibnd,ikq) = ekq
               !read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
                    !E_nk,E_mkq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
             enddo
@@ -949,6 +946,7 @@ module readepw
     enddo
     
     wf = wf/ryd2mev
+    !gamma 3 branch A phonon must be set to 0.
     do nu=1,3
       epcq(:,:,:,nu,1) = 0.0
     enddo
@@ -960,7 +958,6 @@ module readepw
       vme = .true.
     else
       vme= .false.
-      !allocate(dmef(3,nbndsub,nbndsub,nkf))
     endif
     allocate(vmef(3,nbndsub,nbndsub,nkf))
     do ik=1,nkf

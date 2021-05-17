@@ -1,8 +1,6 @@
 module initialsh
   use kinds     ,only   : dp,dpc
   use constants ,only   : maxlen,tpi,K_B_Ryd,ryd2eV
-  use elph2     ,only   : epcq,nq=>nqtotf
-  use modes     ,only   : nmodes
   implicit none
   
   contains
@@ -184,11 +182,12 @@ module initialsh
   !ref : 1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
   !    :  (3.17) (3.20) (3.24)
   !ref : 2 HuangKun 《固体物理》 (3-44) (3-45)
-  subroutine init_normalmode_coordinate_velocity(w,T,ph_Q,ph_P)
+  subroutine init_normalmode_coordinate_velocity(nmodes,nq,w,T,ph_Q,ph_P)
     use kinds,only   : dp
     use randoms,only : gaussian_random_number
 
     implicit none
+    integer,intent(in)       :: nmodes,nq
     real(kind=dp),intent(in) :: T
     real(kind=dp),intent(in) :: w(nmodes,nq)  
     real(kind=dp),intent(out):: ph_Q(nmodes,nq),ph_P(nmodes,nq)
