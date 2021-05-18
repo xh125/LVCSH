@@ -1,5 +1,5 @@
 module getwcvk
-  use kinds,only    : dp
+  use kinds,only    : dp,dpc
   use lasercom,only : W_cvk,efield_cart
   implicit none
   
@@ -20,11 +20,10 @@ module getwcvk
     ! W_cvk(cband,vband,ik)=|<E dot vmef(3,cband,vband,ik)>|^2 *f_w(w)
     !!光激发下的跃迁几率大小
     real(kind=dp) :: fcw
-    complex :: Evmef
+    complex(kind=dpc) :: Evmef
     real(kind=dp) :: E_mnk   !垂直激发能量
-    integer :: ik,ikk,ivband,icband,ipol
+    integer :: ik,ikk,ibnd,jbnd,ipol
     integer :: ierr
-    integer :: nband_eh
     integer :: ivbm
     
     ivbm = icbm-1
@@ -38,15 +37,15 @@ module getwcvk
     W_cvk = 0.0
     do ik=1,nkf
       ikk = 2*ik -1
-      do ivband=ihband_min,ivbm
-        do icband=icbm,ieband_max
+      do ibnd=ihband_min,ivbm
+        do jbnd=icbm,ieband_max
           Evmef = 0.0
-          E_mnk = etf(icband,ikk)-etf(ivband,ikk)
+          E_mnk = etf(jbnd,ikk)-etf(ibnd,ikk)
           do ipol=1,3
-            Evmef =Evmef+ (efield_cart(ipol)*(vmef(ipol,icband,ivband,ik)))
+            Evmef =Evmef+ (efield_cart(ipol)*(vmef(ipol,jbnd,ibnd,ik)))
           enddo
           fcw = f_w(E_mnk,w_center,fwhm_2T2)
-          W_cvk(icband,ivband,ik) = Evmef*CONJG(Evmef)*fcw
+          W_cvk(jbnd,ibnd,ik) = REAL(Evmef*CONJG(Evmef))*fcw
         enddo
       enddo
     enddo  

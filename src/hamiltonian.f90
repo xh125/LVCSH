@@ -92,7 +92,7 @@ module hamiltonian
     H0_nk = 0.0
     do ik=1,nk
       do iband=1,nband
-        H0_nk(iband,ik,iband,ik)=etf(iband+iehband_min-1,2*ik-1) !E_nk(iband,ik)
+        H0_nk(iband,ik,iband,ik)=etf(iband+iehband_min-1,2*ik-1)
       enddo
     enddo  
       

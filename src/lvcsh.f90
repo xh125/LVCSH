@@ -15,7 +15,7 @@ program lvcsh
   !=====================================================================================================!
   !=  system interaction with environment by system-bath interactions                                  =!     
   !=====================================================================================================!
-  != Last updata 2021-04.14 Version:0.1.2                                                              =!   
+  != Last updata 2021-05.18 Version:0.1.3                                                              =!   
   != Developed by XieHua at department of physic, USTC;xh125@mail.ustc.edu.cn                          =!
   !=====================================================================================================!
   !! Author: HuaXie
@@ -24,7 +24,7 @@ program lvcsh
   !!=================================================================================================  
   use mkl_service
   use omp_lib
-  use constants,only      : maxlen,ryd2eV
+  use constants,only      : maxlen,ryd2eV,ry_to_fs
   use environments,only   : environment_start,mkl_threads,&
                             set_mkl_threads,lsetthreads
   use readinput,only      : get_inputfile
@@ -51,9 +51,9 @@ program lvcsh
   use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
   use cc_fssh,only        : S_ai_e,S_ai_h,S_bi_e,S_bi_h,&
                             get_G_CC_FSSH,nonadiabatic_transition_ccfssh
-  use surfacehopping,only : phQ,phP,phQ0,phP0,&
-                            w_e,w0_e,g_e,g1_e,esurface_type,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,n_e,&
-                            w_h,w0_h,g_h,g1_h,hsurface_type,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,n_h,&
+  use surfacehopping,only : phQ,phP,phQ0,phP0,ph_T,ph_U,SUM_ph_E,SUM_ph_T,SUM_ph_U,&
+                            w_e,w0_e,g_e,g1_e,esurface_type,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,&
+                            w_h,w0_h,g_h,g1_h,hsurface_type,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,&
                             allocatesh,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability
@@ -79,26 +79,44 @@ program lvcsh
   call set_subband(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
   !get ieband_min,ieband_max,ihband_min,ihband_max
   call allocate_hamiltonian(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
-  if(lelecsh) call set_H0_nk(nktotf,neband,H0_e_nk,ieband_min,epcq_e)
-  if(lholesh) call set_H0_nk(nktotf,nhband,H0_h_nk,ihband_min,epcq_h)
+  if(lelecsh) then
+    call set_H0_nk(nktotf,neband,H0_e_nk,ieband_min,epcq_e)
+  endif
+  if(lholesh) then
+    call set_H0_nk(nktotf,nhband,H0_h_nk,ihband_min,epcq_h)
+    !H0_h_nk = -1.0 * H0_h_nk
+    !epcq_h  = -1.0 * H0_h_nk
+  endif
+  !get H0_e_nk(neband,nktotf,neband,nktotf),epcq_e(neband,neband,nktotf,nmodes,nqtotf)
+  !get H0_h_nk(nhband,nktotf,nhband,nktotf),epcq_h(nhband,nhband,nktotf,nmodes,nqtotf)
   
-  if(llaser) call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
-  !get W_cvk(icband,ivband,ik)
+  call allocatesh(methodsh,lelecsh,lholesh,nmodes,nqtotf)
+  
+  if(llaser) then
+    call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
+    write(stdout,"(/,5X,A)") "In the laser obsorbtion,the Pump laser as follow:"
+    write(stdout,"(5X,A22,F12.7,A4)")  "Laser centred energy :",w_laser*ryd2eV," eV."
+    write(stdout,"(5X,A38,F12.7,A4)")  "The full width at half-maximum:fwhm = ",fwhm*ry_to_fs," fs."
+    !get W_cvk(icband,ivband,ik)
+  endif
+  
   call init_random_seed()
   if(lsetthreads) call set_mkl_threads(mkl_threads)
-  call allocatesh(lelecsh,lholesh,nmodes)
   
   
   !==========================!
   != loop over realizations =!
   !==========================!  
   do iaver=1,naver
-    write(stdout,'(a,I4,a)') '###### iaver=',iaver,' ######'    
+    write(stdout,'(/,a,I4,a)') '###### iaver=',iaver,' ######'    
+    
     !==================!
     != initialization =!
     !==================! 
+    
     !!Get the initial normal mode coordinate phQ and versity phP
     call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,phQ,phP)
+    !应该先跑平衡后，再做电子空穴动力学计算
     
     !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband
     call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
@@ -116,6 +134,7 @@ program lvcsh
       call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,P_e_nk,epcq_e,d_e)
       E0_e = E_e;P0_e=P_e;P0_e_nk=P_e_nk;d0_e=d_e;w0_e=w_e
     endif
+    
     if(lholesh) then
       call init_stat_diabatic(init_ik,init_hband,ihband_min,nhband,nktotf,c_h_nk)
       c_h = reshape(c_h_nk,(/nhfre/))
@@ -124,20 +143,61 @@ program lvcsh
       call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
       P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
       call convert_diabatic_adiabatic(nhfre,P_h,c_h,w_h)
-      call init_surface(nhfre,w_h,ihsurface)
+      call init_surface(nhfre,w_h,ihsurface)                
       call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,epcq_h,d_h)
       E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
     endif
     
+    write(stdout,"(/,5X,A)") "In adiabatic base,the elctron-hole state as follow:"
+    if(lholesh) then
+      write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
+      "Init_hsurface=",ihsurface+ihband_min*nktotf,"Initial hole Energy:",E_h(ihsurface)*ryd2eV," eV"             
+    endif
+    if(lelecsh) then
+      write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
+      "Init_esurface=",iesurface+ieband_min*nktotf,"Initial elec Energy:",E_e(iesurface)*ryd2eV," eV"       
+    endif
+    if(lelecsh .and. lholesh) then
+      write(stdout,"(5X,A17,F12.7,A3)")  "elec-hole energy=",(E_e(iesurface)-E_h(ihsurface))*ryd2eV," eV"  
+    endif
+    
+    
+    
     phQ0=phQ; phP0=phP    
 
+
+    if(lholesh) then
+      if(lelecsh) then
+        write(stdout,"(/,A)") "   time(fs) rt(s) hsur esur&
+        &  E_h(eV)  E_e(eV) E_eh(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)"         
+      else 
+        write(stdout,"(/,A)") "   time(fs) rt(s) hsur&
+        &  E_h(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)"       
+      endif
+    else
+      if(lelecsh) then
+        write(stdout,"(/,A)") "   time(fs) rt(s) esur&
+        &  E_e(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)"           
+      else
+        write(stdout,"(/,A)") "Error!! lelecsh and lholesh must have one need to be set TRUE."
+      endif
+    endif
+
+
+    ph_U = 0.5*(wf**2)*(phQ**2)
+    ph_T = 0.5*phP**2        
+    SUM_ph_T = SUM(ph_T)
+    SUM_ph_U = SUM(ph_U)
+    SUM_ph_E = SUM_ph_T+SUM_ph_U    
+    write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") 0.00,0.00,&
+    ihsurface+ihband_min*nktotf,iesurface+ieband_min*nktotf,&
+    e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)-e_h(ihsurface))*ryd2eV,&
+    SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(E_e(iesurface)-E_h(ihsurface)+SUM_ph_E)*ryd2eV          
     !=======================!
     != loop over snapshots =!
     !=======================!
 
     do isnap=1,nsnap
-      write(stdout,"(/,A)") "isnap istep runtime iesur ihsur  &
-      &en_e(eV)  en_h(eV)  en_eh(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)" 
       do istep=1,nstep
         
         time1   = io_time()  
@@ -174,7 +234,7 @@ program lvcsh
             call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ0,wf,epcq_e,H0_e_nk,H_e_nk)
             H_e = reshape(H_e_nk,(/ nefre,nefre /))
             !update c_e to time t0+dt
-            call rk4_electron_diabatic(nefre,H_e,c_e,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,n_e,dt)
+            call rk4_electron_diabatic(nefre,H_e,c_e,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,dt)
           endif
           
           ! update H_nk in time t0+dt
@@ -182,6 +242,8 @@ program lvcsh
           H_e = reshape(H_e_nk,(/ nefre,nefre /))          
           ! update E_e,P_e to time t0+dt
           call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
+          P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
+          
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
           ! update d_e in time t0+dt
           call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,p_e,epcq_e,d_e)
@@ -210,7 +272,7 @@ program lvcsh
           if(methodsh == "FSSH") then
             call nonadiabatic_transition_fssh(nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)
           elseif( methodsh == "SC-FSSH") then
-            call nonadiabatic_transition_scfssh(nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)              
+            call nonadiabatic_transition_scfssh(nefre,nqtotf,nmodes,iesurface,-E0_e,P0_e,d0_e,g_e,phP)              
           elseif(methodsh == "CC-FSSH") then
             call nonadiabatic_transition_ccfssh(nefre,nqtotf,nmodes,iesurface,iesurface_j,&
                                                 esurface_type,E0_e,P0_e,P_e,d0_e,S_bi_e,g_e,phP)
@@ -231,7 +293,7 @@ program lvcsh
             H_h = reshape(H_h_nk,(/ nhfre,nhfre /))
             H_h = -1.0*H_h
             !update c_h to time t0+dt
-            call rk4_electron_diabatic(nhfre,H_h,c_h,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,n_h,dt)        
+            call rk4_electron_diabatic(nhfre,H_h,c_h,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,dt)        
           endif
           
           ! update H_nk in time t0+dt
@@ -239,6 +301,8 @@ program lvcsh
           H_h = reshape(H_h_nk,(/ nhfre,nhfre /))          
           ! update E_h,P_h in time t0+dt
           call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
+          P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
+          
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
           ! update d_h in time t0+dt
           call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_h,p_h,epcq_h,d_h)          
@@ -265,12 +329,11 @@ program lvcsh
           !% change potential energy surface %!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!          
           if(methodsh == "FSSH") then
-            call nonadiabatic_transition_fssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)
+            call nonadiabatic_transition_fssh(nhfre,nqtotf,nmodes,ihsurface,-1.0*E0_h,P0_h,d0_h,g_h,phP)
           elseif( methodsh == "SC-FSSH") then
-            call nonadiabatic_transition_scfssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)              
+            call nonadiabatic_transition_scfssh(nhfre,nqtotf,nmodes,ihsurface,-1.0*E0_h,P0_h,d0_h,g_h,phP)              
           elseif(methodsh == "CC-FSSH") then
-            call nonadiabatic_transition_ccfssh(nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,&
-                                                hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
+            call nonadiabatic_transition_ccfssh(nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,hsurface_type,-1.0*E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
           endif          
           
         endif 
@@ -295,17 +358,50 @@ program lvcsh
         !============================!
 
         phQ0=phQ; phP0=phP
+        
+        
         if(lelecsh) then
-          E0_e = E_e;P0_e = P_e; d0_e = d_e;w0_e = w_e
+          E0_e = E_e;P0_e = P_e;P0_e_nk = P_e_nk; d0_e = d_e;w0_e = w_e
         endif
         if(lholesh) then
-          E0_h = E_h;P0_h = P_h; d0_h = d_h;w0_h = w_h
+          E0_h = E_h;P0_h = P_h;P0_h_nk = P_h_nk; d0_h = d_h;w0_h = w_h
         endif
         time2   = io_time()
+
         
-        !write(stdout,"(I5,1X,I5,1X,F8.4,I5,I5,7(1X,F8.4))") isnap,istep,(time2-time1),iesurface,ihsurface,&
-        !e(iesurface)*ryd2eV,e(ihsurface)*ryd2eV,(e(iesurface)-e(ihsurface))*ryd2eV,&
-        !SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(e(iesurface)-e(ihsurface)+SUM_ph_E)*ryd2eV
+        ph_U = 0.5*(wf**2)*(phQ**2)
+        ph_T = 0.5*phP**2        
+        SUM_ph_T = SUM(ph_T)
+        SUM_ph_U = SUM(ph_U)
+        SUM_ph_E = SUM_ph_T+SUM_ph_U
+        
+        if(lholesh) then
+          if(lelecsh) then
+            !write(stdout,"(/,A)") "isnap istep runtime iesur ihsur  &
+            !&en_e(eV)  en_h(eV)  en_eh(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)" 
+            write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") ((isnap-1)*nstep+istep)*dt*ry_to_fs,(time2-time1),&
+            ihsurface+ihband_min*nktotf,iesurface+ieband_min*nktotf,&
+            e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)-e_h(ihsurface))*ryd2eV,&
+            SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(E_e(iesurface)-E_h(ihsurface)+SUM_ph_E)*ryd2eV            
+          else 
+            !write(stdout,"(/,A)") "isnap istep runtime ihsur  &
+            !& en_h(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"  
+            write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") ((isnap-1)*nstep+istep)*dt*ry_to_fs,(time2-time1),ihsurface,&
+            e_h(ihsurface)*ryd2eV,&
+            SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(-e_h(ihsurface)+SUM_ph_E)*ryd2eV            
+          endif
+        else
+          if(lelecsh) then
+            !write(stdout,"(/,A)") "isnap istep runtime iesur  &
+            !&en_e(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"
+            write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") ((isnap-1)*nstep+istep)*dt*ry_to_fs,(time2-time1),iesurface,&
+            E_e(iesurface)*ryd2eV,(E_e(iesurface))*ryd2eV,&
+            SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(E_e(iesurface)+SUM_ph_E)*ryd2eV            
+          else
+            write(stdout,"(/,A)") "Error!! lelecsh and lholesh must have one need to be set TRUE."
+          endif
+        endif        
+        
 
       enddo
       

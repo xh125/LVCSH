@@ -124,6 +124,7 @@ module readepw
     
     nmodes = 3*nat
     
+    write(stdout,"(5x,A,I12)") "Number of phonon modes (nmodes) =",nmodes
     
     !call write_dft_name ( ) 
     read(unitepwout,"(27X,A)") dft
@@ -609,6 +610,9 @@ module readepw
     read(unitepwout,"(27X,3i4)") nqf1,nqf2,nqf3
     !!! qx,qy,qz sizes of the uniform phonon fine mesh to be used
     nqtotf = nqf1 * nqf2 * nqf3
+    write(stdout,"(5X,A,I12)") "Total number of the uniform phonon fine mesh to be used(nqtotf) = ",&
+                               nqtotf
+    
     !  total number of q points (fine grid)
     if(.not. allocated(xqf)) then 
       allocate(xqf(3,nqtotf),stat=ierr)
@@ -654,6 +658,10 @@ module readepw
     read(unitepwout,"(27X,3i4)") nkf1,nkf2,nkf3
     nktotf = nkf1 * nkf2 * nkf3
     nkqtotf = 2 * nktotf
+    write(stdout,"(5X,A,I12)") "Total number of K-point in fine mesh to be used(nktotf) = ",&
+                               nktotf    
+    
+    
     if(.not. allocated(xkf)) then 
       allocate(xkf(3,nkqtotf),stat=ierr)
       if(ierr /=0) call errore('readepw','Error allocating xkf',1)    

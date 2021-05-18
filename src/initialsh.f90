@@ -100,7 +100,7 @@ module initialsh
       outter:do ik=1,nkf
                do ihband=ihband_min,ivbm
                  do ieband=icbm,ieband_max
-                   flagd = flagd+W_cvk(ihband,ieband,ik)
+                   flagd = flagd+W_cvk(ieband,ihband,ik)
                    if (flagr <= flagd) then
                      init_ik    = ik
                      init_eband = ieband
@@ -111,6 +111,13 @@ module initialsh
                enddo
       enddo outter
       obsorbEn = (etf(init_eband,2*init_ik-1)-etf(init_hband,2*init_ik-1))*ryd2eV
+      write(stdout,"(5X,A)") "Initial eh_KSstate:  "
+      write(stdout,"(5X,A3,I5)") "ik=",init_ik
+      write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_hband=",init_hband," Initial hole Energy:",&
+                                                etf(init_hband,2*init_ik-1)*ryd2eV," eV"
+      write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_eband=",init_eband," Initial elec Energy:",&
+                                                etf(init_eband,2*init_ik-1)*ryd2eV," eV"      
+      write(stdout,"(5X,A18,F12.5,A3)")"elec-hole energy= ",obsorbEn," eV"
     else
       init_ikx = get_ik(init_kx,nkf1)
       init_iky = get_ik(init_ky,nkf2)
@@ -125,17 +132,6 @@ module initialsh
         write(stdout,"(5X,A29,I5,A16,I5)") "The init_hband need to set : ",ihband_min,"<= init_hband <=",ivbm
       endif      
     endif
-    
-    !if(lelecsh) then 
-    !  init_eband = init_eband - ieband_min + 1
-    !  c_e_nk = 0.0d0
-    !  c_e_nk(init_eband,init_ik) = 1.0d0
-    !endif
-    !if(lholesh) then
-    !  init_hband = init_hband - ihband_min + 1
-    !  c_h_nk = 0.0d0
-    !  c_h_nk(init_hband,init_ik) = 1.0d0
-    !endif
     
   end subroutine init_eh_KSstat
   
@@ -247,27 +243,6 @@ module initialsh
         exit
       endif
     enddo
-    
-    
-    !en_eh = (ee(iesurface)-ee(ihsurface))*ryd2eV
-    !write(stdout,"(/,5X,A)") "In the laser obsorbtion,the inital excited state as follow:"
-    !write(stdout,"(5X,A22,F12.7,A3)")  "Laser centred energy :",w_laser*ryd2eV," eV"
-    !
-    !write(stdout,"(/,5X,A,I5)")"In diabatic base,electron excited :init_ik=",init_ik
-    !write(stdout,"(5X,A,I5)")  "Electron in the conductor band:initi_init_eband=",init_init_eband
-    !write(stdout,"(5X,A,I5)")  "Hole     in the valence   band:initi_init_hband=",init_init_hband
-    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of elctron:",E_nk(init_init_eband,init_ik)*ryd2eV," eV"
-    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of hole   :",E_nk(init_init_hband,init_ik)*ryd2eV," eV"
-    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of exciton:",&
-    !                                    (E_nk(init_init_eband,init_ik)-E_nk(init_init_hband,init_ik))*ryd2eV," eV"
-    !
-    !write(stdout,"(/,5X,A,I5)")"In adiabatic base,the elctron and hole state as follow"
-    !write(stdout,"(5X,A,I5)")  "Electron in the energy surface:iesurface=",iesurface
-    !write(stdout,"(5X,A,I5)")  "Hole in the energy surface    :ihsurface=",ihsurface
-    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of elctron:",ee(iesurface)*ryd2eV," eV"
-    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of hole   :",ee(ihsurface)*ryd2eV," eV"
-    !write(stdout,"(5X,A22,F12.7,A3)")  "The energy of exciton:",&
-    !                                    (ee(iesurface)-ee(ihsurface))*ryd2eV," eV"    
     
   end subroutine init_surface 
   

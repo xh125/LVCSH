@@ -1,17 +1,19 @@
 module surfacehopping
   use kinds, only : dp,dpc
   use epwcom,only : nkf1,nkf2,nkf3,nqf1,nqf2,nqf3,kqmap
-  use elph2,only  : wf,nktotf,nbndfst,nqtotf,ibndmin,ibndmax
+  use elph2,only  : wf,nktotf,nbndfst,ibndmin,ibndmax
   use hamiltonian,only : nphfre,neband,nhband,nefre,nhfre,&
                          E_e,P_e,P_e_nk,E0_e,P0_e,P0_e_nk,&
                          E_h,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
   use parameters, only : nsnap,naver
-  use surfacecom, only : MethodSH,iesurface,ihsurface,esurface_type,hsurface_type,&
+  use surfacecom, only : iesurface,ihsurface,esurface_type,hsurface_type,&
                          phQ,phP,phQ0,phP0,ph_T,ph_U,SUM_ph_U,SUM_ph_T,SUM_ph_E,&
+                         dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
                          d_e,g_e,g1_e,c_e_nk,w_e,w0_e,&
                          d0_e,&
                          d_h,g_h,g1_h,c_h_nk,w_h,w0_h,&
                          d0_h
+  use cc_fssh,only : S_ai_e,S_ai_h,S_bi_e,S_bi_h
                   
   implicit none
   
@@ -21,29 +23,31 @@ module surfacehopping
   
   contains
   
-  subroutine allocatesh(lelecsh,lholesh,nmodes)
+  subroutine allocatesh(methodsh,lelecsh,lholesh,nmodes,nq)
     implicit none
+    character(len=*),intent(in) :: methodsh
     logical,intent(in):: lelecsh,lholesh
-    integer,intent(in):: nmodes
+    integer,intent(in):: nmodes,nq
     integer :: ierr
     
-    allocate(phQ(nmodes,nqtotf),stat=ierr)  ! x(1:nphfre)
+    allocate(phQ(nmodes,nq),stat=ierr)  ! x(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phQ',1)
     phQ = 0.0
     ! phonons normal mode coordinates
-    allocate(phP(nmodes,nqtotf),stat=ierr)  ! v(1:nphfre)
+    allocate(phP(nmodes,nq),stat=ierr)  ! v(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phP',1)    
     phP = 0.0
     !phonons normal mode verlosity
-    allocate(phQ0(nmodes,nqtotf),stat=ierr)
+    allocate(phQ0(nmodes,nq),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating phQ0',1)
-    allocate(phP0(nmodes,nqtotf),stat=ierr)
+    allocate(phP0(nmodes,nq),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating phP0',1)    
-    allocate(ph_U(nmodes,nqtotf),stat=ierr)
+    allocate(ph_U(nmodes,nq),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating ph_U',1)
-    allocate(ph_T(nmodes,nqtotf),stat=ierr)
+    allocate(ph_T(nmodes,nq),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating ph_T',1)            
-
+    allocate(dEa_dQ(nmodes,nq))
+    allocate(dEa2_dQ2(nmodes,nq))
     
     if(lelecsh) then
       allocate(E_e(1:nefre),stat=ierr)
@@ -52,23 +56,28 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e',1)
       allocate(P_e_nk(neband,nktotf,nefre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e_nk',1)
-      allocate(d_e(nefre,nefre,nmodes,nqtotf),stat=ierr) !d_ijk
+      allocate(d_e(nefre,nefre,nmodes,nq),stat=ierr) !d_ijk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_e',1)
-
+      allocate(dEa_dQ_e(nmodes,nq))
+      allocate(dEa2_dQ2_e(nmodes,nq))
+      
       allocate(c_e_nk(neband,nktotf),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)
-      allocate(cc0_e(nefre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating cc0_e',1)
-      allocate(dc1_e(nefre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating dc1_e',1)
-      allocate(dc2_e(nefre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating dc2_e',1)
-      allocate(dc3_e(nefre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating dc3_e',1)
-      allocate(dc4_e(nefre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating dc4_e',1)
-      allocate(n_e(nefre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating n_e',1)            
+      
+      if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
+        allocate(cc0_e(nefre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating cc0_e',1)
+        allocate(dc1_e(nefre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating dc1_e',1)
+        allocate(dc2_e(nefre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating dc2_e',1)
+        allocate(dc3_e(nefre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating dc3_e',1)
+        allocate(dc4_e(nefre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating dc4_e',1)
+        allocate(n_e(nefre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating n_e',1)            
+      endif
       
       allocate(w_e(nefre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating w_e',1)  
@@ -84,9 +93,14 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating E0_e',1)
       allocate(P0_e(nefre,nefre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_e',1)
-      allocate(d0_e(nefre,nefre,nmodes,nqtotf),stat=ierr)
+      allocate(d0_e(nefre,nefre,nmodes,nq),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating d0_e',1)
-
+      
+      if(methodsh == "CC-FSSH") then
+        allocate(S_ai_e(nefre))
+        allocate(S_bi_e(nefre))
+      endif
+      
     endif
     
     if(lholesh) then
@@ -96,23 +110,29 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h',1)
       allocate(P_h_nk(nhband,nktotf,nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h_nk',1)
-      allocate(d_h(nhfre,nhfre,nmodes,nqtotf),stat=ierr) !d_ijk
+      allocate(d_h(nhfre,nhfre,nmodes,nq),stat=ierr) !d_ijk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_h',1)
+      allocate(dEa_dQ_h(nmodes,nq))
+      allocate(dEa2_dQ2_h(nmodes,nq))
 
       allocate(c_h_nk(nhband,nktotf),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h_nk',1)  
-      allocate(cc0_h(nhfre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating cc0_h',1)
-      allocate(dc1_h(nhfre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating dc1_h',1)
-      allocate(dc2_h(nhfre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating dc2_h',1)
-      allocate(dc3_h(nhfre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating dc3_h',1)
-      allocate(dc4_h(nhfre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating dc4_h',1)
-      allocate(n_h(nhfre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating n_h',1)                  
+      
+      if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
+        allocate(cc0_h(nhfre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating cc0_h',1)
+        allocate(dc1_h(nhfre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating dc1_h',1)
+        allocate(dc2_h(nhfre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating dc2_h',1)
+        allocate(dc3_h(nhfre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating dc3_h',1)
+        allocate(dc4_h(nhfre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating dc4_h',1)
+        allocate(n_h(nhfre),stat=ierr)
+        if(ierr /=0) call errore('surfacehopping','Error allocating n_h',1)                  
+      endif
+      
       allocate(w_h(nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating w_h',1)  
       allocate(w0_h(nhfre),stat=ierr)
@@ -127,8 +147,13 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating E0_h',1)
       allocate(P0_h(nhfre,nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h',1)
-      allocate(d0_h(nhfre,nhfre,nmodes,nqtotf),stat=ierr)
+      allocate(d0_h(nhfre,nhfre,nmodes,nq),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating d0_h',1)
+      
+      if(methodsh == "CC-FSSH") then
+        allocate(S_ai_h(nefre))
+        allocate(S_bi_h(nefre))
+      endif
     endif
     
       !allocate(pes(0:nefre,1:nsnap,1:naver),stat=ierr)
