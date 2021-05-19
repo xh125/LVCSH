@@ -36,6 +36,7 @@ program lvcsh
                             llaser,methodsh
   use hamiltonian,only    : nefre,neband,H_e,H_e_nk,E_e,P_e,P_e_nk,P0_e_nk,epcq_e,H0_e_nk,E0_e,P0_e,&
                             nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,epcq_h,H0_h_nk,E0_h,P0_h,&
+                            E_h_,&
                             allocate_hamiltonian,set_H_nk,set_H0_nk,&
                             calculate_eigen_energy_state
   use randoms,only        : init_random_seed
@@ -44,30 +45,37 @@ program lvcsh
   use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_eh_KSstat,&
                             init_stat_diabatic,init_surface
   use surfacecom,only     : iaver,isnap,istep,naver,iesurface,ihsurface,iesurface_j,ihsurface_j,&
+                            iesurface_,ihsurface_,&
                             c_e,c_e_nk,d_e,d0_e,&
                             c_h,c_h_nk,d_h,d0_h,&
-                            dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h
+                            dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
+                            csit_e,wsit_e,pes_e,psit_e,&
+                            csit_h,wsit_h,pes_h,psit_h
+                            
   use fssh,only           : nonadiabatic_transition_fssh
   use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
   use cc_fssh,only        : S_ai_e,S_ai_h,S_bi_e,S_bi_h,&
                             get_G_CC_FSSH,nonadiabatic_transition_ccfssh
-  use surfacehopping,only : phQ,phP,phQ0,phP0,ph_T,ph_U,SUM_ph_E,SUM_ph_T,SUM_ph_U,&
+  use surfacehopping,only : phQ,phP,phQ0,phP0,phK,phU,SUM_phE,SUM_phK,SUM_phU,&
+                            phQsit,phPsit,phKsit,phUsit,&
                             w_e,w0_e,g_e,g1_e,esurface_type,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,&
                             w_h,w0_h,g_h,g1_h,hsurface_type,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,&
                             allocatesh,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability
-  use surfacecom,only     : lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max
+  use surfacecom,only     : lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,&
+                            pes_e,pes_h
   use elph2,only          : wf,nqtotf,nktotf,nbndfst
   use disp,only           : ph_configuration
   use modes,only          : nmodes
-  use io      ,only       : stdout,io_time,time1,time2
+  use io      ,only       : stdout,io_time,time1,time2,time_
   use dynamics,only       : get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,ADD_BATH_EFFECT
   !use dynamica
   implicit none
   !===============!
   != preparation =!
   !===============!
+  integer :: iq,imode,ifre
   real(kind=8) t0,t1
   call cpu_time(t0)  
   
@@ -84,8 +92,8 @@ program lvcsh
   endif
   if(lholesh) then
     call set_H0_nk(nktotf,nhband,H0_h_nk,ihband_min,epcq_h)
-    !H0_h_nk = -1.0 * H0_h_nk
-    !epcq_h  = -1.0 * H0_h_nk
+    H0_h_nk = -1.0 * H0_h_nk
+    epcq_h  = -1.0 * epcq_h
   endif
   !get H0_e_nk(neband,nktotf,neband,nktotf),epcq_e(neband,neband,nktotf,nmodes,nqtotf)
   !get H0_h_nk(nhband,nktotf,nhband,nktotf),epcq_h(nhband,nhband,nktotf,nmodes,nqtotf)
@@ -121,7 +129,6 @@ program lvcsh
     !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband
     call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
     
-    
     if(lelecsh) then
       call init_stat_diabatic(init_ik,init_eband,ieband_min,neband,nktotf,c_e_nk)
       c_e = reshape(c_e_nk,(/nefre/))
@@ -144,18 +151,21 @@ program lvcsh
       P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
       call convert_diabatic_adiabatic(nhfre,P_h,c_h,w_h)
       call init_surface(nhfre,w_h,ihsurface)                
+      
+      !E_h=-E_h;epcq_h=-epcq_h
       call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,epcq_h,d_h)
+      
       E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
     endif
     
     write(stdout,"(/,5X,A)") "In adiabatic base,the elctron-hole state as follow:"
     if(lholesh) then
       write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
-      "Init_hsurface=",ihsurface+ihband_min*nktotf,"Initial hole Energy:",E_h(ihsurface)*ryd2eV," eV"             
+      "Init_hsurface=",ihsurface+(ihband_min-1)*nktotf,"Initial hole Energy:",E_h(ihsurface)*ryd2eV," eV"             
     endif
     if(lelecsh) then
       write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
-      "Init_esurface=",iesurface+ieband_min*nktotf,"Initial elec Energy:",E_e(iesurface)*ryd2eV," eV"       
+      "Init_esurface=",(iesurface+ieband_min-1)*nktotf,"Initial elec Energy:",E_e(iesurface)*ryd2eV," eV"       
     endif
     if(lelecsh .and. lholesh) then
       write(stdout,"(5X,A17,F12.7,A3)")  "elec-hole energy=",(E_e(iesurface)-E_h(ihsurface))*ryd2eV," eV"  
@@ -166,33 +176,44 @@ program lvcsh
     phQ0=phQ; phP0=phP    
 
 
+    phU = 0.5*(wf**2)*(phQ**2)
+    phK = 0.5*phP**2        
+    SUM_phK = SUM(phK)
+    SUM_phU = SUM(phU)
+    SUM_phE = SUM_phK+SUM_phU    
     if(lholesh) then
+      ihsurface_ = 1-ihsurface+(ihband_max)*nktotf
       if(lelecsh) then
+        iesurface_ = iesurface+(ieband_min-1)*nktotf
         write(stdout,"(/,A)") "   time(fs) rt(s) hsur esur&
         &  E_h(eV)  E_e(eV) E_eh(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)"         
+        write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") 0.00,0.00,&
+        ihsurface_,iesurface_,&
+        -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
+        SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV       
       else 
         write(stdout,"(/,A)") "   time(fs) rt(s) hsur&
         &  E_h(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)"       
+        write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") 0.00,0.00,&
+        ihsurface_,-e_h(ihsurface)*ryd2eV,&
+        SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV     
       endif
     else
       if(lelecsh) then
+        iesurface_ = iesurface+(ieband_min-1)*nktotf
         write(stdout,"(/,A)") "   time(fs) rt(s) esur&
-        &  E_e(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)"           
+        &  E_e(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)" 
+        write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") 0.00,0.00,&
+        iesurface_,e_e(iesurface)*ryd2eV,&
+        SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV     
       else
         write(stdout,"(/,A)") "Error!! lelecsh and lholesh must have one need to be set TRUE."
       endif
     endif
 
 
-    ph_U = 0.5*(wf**2)*(phQ**2)
-    ph_T = 0.5*phP**2        
-    SUM_ph_T = SUM(ph_T)
-    SUM_ph_U = SUM(ph_U)
-    SUM_ph_E = SUM_ph_T+SUM_ph_U    
-    write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") 0.00,0.00,&
-    ihsurface+ihband_min*nktotf,iesurface+ieband_min*nktotf,&
-    e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)-e_h(ihsurface))*ryd2eV,&
-    SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(E_e(iesurface)-E_h(ihsurface)+SUM_ph_E)*ryd2eV          
+
+     
     !=======================!
     != loop over snapshots =!
     !=======================!
@@ -213,8 +234,10 @@ program lvcsh
           dEa_dQ = dEa_dQ + dEa_dQ_e
         endif
         if(lholesh) then
+          !epcq_h = -epcq_h
           call get_dEa_dQ(nmodes,nqtotf,nhband,nktotf,wf,P0_h_nk,epcq_h,ihsurface,dEa_dQ_h)
-          dEa_dQ = dEa_dQ - dEa_dQ_h
+          !dEa_dQ_h = -dEa_dQ_h
+          dEa_dQ = dEa_dQ + dEa_dQ_h
         endif
         
         !use rk4 to calculate the dynamical of phonon normal modes
@@ -291,7 +314,6 @@ program lvcsh
             !hamiltonian in time t0
             call set_H_nk(nhband,nktotf,nmodes,nqtotf,phQ0,wf,epcq_h,H0_h_nk,H_h_nk)
             H_h = reshape(H_h_nk,(/ nhfre,nhfre /))
-            H_h = -1.0*H_h
             !update c_h to time t0+dt
             call rk4_electron_diabatic(nhfre,H_h,c_h,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,dt)        
           endif
@@ -305,12 +327,13 @@ program lvcsh
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
           ! update d_h in time t0+dt
-          call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_h,p_h,epcq_h,d_h)          
+          !!E_h=-E_h;epcq_h=-epcq_h
+          call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,p_h,epcq_h,d_h)          
 
 
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_h in time t0+dt, to convert c_h(t0+dt) to w_h(t0+dt) 
-            if(lholesh) call convert_diabatic_adiabatic(nhfre,p_h,c_h,w_h)
+            call convert_diabatic_adiabatic(nhfre,p_h,c_h,w_h)
           endif          
 
           ! use FSSH calculation hopping probability in adiabatic representation
@@ -329,11 +352,11 @@ program lvcsh
           !% change potential energy surface %!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!          
           if(methodsh == "FSSH") then
-            call nonadiabatic_transition_fssh(nhfre,nqtotf,nmodes,ihsurface,-1.0*E0_h,P0_h,d0_h,g_h,phP)
+            call nonadiabatic_transition_fssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)
           elseif( methodsh == "SC-FSSH") then
-            call nonadiabatic_transition_scfssh(nhfre,nqtotf,nmodes,ihsurface,-1.0*E0_h,P0_h,d0_h,g_h,phP)              
+            call nonadiabatic_transition_scfssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)              
           elseif(methodsh == "CC-FSSH") then
-            call nonadiabatic_transition_ccfssh(nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,hsurface_type,-1.0*E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
+            call nonadiabatic_transition_ccfssh(nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
           endif          
           
         endif 
@@ -349,9 +372,9 @@ program lvcsh
         endif
         if(lholesh) then
           call get_dEa2_dQ2(nmodes,nqtotf,nhfre,ihsurface,E0_h,d0_h,dEa_dQ_h)
-          dEa2_dQ2 = dEa2_dQ2 - dEa2_dQ2_h
+          dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_h
         endif        
-        call add_bath_effect(nmodes,nqtotf,gamma,temp,dEa2_dQ2,dt,phQ,phP)
+        !call add_bath_effect(nmodes,nqtotf,gamma,temp,dEa2_dQ2,dt,phQ,phP)
 
         !============================!
         != reset dynamical variable =!
@@ -369,34 +392,36 @@ program lvcsh
         time2   = io_time()
 
         
-        ph_U = 0.5*(wf**2)*(phQ**2)
-        ph_T = 0.5*phP**2        
-        SUM_ph_T = SUM(ph_T)
-        SUM_ph_U = SUM(ph_U)
-        SUM_ph_E = SUM_ph_T+SUM_ph_U
+        phU = 0.5*(wf**2)*(phQ**2)
+        phK = 0.5*phP**2        
+        SUM_phK = SUM(phK)
+        SUM_phU = SUM(phU)
+        SUM_phE = SUM_phK+SUM_phU
         
+        
+        time_ = ((isnap-1)*nstep+istep)*dt*ry_to_fs
         if(lholesh) then
+          ihsurface_ = 1-ihsurface+(ihband_max)*nktotf
           if(lelecsh) then
+            iesurface_ = iesurface+(ieband_min-1)*nktotf
             !write(stdout,"(/,A)") "isnap istep runtime iesur ihsur  &
             !&en_e(eV)  en_h(eV)  en_eh(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)" 
-            write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") ((isnap-1)*nstep+istep)*dt*ry_to_fs,(time2-time1),&
-            ihsurface+ihband_min*nktotf,iesurface+ieband_min*nktotf,&
-            e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)-e_h(ihsurface))*ryd2eV,&
-            SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(E_e(iesurface)-E_h(ihsurface)+SUM_ph_E)*ryd2eV            
+            write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") time_,(time2-time1),ihsurface_,iesurface_,&
+            -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
+            SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV            
           else 
             !write(stdout,"(/,A)") "isnap istep runtime ihsur  &
             !& en_h(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"  
-            write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") ((isnap-1)*nstep+istep)*dt*ry_to_fs,(time2-time1),ihsurface,&
-            e_h(ihsurface)*ryd2eV,&
-            SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(-e_h(ihsurface)+SUM_ph_E)*ryd2eV            
+            write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),ihsurface_,-e_h(ihsurface)*ryd2eV,&
+            SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV            
           endif
         else
           if(lelecsh) then
+            iesurface_ = iesurface+(ieband_min-1)*nktotf
             !write(stdout,"(/,A)") "isnap istep runtime iesur  &
             !&en_e(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"
-            write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") ((isnap-1)*nstep+istep)*dt*ry_to_fs,(time2-time1),iesurface,&
-            E_e(iesurface)*ryd2eV,(E_e(iesurface))*ryd2eV,&
-            SUM_ph_T*ryd2eV,SUM_ph_U*ryd2eV,SUM_ph_E*ryd2eV,(E_e(iesurface)+SUM_ph_E)*ryd2eV            
+            write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),iesurface_,E_e(iesurface)*ryd2eV,&
+            SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV            
           else
             write(stdout,"(/,A)") "Error!! lelecsh and lholesh must have one need to be set TRUE."
           endif
@@ -408,45 +433,62 @@ program lvcsh
       !=====================!
       != store information =!
       !=====================!    
-
-!      pes_elec(0,isnap,iaver)=E_e(isurface_e)
-!      pes_hole(0,isnap,iaver)=E_h(isurface_h)
-!      do ibasis=1,nbasis
-!        csit_elec(ibasis,isnap)=csit_elec(ibasis,isnap)+abs(c_e(ibasis))**2
-!        csit_hole(ibasis,isnap)=csit_hole(ibasis,isnap)+abs(c_h(ibasis))**2
-!        wsit_elec(ibasis,isnap)=wsit_elec(ibasis,isnap)+abs(w_e(ibasis))**2
-!        wsit_hole(ibasis,isnap)=wsit_hole(ibasis,isnap)+abs(w_h(ibasis))**2
-!        psit_elec(ibasis,isnap)=psit_elec(ibasis,isnap)+p_e(ibasis,isurface_e)**2
-!        psit_hole(ibasis,isnap)=psit_hole(ibasis,isnap)+p_h(ibasis,isurface_h)**2
-!        pes_elec(ibasis,isnap,iaver)=e_e(ibasis)
-!        pes_hole(ibasis,isnap,iaver)=e_h(ibasis)
-!      enddo      
-!      
-!      do ifreem =1 , nfreem
-!        !!平均核构型
-!        xsit(ifreem,isnap)=xsit(ifreem,isnap)+phQ(ifreem)
-!        !!平均动能
-!        ksit(ifreem,isnap)=ksit(ifreem,isnap)+0.5d0*phP(ifreem)**2
-!           
+      do iq=1,nqtotf
+        do imode=1,nmodes
+          phQsit(imode,iq,isnap) = phQsit(imode,iq,isnap)+phQ(imode,iq)
+          phPsit(imode,iq,isnap) = phPsit(imode,iq,isnap)+phP(imode,iq)
+          phKsit(imode,iq,isnap) = phKsit(imode,iq,isnap)+phK(imode,iq)
+          phUsit(imode,iq,isnap) = phUsit(imode,iq,isnap)+phU(imode,iq)
+        enddo
+      enddo
+      
+      if(lelecsh) then
+        pes_e(0,isnap,iaver) = E_e(iesurface)
+        do ifre = 1,nefre
+          csit_e(ifre,isnap) = csit_e(ifre,isnap)+abs(c_e(ifre))**2
+          wsit_e(ifre,isnap) = wsit_e(ifre,isnap)+abs(w_e(ifre))**2
+          psit_e(ifre,isnap) = psit_e(ifre,isnap)+P_e(ifre,iesurface)**2
+          pes_e( ifre,isnap,iaver) = E_e(ifre)
+        enddo
+      endif
+      
+      if(lholesh) then
+        pes_h(0,isnap,iaver) = -E_h(ihsurface)
+        do ifre = 1,nhfre
+          csit_h(ifre,isnap) = csit_h(ifre,isnap)+abs(c_h(ifre))**2
+          wsit_h(ifre,isnap) = wsit_h(ifre,isnap)+abs(w_h(ifre))**2
+          psit_h(ifre,isnap) = psit_h(ifre,isnap)+P_h(ifre,iesurface)**2
+          pes_h( ifre,isnap,iaver) = -1.0*E_h(ifre)
+        enddo
+      endif
+           
     enddo
   enddo
-!  
-!  csit_elec=csit_elec/naver
-!  csit_hole=csit_hole/naver
-!  wsit_elec=wsit_elec/naver
-!  wsit_hole=wsit_hole/naver
-!  psit_elec=psit_elec/naver
-!  psit_hole=psit_hole/naver
-!  xsit=xsit/naver*Au2ang*dsqrt(au2amu)
-!  ksit=ksit/naver*Au2eV
-!
+  
+  phQsit = phQsit / naver
+  phPsit = phPsit / naver
+  phKsit = phKsit / naver
+  phUsit = phUsit / naver
+  if(lelecsh) then
+    csit_e = csit_e /naver
+    wsit_e = wsit_e /naver
+    psit_e = psit_e /naver
+  endif
+  
+  if(lholesh) then
+    csit_h = csit_h /naver
+    wsit_h = wsit_h /naver
+    psit_h = psit_h /naver
+  endif
+
+
   !====================!
   != save information =!
   !====================!
 !  call saveresult()
-  !call cpu_time(t1)
+  call cpu_time(t1)
   !write(6,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'
-  !write(stdout,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'  
+  write(stdout,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'  
   
   close(stdout)
   

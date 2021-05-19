@@ -5,7 +5,7 @@ module surfacecom
   integer :: isnap,istep
   integer :: iesurface,ihsurface,iesurface_j,ihsurface_j,&
              esurface_type,hsurface_type
-  
+  integer :: iesurface_,ihsurface_
   integer         :: naver
   integer         :: nstep
   integer         :: nsnap
@@ -30,16 +30,21 @@ module surfacecom
   real(kind=dp),allocatable :: phQ(:,:),phP(:,:),phQ0(:,:),phP0(:,:)
   real(kind=dp),allocatable :: dEa_dQ(:,:),dEa_dQ_e(:,:),dEa_dQ_h(:,:)
   real(kind=dp),allocatable :: dEa2_dQ2(:,:),dEa2_dQ2_e(:,:),dEa2_dQ2_h(:,:)
+  
+  real(kind=dp),allocatable :: phQsit(:,:,:),phPsit(:,:,:),phKsit(:,:,:),phUsit(:,:,:)
   ! phonons normal mode 
   ! ref : <固体物理> (3-44) (3-45)
-  real(kind=dp),allocatable :: ph_U(:,:),ph_T(:,:)
-  real(kind=dp) :: SUM_ph_U,SUM_ph_T,SUM_ph_E
+  real(kind=dp),allocatable :: phU(:,:),phK(:,:)
+  real(kind=dp) :: SUM_phU,SUM_phK,SUM_phE
 
   !
   real(kind=dp),allocatable :: d_e(:,:,:,:) ,d_h(:,:,:,:) ,g_e(:) ,g_h(:)
   real(kind=dp),allocatable :: d0_e(:,:,:,:),d0_h(:,:,:,:),g1_e(:),g1_h(:)  
-  real(kind=dp),allocatable :: pes(:,:,:),inf(:,:,:),csit(:,:),wsit(:,:),&
-                               psit(:,:),xsit(:,:),ksit(:,:) 
+  real(kind=dp),allocatable :: pes_e(:,:,:),csit_e(:,:),wsit_e(:,:),&
+                               psit_e(:,:),& 
+                               pes_h(:,:,:),csit_h(:,:),wsit_h(:,:),&
+                               psit_h(:,:) 
+                               
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
   
   complex(kind=dpc),allocatable :: c_e(:),c_e_nk(:,:),w_e(:),w0_e(:)

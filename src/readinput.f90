@@ -159,7 +159,7 @@ module readinput
     !   set default values for variables in namelist
     methodsh   = "FSSH"
     lelecsh    = .false.
-    lholesh    = .true.
+    lholesh    = .false.
     lehpairsh  = .false.
     lreadscfout= .false.
     scfoutname = "scf.out"

@@ -21,6 +21,11 @@ module initialsh
         ieband_min = icbm
         ieband_max = ibndmax
       endif
+
+      if(ihband_min==0 .and. ihband_max==0) then
+        ihband_min = ibndmin
+        ihband_max = icbm - 1
+      endif
       
       write(stdout,"(/,5X,A)") "The electron are non-diabatic dynamica in valence band."
       WRITE(stdout,'(/14x,a,i5,2x,a,i5)') 'ieband_min = ', ieband_min, 'ieband_max = ', ieband_max
@@ -44,6 +49,11 @@ module initialsh
       if(ihband_min==0 .and. ihband_max==0) then
         ihband_min = ibndmin
         ihband_max = icbm - 1
+      endif
+
+      if(ieband_min==0 .and. ieband_max==0) then
+        ieband_min = icbm
+        ieband_max = ibndmax
       endif
 
       write(stdout,"(/,5X,A)") "The hole are non-diabatic dynamica in valance band."

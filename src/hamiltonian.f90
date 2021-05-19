@@ -25,6 +25,7 @@ module hamiltonian
                                E0_e(:),P0_e(:,:),P0_e_nk(:,:,:)
   real(kind=dp),allocatable :: E_h(:),P_h(:,:),P_h_nk(:,:,:),&
                                E0_h(:),P0_h(:,:),P0_h_nk(:,:,:)
+  real(kind=dp),allocatable :: E_h_(:)
   !哈密顿量的本征值与本征矢   
   integer :: ierr
   contains

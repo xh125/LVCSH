@@ -4,15 +4,19 @@ module surfacehopping
   use elph2,only  : wf,nktotf,nbndfst,ibndmin,ibndmax
   use hamiltonian,only : nphfre,neband,nhband,nefre,nhfre,&
                          E_e,P_e,P_e_nk,E0_e,P0_e,P0_e_nk,&
-                         E_h,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
+                         E_h,E_h_,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
   use parameters, only : nsnap,naver
   use surfacecom, only : iesurface,ihsurface,esurface_type,hsurface_type,&
-                         phQ,phP,phQ0,phP0,ph_T,ph_U,SUM_ph_U,SUM_ph_T,SUM_ph_E,&
+                         phQ,phP,phQ0,phP0,phK,phU,SUM_phU,SUM_phK,SUM_phE,&
+                         phQsit,phPsit,phKsit,phUsit,&
                          dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
                          d_e,g_e,g1_e,c_e_nk,w_e,w0_e,&
                          d0_e,&
                          d_h,g_h,g1_h,c_h_nk,w_h,w0_h,&
-                         d0_h
+                         d0_h,&
+                         pes_e,csit_e,wsit_e,psit_e,&
+                         pes_h,csit_h,wsit_h,psit_h
+                         
   use cc_fssh,only : S_ai_e,S_ai_h,S_bi_e,S_bi_h
                   
   implicit none
@@ -34,6 +38,11 @@ module surfacehopping
     if(ierr /=0) call errore('surfacehopping','Error allocating phQ',1)
     phQ = 0.0
     ! phonons normal mode coordinates
+    allocate(phQsit(nmodes,nq,nsnap))
+    allocate(phPsit(nmodes,nq,nsnap))
+    allocate(phKsit(nmodes,nq,nsnap))
+    allocate(phUsit(nmodes,nq,nsnap))
+    
     allocate(phP(nmodes,nq),stat=ierr)  ! v(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phP',1)    
     phP = 0.0
@@ -42,10 +51,10 @@ module surfacehopping
     if(ierr /=0) call errore('surfacehopping','Error allocating phQ0',1)
     allocate(phP0(nmodes,nq),stat=ierr)
     if(ierr /=0) call errore('surfacehopping','Error allocating phP0',1)    
-    allocate(ph_U(nmodes,nq),stat=ierr)
-    if(ierr /=0) call errore('surfacehopping','Error allocating ph_U',1)
-    allocate(ph_T(nmodes,nq),stat=ierr)
-    if(ierr /=0) call errore('surfacehopping','Error allocating ph_T',1)            
+    allocate(phU(nmodes,nq),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating phU',1)
+    allocate(phK(nmodes,nq),stat=ierr)
+    if(ierr /=0) call errore('surfacehopping','Error allocating phK',1)            
     allocate(dEa_dQ(nmodes,nq))
     allocate(dEa2_dQ2(nmodes,nq))
     
@@ -63,6 +72,11 @@ module surfacehopping
       
       allocate(c_e_nk(neband,nktotf),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)
+      
+      allocate(pes_e(0:nefre,1:nsnap,1:naver))
+      allocate(csit_e(nefre,nsnap))
+      allocate(wsit_e(nefre,nsnap))
+      allocate(psit_e(nefre,nsnap))
       
       if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
         allocate(cc0_e(nefre),stat=ierr)
@@ -118,6 +132,11 @@ module surfacehopping
       allocate(c_h_nk(nhband,nktotf),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h_nk',1)  
       
+      allocate(pes_h(0:nefre,1:nsnap,1:naver))
+      allocate(csit_h(nhfre,nsnap))
+      allocate(wsit_h(nhfre,nsnap))
+      allocate(psit_h(nhfre,nsnap))
+      
       if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
         allocate(cc0_h(nhfre),stat=ierr)
         if(ierr /=0) call errore('surfacehopping','Error allocating cc0_h',1)
@@ -145,14 +164,17 @@ module surfacehopping
       
       allocate(E0_h(1:nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating E0_h',1)
+      allocate(E_h_(1:nhfre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating E_h_',1)      
+      
       allocate(P0_h(nhfre,nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h',1)
       allocate(d0_h(nhfre,nhfre,nmodes,nq),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating d0_h',1)
       
       if(methodsh == "CC-FSSH") then
-        allocate(S_ai_h(nefre))
-        allocate(S_bi_h(nefre))
+        allocate(S_ai_h(nhfre))
+        allocate(S_bi_h(nhfre))
       endif
     endif
     
@@ -258,15 +280,14 @@ module surfacehopping
               ikq = kqmap(ik,iq)
               do iband1=1,nband
                 do iband2=1,nband
-                  dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq) + &
-                  p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)*epcq(iband1,iband2,ik,imode,iq)
+                  dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
+                  &p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)*epcq(iband1,iband2,ik,imode,iq)
                 enddo
               enddo
             enddo
             dd(ifre,jfre,imode,iq) = sqrt(2.0*wf(imode,iq)/nq)*dd(ifre,jfre,imode,iq)/(ee(jfre)-ee(ifre))
           enddo
         enddo
-        !dd(iefre,jefre,:,:) = dd(iefre,jefre,:,:)/(ee(jefre)-ee(iefre))
         dd(jfre,ifre,:,:) = - dd(ifre,jfre,:,:)
       enddo
     enddo    
