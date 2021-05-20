@@ -42,6 +42,10 @@ module surfacehopping
     allocate(phPsit(nmodes,nq,nsnap))
     allocate(phKsit(nmodes,nq,nsnap))
     allocate(phUsit(nmodes,nq,nsnap))
+    phQsit = 0.0d0
+    phPsit = 0.0d0
+    phKsit = 0.0d0
+    phUsit = 0.0d0
     
     allocate(phP(nmodes,nq),stat=ierr)  ! v(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phP',1)    
@@ -77,6 +81,10 @@ module surfacehopping
       allocate(csit_e(nefre,nsnap))
       allocate(wsit_e(nefre,nsnap))
       allocate(psit_e(nefre,nsnap))
+      pes_e  = 0.0d0
+      csit_e = 0.0d0
+      wsit_e = 0.0d0
+      psit_e = 0.0d0
       
       if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
         allocate(cc0_e(nefre),stat=ierr)
@@ -136,6 +144,10 @@ module surfacehopping
       allocate(csit_h(nhfre,nsnap))
       allocate(wsit_h(nhfre,nsnap))
       allocate(psit_h(nhfre,nsnap))
+      pes_h  = 0.0
+      csit_h = 0.0
+      wsit_h = 0.0
+      psit_h = 0.0
       
       if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
         allocate(cc0_h(nhfre),stat=ierr)

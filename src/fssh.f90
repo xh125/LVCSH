@@ -36,7 +36,6 @@ module fssh
             enddo
           enddo
           detaE = EE(isurface)-EE(ifre)
-          !if(.not. lelec) detaE = -1.0*detaE  ! 针对空穴修改能量
           flagd = 1.0+2.0*detaE*sumdd/sumvd**2  
           
           if(flagd > 0.0) then

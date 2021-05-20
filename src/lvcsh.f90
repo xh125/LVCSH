@@ -66,8 +66,8 @@ program lvcsh
   use surfacecom,only     : lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,&
                             pes_e,pes_h
   use elph2,only          : wf,nqtotf,nktotf,nbndfst
-  use disp,only           : ph_configuration
   use modes,only          : nmodes
+  use date_and_times,only : get_date_and_time
   use io      ,only       : stdout,io_time,time1,time2,time_
   use dynamics,only       : get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,ADD_BATH_EFFECT
   !use dynamica
@@ -76,7 +76,9 @@ program lvcsh
   != preparation =!
   !===============!
   integer :: iq,imode,ifre
-  real(kind=8) t0,t1
+  real(kind=8) :: t0,t1
+  character(len=9) :: cdate,ctime
+  
   call cpu_time(t0)  
   
   call environment_start( 'LVCSH' )
@@ -151,24 +153,24 @@ program lvcsh
       P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
       call convert_diabatic_adiabatic(nhfre,P_h,c_h,w_h)
       call init_surface(nhfre,w_h,ihsurface)                
-      
-      !E_h=-E_h;epcq_h=-epcq_h
       call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,epcq_h,d_h)
-      
       E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
     endif
     
+    
     write(stdout,"(/,5X,A)") "In adiabatic base,the elctron-hole state as follow:"
     if(lholesh) then
+      ihsurface_ = 1-ihsurface + ihband_max*nktotf
       write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
-      "Init_hsurface=",ihsurface+(ihband_min-1)*nktotf,"Initial hole Energy:",E_h(ihsurface)*ryd2eV," eV"             
+      "Init_hsurface=",ihsurface_,"Initial hole Energy:",-E_h(ihsurface)*ryd2eV," eV"             
     endif
     if(lelecsh) then
+      iesurface_ = iesurface+(ieband_min-1)*nktotf
       write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
-      "Init_esurface=",(iesurface+ieband_min-1)*nktotf,"Initial elec Energy:",E_e(iesurface)*ryd2eV," eV"       
+      "Init_esurface=",iesurface_,"Initial elec Energy:",E_e(iesurface)*ryd2eV," eV"       
     endif
     if(lelecsh .and. lholesh) then
-      write(stdout,"(5X,A17,F12.7,A3)")  "elec-hole energy=",(E_e(iesurface)-E_h(ihsurface))*ryd2eV," eV"  
+      write(stdout,"(5X,A17,F12.7,A3)")  "elec-hole energy=",(E_e(iesurface)+E_h(ihsurface))*ryd2eV," eV"  
     endif
     
     
@@ -182,7 +184,7 @@ program lvcsh
     SUM_phU = SUM(phU)
     SUM_phE = SUM_phK+SUM_phU    
     if(lholesh) then
-      ihsurface_ = 1-ihsurface+(ihband_max)*nktotf
+      ihsurface_ = 1-ihsurface + ihband_max*nktotf
       if(lelecsh) then
         iesurface_ = iesurface+(ieband_min-1)*nktotf
         write(stdout,"(/,A)") "   time(fs) rt(s) hsur esur&
@@ -486,6 +488,11 @@ program lvcsh
   != save information =!
   !====================!
 !  call saveresult()
+  
+  call get_date_and_time(cdate,ctime)
+  write(stdout,"(/,1X,A77)") repeat("=",77)
+  write(stdout,'(1X,"Program LVCSH stoped on ",A9," at ",A9)') cdate,ctime  
+  
   call cpu_time(t1)
   !write(6,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'
   write(stdout,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'  
