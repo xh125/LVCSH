@@ -36,8 +36,9 @@ module surfacecom
   ! ref : <固体物理> (3-44) (3-45)
   real(kind=dp),allocatable :: phU(:,:),phK(:,:)
   real(kind=dp) :: SUM_phU,SUM_phK,SUM_phE
-
-  !
+  real(kind=dp) :: E_ph_CA_sum,E_ph_QA_sum
+  ! averager crystal energy and temperature T,in classical and quantum . 
+  
   real(kind=dp),allocatable :: d_e(:,:,:,:) ,d_h(:,:,:,:) ,g_e(:) ,g_h(:)
   real(kind=dp),allocatable :: d0_e(:,:,:,:),d0_h(:,:,:,:),g1_e(:),g1_h(:)  
   real(kind=dp),allocatable :: pes_e(:,:,:),csit_e(:,:),wsit_e(:,:),&

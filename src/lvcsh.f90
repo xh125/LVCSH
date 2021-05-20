@@ -64,22 +64,23 @@ program lvcsh
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability
   use surfacecom,only     : lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,&
-                            pes_e,pes_h
+                            pes_e,pes_h,E_ph_CA_sum,E_ph_QA_sum
   use elph2,only          : wf,nqtotf,nktotf,nbndfst
   use modes,only          : nmodes
   use date_and_times,only : get_date_and_time
   use io      ,only       : stdout,io_time,time1,time2,time_
   use dynamics,only       : get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,ADD_BATH_EFFECT
-  !use dynamica
+  
   implicit none
+  
   !===============!
   != preparation =!
   !===============!
   integer :: iq,imode,ifre
   real(kind=8) :: t0,t1
   character(len=9) :: cdate,ctime
-  
   call cpu_time(t0)  
+
   
   call environment_start( 'LVCSH' )
   call get_inputfile(inputfilename)
@@ -104,10 +105,16 @@ program lvcsh
   
   if(llaser) then
     call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
+    !get W_cvk(icband,ivband,ik)
+    
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    !% Write laser information            %!
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     write(stdout,"(/,5X,A)") "In the laser obsorbtion,the Pump laser as follow:"
     write(stdout,"(5X,A22,F12.7,A4)")  "Laser centred energy :",w_laser*ryd2eV," eV."
     write(stdout,"(5X,A38,F12.7,A4)")  "The full width at half-maximum:fwhm = ",fwhm*ry_to_fs," fs."
-    !get W_cvk(icband,ivband,ik)
+    
+    
   endif
   
   call init_random_seed()
@@ -122,11 +129,18 @@ program lvcsh
     
     !==================!
     != initialization =!
-    !==================! 
+    !==================!
     
     !!Get the initial normal mode coordinate phQ and versity phP
     call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,phQ,phP)
     !应该先跑平衡后，再做电子空穴动力学计算
+    
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    !% Write phonon energy information         %!
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    write(stdout,"(/5X,A51,F11.5,A2)") "The temperature of the non-adiabatic dynamica is : ",temp," K"
+    write(stdout,"(5X,A40,F11.5,A4)") "The average energy of phonon: <SUM_phE>=",E_ph_QA_sum*ryd2eV," eV."
+    
     
     !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband
     call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
@@ -157,7 +171,12 @@ program lvcsh
       E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
     endif
     
+    phQ0=phQ; phP0=phP 
     
+    
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    !% Write the elctron-hole information in adiabatic base   %!
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     write(stdout,"(/,5X,A)") "In adiabatic base,the elctron-hole state as follow:"
     if(lholesh) then
       ihsurface_ = 1-ihsurface + ihband_max*nktotf
@@ -174,15 +193,19 @@ program lvcsh
     endif
     
     
-    
-    phQ0=phQ; phP0=phP    
-
-
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    !% calculate phonon energy                                %!
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     phU = 0.5*(wf**2)*(phQ**2)
     phK = 0.5*phP**2        
     SUM_phK = SUM(phK)
     SUM_phU = SUM(phU)
-    SUM_phE = SUM_phK+SUM_phU    
+    SUM_phE = SUM_phK+SUM_phU
+    
+    
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    !% Write initial non-adiabatic dynamica information        %!
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     if(lholesh) then
       ihsurface_ = 1-ihsurface + ihband_max*nktotf
       if(lelecsh) then
@@ -214,8 +237,6 @@ program lvcsh
     endif
 
 
-
-     
     !=======================!
     != loop over snapshots =!
     !=======================!
@@ -225,10 +246,9 @@ program lvcsh
         
         time1   = io_time()  
         
-        !==============================!
-        != update phQ,phP             =!
-        !==============================!
-        
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+        !% calculate dEa_dQ                     %!
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
         dEa_dQ = 0.0
         !dEa_dQ in time t0
         if(lelecsh) then
@@ -236,23 +256,23 @@ program lvcsh
           dEa_dQ = dEa_dQ + dEa_dQ_e
         endif
         if(lholesh) then
-          !epcq_h = -epcq_h
           call get_dEa_dQ(nmodes,nqtotf,nhband,nktotf,wf,P0_h_nk,epcq_h,ihsurface,dEa_dQ_h)
-          !dEa_dQ_h = -dEa_dQ_h
           dEa_dQ = dEa_dQ + dEa_dQ_h
         endif
         
+        
+        !==============================!
+        != update phQ,phP             =!
+        !==============================!        
         !use rk4 to calculate the dynamical of phonon normal modes
         !update phQ,phP to time t0+dt
         call rk4_nuclei(nmodes,nqtotf,dEa_dQ,gamma,wf,phQ,phP,dt)
         
-
-        if(lelecsh) then
         
-          !==============================!
-          != update c,e,p,d,w,g         =!
-          !==============================!
-          
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+        !% update c,e,p,d,w,g and change potential energy surface        %!
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+        if(lelecsh) then
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             !electron wave function is propagated in diabatic representation
             !hamiltonian in time t0
@@ -281,7 +301,6 @@ program lvcsh
           ! use FSSH calculation hopping probability in adiabatic representation,get g_e,g1_e
           call calculate_hopping_probability(iesurface,nefre,nmodes,nqtotf,w0_e,phP0,d0_e,dt,g_e,g1_e)          
           
-          
           !dealwith trilvial crossing,fixed ge
           if(methodsh == "SC-FSSH") then
             !use SC-FSSH method to fixed ge
@@ -300,17 +319,12 @@ program lvcsh
             call nonadiabatic_transition_scfssh(nefre,nqtotf,nmodes,iesurface,-E0_e,P0_e,d0_e,g_e,phP)              
           elseif(methodsh == "CC-FSSH") then
             call nonadiabatic_transition_ccfssh(nefre,nqtotf,nmodes,iesurface,iesurface_j,&
-                                                esurface_type,E0_e,P0_e,P_e,d0_e,S_bi_e,g_e,phP)
+                                                &esurface_type,E0_e,P0_e,P_e,d0_e,S_bi_e,g_e,phP)
           endif
           
         endif
         
-        if(lholesh) then
-
-          !==============================!
-          != update c,e,p,d,w,g         =!
-          !==============================!        
-        
+        if(lholesh) then    
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             !hole wave function is propagated in diabatic representation
             !hamiltonian in time t0
@@ -329,9 +343,7 @@ program lvcsh
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
           ! update d_h in time t0+dt
-          !!E_h=-E_h;epcq_h=-epcq_h
           call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,p_h,epcq_h,d_h)          
-
 
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_h in time t0+dt, to convert c_h(t0+dt) to w_h(t0+dt) 
@@ -358,14 +370,16 @@ program lvcsh
           elseif( methodsh == "SC-FSSH") then
             call nonadiabatic_transition_scfssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)              
           elseif(methodsh == "CC-FSSH") then
-            call nonadiabatic_transition_ccfssh(nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
+            call nonadiabatic_transition_ccfssh(nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,&
+                                          &hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
           endif          
           
         endif 
    
-        !===================!
-        != add bath effect =!
-        !===================! 
+   
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+        !% calculate dEa2_dQ2                   %!
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
         dEa2_dQ2 = 0.0
         !dEa2_dQ2 in time t0
         if(lelecsh) then
@@ -375,32 +389,36 @@ program lvcsh
         if(lholesh) then
           call get_dEa2_dQ2(nmodes,nqtotf,nhfre,ihsurface,E0_h,d0_h,dEa_dQ_h)
           dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_h
-        endif        
+        endif
+
+
+        !===================!
+        != add bath effect =!
+        !===================!         
         !call add_bath_effect(nmodes,nqtotf,gamma,temp,dEa2_dQ2,dt,phQ,phP)
+
 
         !============================!
         != reset dynamical variable =!
         !============================!
-
         phQ0=phQ; phP0=phP
-        
-        
         if(lelecsh) then
           E0_e = E_e;P0_e = P_e;P0_e_nk = P_e_nk; d0_e = d_e;w0_e = w_e
         endif
         if(lholesh) then
           E0_h = E_h;P0_h = P_h;P0_h_nk = P_h_nk; d0_h = d_h;w0_h = w_h
         endif
-        time2   = io_time()
-
         
+        
+        time2   = io_time()
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+        !% Write non-adiabatic dynamica energy information every step       %!
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
         phU = 0.5*(wf**2)*(phQ**2)
         phK = 0.5*phP**2        
         SUM_phK = SUM(phK)
         SUM_phU = SUM(phU)
-        SUM_phE = SUM_phK+SUM_phU
-        
-        
+        SUM_phE = SUM_phK+SUM_phU        
         time_ = ((isnap-1)*nstep+istep)*dt*ry_to_fs
         if(lholesh) then
           ihsurface_ = 1-ihsurface+(ihband_max)*nktotf
@@ -428,8 +446,8 @@ program lvcsh
             write(stdout,"(/,A)") "Error!! lelecsh and lholesh must have one need to be set TRUE."
           endif
         endif        
-        
-
+      
+      
       enddo
       
       !=====================!
@@ -463,7 +481,8 @@ program lvcsh
           pes_h( ifre,isnap,iaver) = -1.0*E_h(ifre)
         enddo
       endif
-           
+      
+      
     enddo
   enddo
   
@@ -487,8 +506,11 @@ program lvcsh
   !====================!
   != save information =!
   !====================!
-!  call saveresult()
   
+  
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !% Write End information          %!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   call get_date_and_time(cdate,ctime)
   write(stdout,"(/,1X,A77)") repeat("=",77)
   write(stdout,'(1X,"Program LVCSH stoped on ",A9," at ",A9)') cdate,ctime  
@@ -500,6 +522,7 @@ program lvcsh
   close(stdout)
   
   stop
+  
   
 end program lvcsh
 

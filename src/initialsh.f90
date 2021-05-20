@@ -121,7 +121,7 @@ module initialsh
                enddo
       enddo outter
       obsorbEn = (etf(init_eband,2*init_ik-1)-etf(init_hband,2*init_ik-1))*ryd2eV
-      write(stdout,"(5X,A)") "Initial eh_KSstate:  "
+      write(stdout,"(/5X,A)") "Initial eh_KSstate:  "
       write(stdout,"(5X,A3,I5)") "ik=",init_ik
       write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_hband=",init_hband," Initial hole Energy:",&
                                                 etf(init_hband,2*init_ik-1)*ryd2eV," eV"
@@ -202,7 +202,7 @@ module initialsh
   subroutine init_normalmode_coordinate_velocity(nmodes,nq,w,T,ph_Q,ph_P)
     use kinds,only   : dp
     use randoms,only : gaussian_random_number
-
+    use surfacecom,only: E_ph_CA_sum,E_ph_QA_sum
     implicit none
     integer,intent(in)       :: nmodes,nq
     real(kind=dp),intent(in) :: T
@@ -213,11 +213,17 @@ module initialsh
     real(kind=dp) :: E_ph_class,E_ph_quantum
     integer :: iq,imode
     
+    
+    E_ph_CA_sum   = 0.0
+    E_ph_QA_sum   = 0.0
     do iq=1,nq
       do imode=1,nmodes
         womiga = w(imode,iq)
         E_ph_class   = K_B_Ryd*T  ! IN class 
+        E_ph_CA_sum  = E_ph_CA_sum + E_ph_class
         E_ph_quantum = (bolziman(womiga,T)+0.5)*womiga ! In Quantum
+        E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum
+        
         ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)
         ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))      
         

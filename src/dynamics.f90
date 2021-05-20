@@ -200,8 +200,7 @@ module dynamics
     real(kind=dp), intent(inout) :: XX(nmodes,nq),VV(nmodes,nq)
     
     integer :: imode,iq
-    real(kind=dp) :: SIGMAR,R1,R2,R3,R4,Z1,Z2,Z3,Z4!,GAUSSIAN_RANDOM_NUMBER_FAST
-    !EXTERNAL GAUSSIAN_RANDOM_NUMBER_FAST
+    real(kind=dp) :: SIGMAR,R1,R2,R3,R4,Z1,Z2,Z3,Z4
     real(kind=dp) :: wwf2
     
     SIGMAR=DSQRT(2.0*gamma*KB*TEMP*TT)
@@ -213,7 +212,7 @@ module dynamics
         R2=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
         R3=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
         R4=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
-        Z1=R1    ! V
+        Z1=R1    ! V=phP
         Z2=TT*(R1/2.0D0+R2/SQRT3/2.0D0)  !V*T
         Z3=TT**2*(R1/6.0D0+R2*SQRT3/12.0D0+R3/SQRT5/12.0D0) ! V*T**2
         Z4=TT**3*(R1/24.0D0+R2*SQRT3/40.0D0+R3/SQRT5/24.0D0+R4/SQRT7/120.0D0) ! V*T**3
