@@ -62,9 +62,10 @@ module sc_fssh
     
   end subroutine get_G_SC_FSSH  
   
-  subroutine nonadiabatic_transition_scfssh(nfre,nq,nmodes,isurface,EE,P,DD,GG,VV)
+  subroutine nonadiabatic_transition_scfssh(lfeedback,nfre,nq,nmodes,isurface,EE,P,DD,GG,VV)
     use randoms,only :more_random
     implicit none
+    logical , intent(in)     :: lfeedback
     integer , intent(in)     :: nfre,nq,nmodes
     integer , intent(inout)  :: isurface
     real(kind=dp),intent(in) :: EE(nfre)
@@ -96,13 +97,13 @@ module sc_fssh
           enddo
           detaE = EE(isurface)-EE(ifre)
           !if(.not. lelec) detaE = -1.0*detaE  ! 针对空穴修改能量
-          flagd = 1.0+2.0*detaE*sumdd/sumvd**2  
+          flagd = 1.0+2.0*detaE*sumdd/(sumvd**2)  
           
           if(flagd > 0.0) then
             flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
             do iq=1,nq
               do imode=1,nmodes
-                VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
+                if(lfeedback) VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
               enddo
             enddo
             isurface = ifre          

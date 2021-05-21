@@ -75,9 +75,11 @@ module cc_fssh
     !    
   end subroutine get_G_CC_FSSH  
   
-  subroutine nonadiabatic_transition_ccfssh(nfre,nmodes,nq,isurface,isurface_j,surface_type,EE,P,P0,DD,S_bi,GG,VV)
+  subroutine nonadiabatic_transition_ccfssh(lfeedback,nfre,nmodes,nq,&
+              &isurface,isurface_j,surface_type,EE,P,P0,DD,S_bi,GG,VV)
     use randoms,only :more_random
     implicit none
+    logical , intent(in)     :: lfeedback
     integer , intent(in)     :: nfre,nmodes,nq
     integer , intent(inout)  :: isurface
     integer , intent(in)     :: isurface_j
@@ -98,7 +100,7 @@ module cc_fssh
     call random_number(flagr)
     sumgg = 0.0d0
     do ifre=1,nfre
-      if(ifre /= isurface) then
+      if(ifre /= isurface_a) then
         sumgg = sumgg + GG(ifre)
         if(flagr < sumgg) then
           isurface_b = ifre
@@ -136,8 +138,7 @@ module cc_fssh
               sumdd = sumdd + DD(isurface_a,ifre,imode,iq)**2           ! B
             enddo
           enddo
-          detaE = EE(isurface_a)-EE(ifre)
-          !if(.not. lelec) detaE = -1.0*detaE  ! 针对空穴修改能量
+          detaE = EE(isurface_a)-EE(ifre) 
           flagd = 1.0+2.0*detaE*sumdd/sumvd**2  
           
           if(isurface_j == isurface_a) then ! type (1) (3)
@@ -145,7 +146,7 @@ module cc_fssh
               flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
               do iq=1,nq
                 do imode=1,nmodes
-                  VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
+                  if(lfeedback) VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
                 enddo
               enddo
               isurface = isurface_k
@@ -158,7 +159,7 @@ module cc_fssh
                 flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
                 do iq=1,nq
                   do imode=1,nmodes
-                    VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
+                    if(lfeedback) VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
                   enddo
                 enddo
                 isurface = isurface_k

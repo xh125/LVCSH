@@ -32,8 +32,7 @@ program lvcsh
   use readphout,only      : readph_out
   use readepw,only        : readepwout
   use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,inputfilename,&
-                            nsnap,nstep,dt,gamma,temp,init_ik,init_eband,init_hband,&
-                            llaser,methodsh
+                            llaser,init_ik,init_eband,init_hband                        
   use hamiltonian,only    : nefre,neband,H_e,H_e_nk,E_e,P_e,P_e_nk,P0_e_nk,epcq_e,H0_e_nk,E0_e,P0_e,&
                             nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,epcq_h,H0_h_nk,E0_h,P0_h,&
                             E_h_,&
@@ -44,7 +43,8 @@ program lvcsh
   use getwcvk,only        : get_Wcvk
   use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_eh_KSstat,&
                             init_stat_diabatic,init_surface
-  use surfacecom,only     : iaver,isnap,istep,naver,iesurface,ihsurface,iesurface_j,ihsurface_j,&
+  use surfacecom,only     : methodsh,lfeedback,naver,nsnap,nstep,dt,gamma,temp,iaver,isnap,istep,&
+                            iesurface,ihsurface,iesurface_j,ihsurface_j,&
                             iesurface_,ihsurface_,&
                             c_e,c_e_nk,d_e,d0_e,&
                             c_h,c_h_nk,d_h,d0_h,&
@@ -266,6 +266,7 @@ program lvcsh
         !==============================!        
         !use rk4 to calculate the dynamical of phonon normal modes
         !update phQ,phP to time t0+dt
+        !可能有错误
         call rk4_nuclei(nmodes,nqtotf,dEa_dQ,gamma,wf,phQ,phP,dt)
         
         
@@ -314,11 +315,11 @@ program lvcsh
           !% change potential energy surface %!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!          
           if(methodsh == "FSSH") then
-            call nonadiabatic_transition_fssh(nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)
+            call nonadiabatic_transition_fssh(lfeedback,nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)
           elseif( methodsh == "SC-FSSH") then
-            call nonadiabatic_transition_scfssh(nefre,nqtotf,nmodes,iesurface,-E0_e,P0_e,d0_e,g_e,phP)              
+            call nonadiabatic_transition_scfssh(lfeedback,nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)              
           elseif(methodsh == "CC-FSSH") then
-            call nonadiabatic_transition_ccfssh(nefre,nqtotf,nmodes,iesurface,iesurface_j,&
+            call nonadiabatic_transition_ccfssh(lfeedback,nefre,nqtotf,nmodes,iesurface,iesurface_j,&
                                                 &esurface_type,E0_e,P0_e,P_e,d0_e,S_bi_e,g_e,phP)
           endif
           
@@ -366,11 +367,11 @@ program lvcsh
           !% change potential energy surface %!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!          
           if(methodsh == "FSSH") then
-            call nonadiabatic_transition_fssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)
+            call nonadiabatic_transition_fssh(lfeedback,nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)
           elseif( methodsh == "SC-FSSH") then
-            call nonadiabatic_transition_scfssh(nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)              
+            call nonadiabatic_transition_scfssh(lfeedback,nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)              
           elseif(methodsh == "CC-FSSH") then
-            call nonadiabatic_transition_ccfssh(nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,&
+            call nonadiabatic_transition_ccfssh(lfeedback,nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,&
                                           &hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
           endif          
           
@@ -395,7 +396,7 @@ program lvcsh
         !===================!
         != add bath effect =!
         !===================!         
-        !call add_bath_effect(nmodes,nqtotf,gamma,temp,dEa2_dQ2,dt,phQ,phP)
+        call add_bath_effect(nmodes,nqtotf,gamma,temp,dEa2_dQ2,dt,phQ,phP)
 
 
         !============================!

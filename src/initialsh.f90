@@ -226,6 +226,7 @@ module initialsh
         
         ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)
         ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))      
+ 
         
         if(iq==1 .and. imode <=3) then
           ph_Q(imode,iq)=0.0

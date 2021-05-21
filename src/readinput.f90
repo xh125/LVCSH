@@ -3,10 +3,10 @@ module readinput
   use constants, only : maxlen
   use parameters,only : &
                         lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
-                        naver,nstep,nsnap,gamma,dt,temp,&
+                        methodsh,lfeedback,naver,nstep,nsnap,gamma,dt,temp,&
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
                         llaser,efield,efield_cart,w_laser,fwhm,nelec,&
-                        lsetthreads,mkl_threads,methodsh,lelecsh,lholesh,lehpairsh,&
+                        lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
                         ieband_min,ieband_max,ihband_min,ihband_max
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
@@ -158,6 +158,7 @@ module readinput
     
     !   set default values for variables in namelist
     methodsh   = "FSSH"
+    lfeedback  = .false.
     lelecsh    = .false.
     lholesh    = .false.
     lehpairsh  = .false.

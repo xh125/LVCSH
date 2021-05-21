@@ -12,6 +12,7 @@ module surfacecom
   real(kind=dp)   :: dt
   real(kind=dp)   :: temp
   real(kind=dp)   :: gamma    ! gamma is the friction coefficient,dimention is 1/t(ps-1)  THZ  
+  logical :: lfeedback
   
   logical :: lelecsh
   logical :: lholesh
