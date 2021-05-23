@@ -3,7 +3,8 @@ module readinput
   use constants, only : maxlen
   use parameters,only : &
                         lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
-                        methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,gamma,ld_fric,dt,temp,&
+                        methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,pre_dt,&
+                        gamma,ld_fric,dt,temp,l_ph_quantum,&
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
                         llaser,efield,efield_cart,w_laser,fwhm,nelec,&
                         lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
@@ -157,44 +158,46 @@ module readinput
     rewind(incar_unit)
     
     !   set default values for variables in namelist
-    methodsh   = "FSSH"
-    lfeedback  = .true.
-    lelecsh    = .false.
-    lholesh    = .false.
-    lehpairsh  = .false.
-    lreadscfout= .false.
-    scfoutname = "scf.out"
-    lreadphout = .false.
-    phoutname  = "ph.out"
-    lreadfildyn= .false.
-    fildyn     = "prefix.dyn"
-    epwoutname = "epw.out"
-    nelec      = 0.0    !!! number of electrons
-    ieband_min = 0
-    ieband_max = 0
-    ihband_min = 0
-    ihband_max = 0
-    naver      = 10
-    nstep      = 10
-    nsnap      = 100
-    pre_nstep  = 0
-    gamma      = 0.0    ! 0.1   ! the friction coefficient 1/ps
-    ld_fric    = 0.001
-    dt         = 0.5    ! fs
-    temp       = 300.0  ! K
-    init_kx    = 0.0    ! in unit of b_x
-    init_ky    = 0.0
-    init_kz    = 0.0
-    init_eband = 1      ! the initial electron band
-    init_hband = 1      ! the initial hole band
-    llaser     = .true.
-    efield     = 1.0    ! V/m
-    efield_cart= (/ 0.0,0.0,1.0 /)  ! V/m
-    w_laser    = 1.0    ! eV
-    fwhm       = 10     ! fs
-
-    lsetthreads= .FALSE.
-    mkl_threads= 4    
+    methodsh      = "FSSH"
+    lfeedback     = .true.
+    lelecsh       = .false.
+    lholesh       = .false.
+    lehpairsh     = .false.
+    lreadscfout   = .false.
+    scfoutname    = "scf.out"
+    lreadphout    = .false.
+    phoutname     = "ph.out"
+    lreadfildyn   = .false.
+    fildyn        = "prefix.dyn"
+    epwoutname    = "epw.out"
+    nelec         = 0.0    !!! number of electrons
+    ieband_min    = 0
+    ieband_max    = 0
+    ihband_min    = 0
+    ihband_max    = 0
+    naver         = 10
+    nstep         = 10
+    nsnap         = 100
+    pre_nstep     = 0
+    pre_dt        = 1.0
+    gamma         = 0.0    ! 0.1   ! the friction coefficient 1/ps
+    ld_fric       = 0.001
+    l_ph_quantum  = .true.
+    dt            = 0.5    ! fs
+    temp          = 300.0  ! K
+    init_kx       = 0.0    ! in unit of b_x
+    init_ky       = 0.0
+    init_kz       = 0.0
+    init_eband    = 1      ! the initial electron band
+    init_hband    = 1      ! the initial hole band
+    llaser        = .true.
+    efield        = 1.0    ! V/m
+    efield_cart   = (/ 0.0,0.0,1.0 /)  ! V/m
+    w_laser       = 1.0    ! eV
+    fwhm          = 10     ! fs
+    
+    lsetthreads   = .FALSE.
+    mkl_threads   = 4    
     
     write(stdout,"(/,1X,A67)")   repeat("=",67)
     write(stdout,"(1X,10X,A)") "The namelist file as follows"
@@ -227,6 +230,7 @@ module readinput
     
     gamma = gamma / Ry_TO_THZ ! change gamma in unit of (THZ) to (Ryd)
     dt    = dt / Ry_TO_fs     ! in Rydberg atomic units(1 a.u.=4.8378 * 10^-17 s)
+    pre_dt= pre_dt/ Ry_TO_fs
     efield= efield / Ryd2V_m  ! (in Ry a.u.;1 a.u. = 36.3609*10^10 V/m)
     efield_cart = efield_cart / Ryd2V_m
     w_laser = w_laser /ryd2eV

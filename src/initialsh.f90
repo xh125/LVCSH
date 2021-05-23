@@ -199,14 +199,15 @@ module initialsh
   !ref : 1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
   !    :  (3.17) (3.20) (3.24)
   !ref : 2 HuangKun 《固体物理》 (3-44) (3-45)
-  subroutine init_normalmode_coordinate_velocity(nmodes,nq,w,T,ph_Q,ph_P)
+  subroutine init_normalmode_coordinate_velocity(nmodes,nq,w,T,l_ph_quantum,ph_Q,ph_P)
     use kinds,only   : dp
     use randoms,only : gaussian_random_number
     use surfacecom,only: E_ph_CA_sum,E_ph_QA_sum
     implicit none
     integer,intent(in)       :: nmodes,nq
     real(kind=dp),intent(in) :: T
-    real(kind=dp),intent(in) :: w(nmodes,nq)  
+    real(kind=dp),intent(in) :: w(nmodes,nq)
+    logical,intent(in)       :: l_ph_quantum
     real(kind=dp),intent(out):: ph_Q(nmodes,nq),ph_P(nmodes,nq)
     
     real(kind=dp) :: womiga
@@ -224,14 +225,18 @@ module initialsh
         E_ph_quantum = (bolziman(womiga,T)+0.5)*womiga ! In Quantum
         E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum
         
-        ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)
-        ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))      
- 
-        
-        if(iq==1 .and. imode <=3) then
-          ph_Q(imode,iq)=0.0
-          ph_P(imode,iq)=0.0
+        if(l_ph_quantum) then
+          ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)
+          ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))      
+        else
+          ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class)/womiga)
+          ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class))                
         endif
+        
+        !if(iq==1 .and. imode <=3) then
+        !  ph_Q(imode,iq)=0.0
+        !  ph_P(imode,iq)=0.0
+        !endif
         
       enddo
     enddo

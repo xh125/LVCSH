@@ -10,10 +10,12 @@ module surfacecom
   integer         :: nstep
   integer         :: nsnap
   integer         :: pre_nstep ! only phonons dynamica nstep before non-diabatic dynamica.
+  real(kind=dp)   :: pre_dt
   real(kind=dp)   :: dt
   real(kind=dp)   :: temp
   real(kind=dp)   :: gamma    ! gamma is the friction coefficient,dimention is 1/t(ps-1)  THZ  
   real(kind=dp)   :: ld_fric  ! 2pi*gamma_qv/w_qv
+  logical         :: l_ph_quantum
   logical :: lfeedback
   
   logical :: lelecsh

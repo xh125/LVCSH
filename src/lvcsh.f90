@@ -43,7 +43,7 @@ program lvcsh
   use getwcvk,only        : get_Wcvk
   use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_eh_KSstat,&
                             init_stat_diabatic,init_surface
-  use surfacecom,only     : methodsh,lfeedback,naver,nsnap,nstep,pre_nstep,dt,&
+  use surfacecom,only     : methodsh,lfeedback,naver,nsnap,nstep,dt,pre_nstep,pre_dt,l_ph_quantum,&
                             gamma,temp,iaver,isnap,istep,&
                             lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,&
                             iesurface,ihsurface,iesurface_j,ihsurface_j,&
@@ -78,8 +78,9 @@ program lvcsh
   != preparation =!
   !===============!
   integer :: iq,imode,ifre
-  real(kind=8) :: t0,t1
+  real(kind=8) :: t0,t1,time
   character(len=9) :: cdate,ctime
+  character(len=2) :: ctimeunit
   call cpu_time(t0)  
 
   
@@ -136,13 +137,20 @@ program lvcsh
     !==================!
     
     !!Get the initial normal mode coordinate phQ and versity phP
-    call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,phQ,phP)
+    call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,l_ph_quantum,phQ,phP)
     !应该先跑平衡后，再做电子空穴动力学计算   
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     !% Write phonon energy information         %!
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     write(stdout,"(/5X,A51,F11.5,A2)") "The temperature of the non-adiabatic dynamica is : ",temp," K"
-    write(stdout,"(5X,A40,F11.5,A4)") "The average energy of phonon: <SUM_phE>=",E_ph_QA_sum*ryd2eV," eV."
+    write(stdout,"(5X,A49,F11.5,A4)") "The average energy of phonon(quantum): <SUM_phE>=",E_ph_QA_sum*ryd2eV," eV."
+    write(stdout,"(5X,A49,F11.5,A4)") "The average energy of phonon(class)  : <SUM_phE>=",E_ph_CA_sum*ryd2eV," eV."
+    
+    if(l_ph_quantum) then
+      write(stdout,"(/5X,A)") "The phonon dynamica set as quantum"
+    else
+      write(stdout,"(/5X,A)") "The phonon dynamica set as classical."
+    endif
     write(stdout,"(5X,A38,F11.5,A4,A9,F11.5,A4)") &
     "The initial energy of phonon: SUM_phT=",0.5*SUM(phP**2)*ryd2eV," eV",&
     " SUM_phU=",0.5*SUM(wf**2*phQ**2)*ryd2eV," eV"
@@ -152,15 +160,26 @@ program lvcsh
     dEa_dQ = 0.0
     dEa2_dQ2 = 0.0
     do istep=1,pre_nstep
-      call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,dt)
-      call add_bath_effect(nmodes,nqtotf,ld_gamma,temp,dEa2_dQ2,dt,phQ,phP)
+      call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
+      call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
     enddo
 
-    write(stdout,"(5X,A23,F8.2,A24,F11.5,A4,A9,F11.5,A4)") &
-    "Energy of phonon after ", pre_nstep*dt*ry_to_fs," (fs) dynamica: SUM_phT=",0.5*SUM(phP**2)*ryd2eV," eV",&
+    time = pre_nstep*pre_dt*ry_to_fs
+    if(time<1.0E3) then
+      ctimeunit = 'fs'
+    elseif(time<1.0E6) then
+      time = time/1.0E3
+      ctimeunit = 'ps'
+    elseif(time<1.0E9) then
+      time = time/1.0E6
+      ctimeunit = 'ns'
+    endif
+    
+    write(stdout,"(5X,A23,F6.2,A2,A19,F11.5,A4,A9,F11.5,A4)") &
+    "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phT=",0.5*SUM(phP**2)*ryd2eV," eV",&
     " SUM_phU=",0.5*SUM(wf**2*phQ**2)*ryd2eV," eV"
-    write(stdout,"(5X,A23,F8.2,A24,F11.5,A4)") &
-    "Energy of phonon after ", pre_nstep*dt*ry_to_fs," (fs) dynamica: SUM_phE=",0.5*SUM(phP**2+wf**2*phQ**2)*ryd2eV," eV."    
+    write(stdout,"(5X,A23,F6.2,A2,A19,F11.5,A4)") &
+    "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phE=",0.5*SUM(phP**2+wf**2*phQ**2)*ryd2eV," eV."    
     
     !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband
     call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
@@ -416,7 +435,7 @@ program lvcsh
         !===================!
         != add bath effect =!
         !===================!         
-        call add_bath_effect(nmodes,nqtotf,ld_gamma,temp,dEa2_dQ2,dt,phQ,phP)
+        call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,dt,l_ph_quantum,phQ,phP)
 
 
         !============================!

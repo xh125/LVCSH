@@ -6,8 +6,8 @@ module parameters
   use environments,only : mkl_threads,lsetthreads
   use lasercom,only     : llaser,efield,efield_cart,w_laser,fwhm
   use klist,only        : nelec
-  use surfacecom,only   : methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,dt,&
-                          temp,gamma,ld_fric,&
+  use surfacecom,only   : methodsh,lfeedback,naver,nstep,nsnap,dt,pre_nstep,pre_dt,&
+                          temp,gamma,ld_fric,l_ph_quantum,&
                           lelecsh,lholesh,lehpairsh,&
                           ieband_min,ieband_max,ihband_min,ihband_max
   implicit none
@@ -27,7 +27,8 @@ module parameters
   
   namelist / shinput / &
            lreadscfout,lreadphout, scfoutname,phoutname,lreadfildyn,fildyn,epwoutname,&
-           methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,gamma,ld_fric,dt,temp,&
+           methodsh,lfeedback,naver,nstep,nsnap,&
+           pre_nstep,pre_dt,gamma,ld_fric,l_ph_quantum,dt,temp,&
            init_kx,init_ky,init_kz,init_hband,init_eband,&
            llaser,efield,efield_cart,w_laser,fwhm,&
            lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&

@@ -2,8 +2,8 @@ module dynamics
   use kinds,only : dp,dpc
   use io,only :
   use parameters,only : temp
-  use elph2,only          : nktotf,nqtotf,wf
-  use modes,only          : nmodes
+  !use elph2,only          : nktotf,nqtotf
+  !use modes,only          : nmodes
   use epwcom,only         : kqmap
   
   implicit none
@@ -46,7 +46,6 @@ module dynamics
           ikq = kqmap(ik,iq)
           do iband1=1,nband
             do iband2=1,nband
-              ! 电子能量随简正模的变化
               dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
               P_nk(iband1,ik,isurface)*P_nk(iband2,ikq,isurface)*epcq(iband1,iband2,ik,imode,iq)                 
             enddo
@@ -205,28 +204,37 @@ module dynamics
   != ref: notebook page 462 and 638              =!
   !===============================================!
   ! ref: 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
-  SUBROUTINE ADD_BATH_EFFECT(nmodes,nq,ld_gamma,temp,dEa2_dQ2,TT,XX,VV)
+  SUBROUTINE ADD_BATH_EFFECT(nmodes,nq,wf,ld_gamma,temp,dEa2_dQ2,TT,l_ph_quantum,XX,VV)
     use kinds,only : dp,dpc
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
     use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7
     implicit none
     
     integer , intent(in)      :: nq,nmodes
+    real(kind=dp), intent(in) :: wf(nmodes,nq)
     real(kind=dp), intent(in) :: ld_gamma(nmodes,nq)
     real(kind=dp), intent(in) :: temp
     real(kind=dp), intent(in) :: dEa2_dQ2(nmodes,nq)
     real(kind=dp), intent(in) :: tt
+    logical,intent(in)        :: l_ph_quantum
     real(kind=dp), intent(inout) :: XX(nmodes,nq),VV(nmodes,nq)
     
     integer :: imode,iq
     real(kind=dp) :: SIGMAR,R1,R2,R3,R4,Z1,Z2,Z3,Z4
     real(kind=dp) :: wwf2
-    real(kind=dp) :: gamma
+    real(kind=dp) :: gamma,womiga,aver_E_T
     
     DO iq=1,nq
       do imode=1,nmodes
+        womiga = wf(imode,iq)
         gamma = ld_gamma(imode,iq)
-        SIGMAR=DSQRT(2.0*gamma*KB*TEMP*TT)
+        if(l_ph_quantum) then
+          aver_E_T = (bolziman(womiga,temp)+0.5)*womiga
+          !aver_E_T = KB*TEMP
+        else
+          aver_E_T = KB*TEMP
+        endif
+        SIGMAR=DSQRT(2.0*gamma*aver_E_T*TT)
         wwf2 = wf(imode,iq)**2+dEa2_dQ2(imode,iq)
       
         R1=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
@@ -245,5 +253,20 @@ module dynamics
     
   ENDSUBROUTINE  
   
+  !ref : 1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
+  !    : (3.24)  
+  function bolziman(womiga,temp)
+    use io,only :stdout
+    use constants,only : K_B_Ryd
+    implicit none
+    real(kind=dp),intent(in)::womiga,temp
+    real(kind=dp) :: bolziman
+    if(womiga == 0) then
+      write(stdout,*) "womiga == 0,phonon error"
+      stop
+    endif
+    bolziman=1.0/(exp(womiga/(K_B_Ryd*temp))-1.0)
+    !<nb>=1/(exp{hbar*w/kbT}-1)
+  end function     
   
 end module dynamics
