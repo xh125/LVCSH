@@ -78,6 +78,8 @@ module cc_fssh
   subroutine nonadiabatic_transition_ccfssh(lfeedback,nfre,nmodes,nq,&
               &isurface,isurface_j,surface_type,EE,P,P0,DD,S_bi,GG,VV)
     use randoms,only :more_random
+    use constants,only : ryd2ev,eps10
+    use io,only : stdout 
     implicit none
     logical , intent(in)     :: lfeedback
     integer , intent(in)     :: nfre,nmodes,nq
@@ -94,6 +96,9 @@ module cc_fssh
     real(kind=dp) :: sumvd,sumdd,sumgg,flagr,flagd,detaE
     integer :: ifre,jfre,imode,iq,isurface_a,isurface_b,isurface_k
     real(kind=dp) :: max_Sbi(1)
+    real(kind=dp) :: SUM_E0,SUM_E1,dSUM_E
+    
+    SUM_E0 = 0.5*SUM(VV**2)+EE(isurface)
     
     isurface_a = isurface
     call more_random()
@@ -150,6 +155,17 @@ module cc_fssh
                 enddo
               enddo
               isurface = isurface_k
+              
+              !
+              SUM_E1 = 0.5*SUM(VV**2)+EE(isurface_b)
+              dSUM_E = SUM_E1 - SUM_E0
+              if(lfeedback) then
+                if(ABS(dSUM_E)>eps10) then
+                  write(stdout,"(5X,A49,F12.4,A4)") "In feedback, the energy is not conservied,dSUM_E=",dSUM_E*ryd2ev," eV."
+                endif
+              endif              
+              !
+              
             else
               isurface = isurface_a
             endif
@@ -163,6 +179,17 @@ module cc_fssh
                   enddo
                 enddo
                 isurface = isurface_k
+                
+                !
+                SUM_E1 = 0.5*SUM(VV**2)+EE(isurface_b)
+                dSUM_E = SUM_E1 - SUM_E0
+                if(lfeedback) then
+                  if(ABS(dSUM_E)>eps10) then
+                    write(stdout,"(5X,A49,F12.4,A4)") "In feedback, the energy is not conservied,dSUM_E=",dSUM_E*ryd2ev," eV."
+                  endif
+                endif
+                !
+                
               else
                 isurface = isurface_j
               endif
@@ -177,6 +204,7 @@ module cc_fssh
       endif
     enddo
   
+    
   end subroutine nonadiabatic_transition_ccfssh
   
 end module cc_fssh

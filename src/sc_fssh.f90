@@ -76,7 +76,9 @@ module sc_fssh
     
     real(kind=dp) :: sumvd,sumdd,sumgg,flagr,flagd,detaE
     integer :: ifre,jfre,imode,iq
-    !real(kind=dp) :: SUM_S,max_Sbi(1),SUM_G
+    real(kind=dp) :: SUM_E0,SUM_E1,dSUM_E
+    
+    SUM_E0 = 0.5*SUM(VV**2)+EE(isurface)
     
     call more_random()
     call random_number(flagr)
@@ -112,7 +114,11 @@ module sc_fssh
         endif
       endif
     enddo
-  
+    
+
+    SUM_E1 = 0.5*SUM(VV**2)+EE(isurface)
+    dSUM_E = SUM_E1 - SUM_E0
+    
   end subroutine nonadiabatic_transition_scfssh
   
 end module sc_fssh

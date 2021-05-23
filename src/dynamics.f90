@@ -10,6 +10,24 @@ module dynamics
   
   contains
 
+  subroutine set_gamma(nmodes,nq,gamma,ld_fric,wf,ld_gamma)
+    use constants,only : eps10
+    implicit none
+    integer , intent(in) :: nmodes,nq
+    real(kind=dp),intent(in) :: gamma
+    real(kind=dp),intent(in) :: ld_fric
+    real(kind=dp),intent(in) :: wf(nmodes,nq)
+    real(kind=dp),intent(out):: ld_gamma(nmodes,nq) 
+    
+    if(abs(gamma) > eps10) then
+      ld_gamma = gamma
+    else
+      ld_gamma = ld_fric * wf
+    endif
+    
+    
+  end subroutine
+  
   subroutine get_dEa_dQ(nmodes,nq,nband,nk,wf,P_nk,epcq,isurface,dEa_dQ)
     implicit none
     integer,intent(in) :: nmodes,nq,nband,nk
@@ -45,10 +63,10 @@ module dynamics
   !=======================================================================!
   != ref: http://en.wikipedia.org/wiki/runge_kutta_methods               =!
   !=======================================================================!
-  subroutine rk4_nuclei(nmodes,nq,dEa_dQ,gamma,wf,xx,vv,tt)
+  subroutine rk4_nuclei(nmodes,nq,dEa_dQ,ld_gamma,wf,xx,vv,tt)
     implicit none
     integer , intent(in) :: nmodes,nq
-    real(kind=dp),intent(in)   :: gamma
+    real(kind=dp),intent(in)   :: ld_gamma(nmodes,nq)
     real(kind=dp),intent(in)   :: dEa_dQ(nmodes,nq)
     real(kind=dp),intent(in)   :: wf(nmodes,nq)
     real(kind=dp),intent(inout):: xx(nmodes,nq),vv(nmodes,nq)
@@ -58,13 +76,13 @@ module dynamics
     real(kind=dp):: vv0(nmodes,nq),dv1(nmodes,nq),dv2(nmodes,nq),dv3(nmodes,nq),dv4(nmodes,nq)
 
     tt2=tt/2.0d0; tt6=tt/6.0d0
-    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,gamma,xx,vv,dx1,dv1)
+    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,ld_gamma,xx,vv,dx1,dv1)
     xx0=xx+tt2*dx1; vv0=vv+tt2*dv1
-    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,gamma,xx0,vv0,dx2,dv2)
+    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,ld_gamma,xx0,vv0,dx2,dv2)
     xx0=xx+tt2*dx2; vv0=vv+tt2*dv2
-    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,gamma,xx0,vv0,dx3,dv3)
+    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,ld_gamma,xx0,vv0,dx3,dv3)
     xx0=xx+tt*dx3; vv0=vv+tt*dv3
-    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,gamma,xx0,vv0,dx4,dv4)
+    call derivs_nuclei(nmodes,nq,dEa_dQ,wf,ld_gamma,xx0,vv0,dx4,dv4)
     xx=xx+tt6*(dx1+2.0d0*dx2+2.0d0*dx3+dx4)
     vv=vv+tt6*(dv1+2.0d0*dv2+2.0d0*dv3+dv4)
   endsubroutine
@@ -78,25 +96,25 @@ module dynamics
   ! ref : 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
   ! ref : PPT-92
   ! ref : 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
-  subroutine derivs_nuclei(nmodes,nq,dEa_dQ,wf,gamma,xx,vv,dx,dv)
-    !use surfacecom,only : lelecsh,lholesh
-    !use hamiltonian,only: neband,P_e_nk,epcq_e,&
-    !                      nhband,P_h_nk,epcq_h
+  subroutine derivs_nuclei(nmodes,nq,dEa_dQ,wf,ld_gamma,xx,vv,dx,dv)
     implicit none
     integer,intent(in) :: nmodes,nq
     real(kind=dp),intent(in)  ::  dEa_dQ(nmodes,nq),wf(nmodes,nq)
-    real(kind=dp),intent(in)  ::  gamma
+    real(kind=dp),intent(in)  ::  ld_gamma(nmodes,nq)
     real(kind=dp),intent(in)  ::  xx(nmodes,nq),vv(nmodes,nq)
     real(kind=dp),intent(out) ::  dx(nmodes,nq),dv(nmodes,nq)
     
     integer :: iq,imode,ik,iband1,iband2,ikq
     
-    do iq=1,nq
-      do imode=1,nmodes
-        dx(imode,iq) = vv(imode,iq)
-        dv(imode,iq) = -wf(imode,iq)**2*xx(imode,iq)-dEa_dQ(imode,iq)-gamma*vv(imode,iq)
-      enddo
-    enddo
+    dx = vv
+    dv = -wf**2*xx - dEa_dQ - ld_gamma*vv
+    
+    !do iq=1,nq
+    !  do imode=1,nmodes
+    !    dx(imode,iq) = vv(imode,iq)
+    !    dv(imode,iq) = -wf(imode,iq)**2*xx(imode,iq)-dEa_dQ(imode,iq)-ld_gamma(imode,iq)*vv(imode,iq)
+    !  enddo
+    !enddo
     
   endsubroutine derivs_nuclei
   
@@ -187,14 +205,15 @@ module dynamics
   != ref: notebook page 462 and 638              =!
   !===============================================!
   ! ref: 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
-  SUBROUTINE ADD_BATH_EFFECT(nmodes,nq,gamma,temp,dEa2_dQ2,TT,XX,VV)
+  SUBROUTINE ADD_BATH_EFFECT(nmodes,nq,ld_gamma,temp,dEa2_dQ2,TT,XX,VV)
     use kinds,only : dp,dpc
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
     use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7
     implicit none
     
     integer , intent(in)      :: nq,nmodes
-    real(kind=dp), intent(in) :: gamma,temp
+    real(kind=dp), intent(in) :: ld_gamma(nmodes,nq)
+    real(kind=dp), intent(in) :: temp
     real(kind=dp), intent(in) :: dEa2_dQ2(nmodes,nq)
     real(kind=dp), intent(in) :: tt
     real(kind=dp), intent(inout) :: XX(nmodes,nq),VV(nmodes,nq)
@@ -202,10 +221,12 @@ module dynamics
     integer :: imode,iq
     real(kind=dp) :: SIGMAR,R1,R2,R3,R4,Z1,Z2,Z3,Z4
     real(kind=dp) :: wwf2
+    real(kind=dp) :: gamma
     
-    SIGMAR=DSQRT(2.0*gamma*KB*TEMP*TT)
     DO iq=1,nq
       do imode=1,nmodes
+        gamma = ld_gamma(imode,iq)
+        SIGMAR=DSQRT(2.0*gamma*KB*TEMP*TT)
         wwf2 = wf(imode,iq)**2+dEa2_dQ2(imode,iq)
       
         R1=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)

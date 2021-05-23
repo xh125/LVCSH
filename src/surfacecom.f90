@@ -9,9 +9,11 @@ module surfacecom
   integer         :: naver
   integer         :: nstep
   integer         :: nsnap
+  integer         :: pre_nstep ! only phonons dynamica nstep before non-diabatic dynamica.
   real(kind=dp)   :: dt
   real(kind=dp)   :: temp
   real(kind=dp)   :: gamma    ! gamma is the friction coefficient,dimention is 1/t(ps-1)  THZ  
+  real(kind=dp)   :: ld_fric  ! 2pi*gamma_qv/w_qv
   logical :: lfeedback
   
   logical :: lelecsh
@@ -26,6 +28,9 @@ module surfacecom
   ! FSSH    ref:1 J. C. Tully, J. Chem. Phys. 93 (1990) 1061.
   ! SC-FSSH ref:1 L. Wang, and O. V. Prezhdo, Journal of Physical Chemistry Letters 5 (2014) 713.
   ! CC-FSSH ref:
+  
+  ! phonons normal mode Langevin dynamica friction coefficient
+  real(kind=dp),allocatable :: ld_gamma(:,:)
   
   ! phonons normal mode coordinate,and phonons P
   real(kind=dp),allocatable :: phQ(:,:),phP(:,:),phQ0(:,:),phP0(:,:)

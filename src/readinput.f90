@@ -3,7 +3,7 @@ module readinput
   use constants, only : maxlen
   use parameters,only : &
                         lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
-                        methodsh,lfeedback,naver,nstep,nsnap,gamma,dt,temp,&
+                        methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,gamma,ld_fric,dt,temp,&
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
                         llaser,efield,efield_cart,w_laser,fwhm,nelec,&
                         lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
@@ -158,7 +158,7 @@ module readinput
     
     !   set default values for variables in namelist
     methodsh   = "FSSH"
-    lfeedback  = .false.
+    lfeedback  = .true.
     lelecsh    = .false.
     lholesh    = .false.
     lehpairsh  = .false.
@@ -174,10 +174,12 @@ module readinput
     ieband_max = 0
     ihband_min = 0
     ihband_max = 0
-    naver      = 100
-    nstep      = 100
-    nsnap      = 10
-    gamma      = 0.1    ! the friction coefficient
+    naver      = 10
+    nstep      = 10
+    nsnap      = 100
+    pre_nstep  = 0
+    gamma      = 0.0    ! 0.1   ! the friction coefficient 1/ps
+    ld_fric    = 0.001
     dt         = 0.5    ! fs
     temp       = 300.0  ! K
     init_kx    = 0.0    ! in unit of b_x

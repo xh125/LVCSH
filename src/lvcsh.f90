@@ -43,15 +43,17 @@ program lvcsh
   use getwcvk,only        : get_Wcvk
   use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_eh_KSstat,&
                             init_stat_diabatic,init_surface
-  use surfacecom,only     : methodsh,lfeedback,naver,nsnap,nstep,dt,gamma,temp,iaver,isnap,istep,&
+  use surfacecom,only     : methodsh,lfeedback,naver,nsnap,nstep,pre_nstep,dt,&
+                            gamma,temp,iaver,isnap,istep,&
+                            lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,&
                             iesurface,ihsurface,iesurface_j,ihsurface_j,&
                             iesurface_,ihsurface_,&
                             c_e,c_e_nk,d_e,d0_e,&
                             c_h,c_h_nk,d_h,d0_h,&
                             dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
                             csit_e,wsit_e,pes_e,psit_e,&
-                            csit_h,wsit_h,pes_h,psit_h
-                            
+                            csit_h,wsit_h,pes_h,psit_h,&
+                            E_ph_CA_sum,E_ph_QA_sum,ld_fric,ld_gamma
   use fssh,only           : nonadiabatic_transition_fssh
   use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
   use cc_fssh,only        : S_ai_e,S_ai_h,S_bi_e,S_bi_h,&
@@ -63,13 +65,12 @@ program lvcsh
                             allocatesh,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability
-  use surfacecom,only     : lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,&
-                            pes_e,pes_h,E_ph_CA_sum,E_ph_QA_sum
   use elph2,only          : wf,nqtotf,nktotf,nbndfst
   use modes,only          : nmodes
   use date_and_times,only : get_date_and_time
   use io      ,only       : stdout,io_time,time1,time2,time_
-  use dynamics,only       : get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,ADD_BATH_EFFECT
+  use dynamics,only       : set_gamma,get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,&
+                            ADD_BATH_EFFECT
   
   implicit none
   
@@ -102,6 +103,9 @@ program lvcsh
   !get H0_h_nk(nhband,nktotf,nhband,nktotf),epcq_h(nhband,nhband,nktotf,nmodes,nqtotf)
   
   call allocatesh(methodsh,lelecsh,lholesh,nmodes,nqtotf)
+  ! set the friction coefficient of Langevin dynamica of all phonon modes.
+  call set_gamma(nmodes,nqtotf,gamma,ld_fric,wf,ld_gamma)
+  
   
   if(llaser) then
     call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
@@ -133,14 +137,30 @@ program lvcsh
     
     !!Get the initial normal mode coordinate phQ and versity phP
     call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,phQ,phP)
-    !应该先跑平衡后，再做电子空穴动力学计算
-    
+    !应该先跑平衡后，再做电子空穴动力学计算   
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     !% Write phonon energy information         %!
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     write(stdout,"(/5X,A51,F11.5,A2)") "The temperature of the non-adiabatic dynamica is : ",temp," K"
     write(stdout,"(5X,A40,F11.5,A4)") "The average energy of phonon: <SUM_phE>=",E_ph_QA_sum*ryd2eV," eV."
+    write(stdout,"(5X,A38,F11.5,A4,A9,F11.5,A4)") &
+    "The initial energy of phonon: SUM_phT=",0.5*SUM(phP**2)*ryd2eV," eV",&
+    " SUM_phU=",0.5*SUM(wf**2*phQ**2)*ryd2eV," eV"
+    write(stdout,"(5X,A38,F11.5,A4)") &
+    "The initial energy of phonon: SUM_phE=",0.5*SUM(phP**2+wf**2*phQ**2)*ryd2eV," eV."
     
+    dEa_dQ = 0.0
+    dEa2_dQ2 = 0.0
+    do istep=1,pre_nstep
+      call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,dt)
+      call add_bath_effect(nmodes,nqtotf,ld_gamma,temp,dEa2_dQ2,dt,phQ,phP)
+    enddo
+
+    write(stdout,"(5X,A23,F8.2,A24,F11.5,A4,A9,F11.5,A4)") &
+    "Energy of phonon after ", pre_nstep*dt*ry_to_fs," (fs) dynamica: SUM_phT=",0.5*SUM(phP**2)*ryd2eV," eV",&
+    " SUM_phU=",0.5*SUM(wf**2*phQ**2)*ryd2eV," eV"
+    write(stdout,"(5X,A23,F8.2,A24,F11.5,A4)") &
+    "Energy of phonon after ", pre_nstep*dt*ry_to_fs," (fs) dynamica: SUM_phE=",0.5*SUM(phP**2+wf**2*phQ**2)*ryd2eV," eV."    
     
     !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband
     call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
@@ -267,7 +287,7 @@ program lvcsh
         !use rk4 to calculate the dynamical of phonon normal modes
         !update phQ,phP to time t0+dt
         !可能有错误
-        call rk4_nuclei(nmodes,nqtotf,dEa_dQ,gamma,wf,phQ,phP,dt)
+        call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,dt)
         
         
         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
@@ -396,7 +416,7 @@ program lvcsh
         !===================!
         != add bath effect =!
         !===================!         
-        call add_bath_effect(nmodes,nqtotf,gamma,temp,dEa2_dQ2,dt,phQ,phP)
+        call add_bath_effect(nmodes,nqtotf,ld_gamma,temp,dEa2_dQ2,dt,phQ,phP)
 
 
         !============================!
