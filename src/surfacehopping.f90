@@ -241,10 +241,15 @@ module surfacehopping
     real(kind=dp),intent(in) :: pp(nfre,nfre)
     complex(kind=dpc),intent(in) :: cc(nfre)
     complex(kind=dpc),intent(out):: ww(nfre)
+    real(kind=dp) :: sum_cc2,sum_ww2
+    
+    sum_cc2 = REAL(SUM(cc*CONJG(cc)))
     
     ww= 0.0d0
+    !call gemv(pp,cc,ww)
     call gemv(pp,cc,ww,trans='T')
     
+    sum_ww2 = REAL(SUM(ww*CONJG(ww)))
     
     !ww=0.0d0
     !do ik=1,nktotf

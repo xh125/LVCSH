@@ -73,7 +73,10 @@ program lvcsh
   use dynamics,only       : set_gamma,get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,&
                             ADD_BATH_EFFECT
   
-  use saveinf,only : pes_e_file,pes_h_file,save_pes
+  use saveinf,only : pes_e_file,pes_h_file,save_pes,save_phQ,save_phP,save_phK,save_phU,&
+                     csit_e_file,csit_h_file,save_csit,&
+                     wsit_e_file,wsit_h_file,save_wsit,&
+                     psit_e_file,psit_h_file,save_psit
   implicit none
   
   !===============!
@@ -266,7 +269,8 @@ program lvcsh
     if(lholesh) then
       ihsurface_ = 1-ihsurface + ihband_max*nktotf
       write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
-      "Init_hsurface=",ihsurface_,"Initial hole Energy:",-E_h(ihsurface)*ryd2eV," eV"             
+      "Init_hsurface=",ihsurface_,"Initial hole Energy:",-E_h(ihsurface)*ryd2eV," eV" 
+      !write(stdout)
     endif
     if(lelecsh) then
       iesurface_ = iesurface+(ieband_min-1)*nktotf
@@ -351,7 +355,6 @@ program lvcsh
         !==============================!        
         !use rk4 to calculate the dynamical of phonon normal modes
         !update phQ,phP to time t0+dt
-        !可能有错误
         call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,dt)
         
         
@@ -514,12 +517,12 @@ program lvcsh
             !&en_e(eV)  en_h(eV)  en_eh(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)" 
             write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") time_,(time2-time1),ihsurface_,iesurface_,&
             -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
-            SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV            
+            SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV
           else 
             !write(stdout,"(/,A)") "isnap istep runtime ihsur  &
             !& en_h(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"  
             write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),ihsurface_,-e_h(ihsurface)*ryd2eV,&
-            SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV            
+            SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV
           endif
         else
           if(lelecsh) then
@@ -551,8 +554,8 @@ program lvcsh
       if(lelecsh) then
         pes_e(0,isnap,iaver) = E_e(iesurface)
         do ifre = 1,nefre
-          csit_e(ifre,isnap) = csit_e(ifre,isnap)+abs(c_e(ifre))**2
-          wsit_e(ifre,isnap) = wsit_e(ifre,isnap)+abs(w_e(ifre))**2
+          csit_e(ifre,isnap) = csit_e(ifre,isnap)+REAL(c_e(ifre)*CONJG(c_e(ifre)))
+          wsit_e(ifre,isnap) = wsit_e(ifre,isnap)+REAL(w_e(ifre)*CONJG(w_e(ifre)))
           psit_e(ifre,isnap) = psit_e(ifre,isnap)+P_e(ifre,iesurface)**2
           pes_e( ifre,isnap,iaver) = E_e(ifre)
         enddo
@@ -591,14 +594,23 @@ program lvcsh
   !====================!
   != save information =!
   !====================!
+  call save_phQ(nmodes,nqtotf,nsnap,phQsit)
+  call save_phP(nmodes,nqtotf,nsnap,phPsit)
+  call save_phK(nmodes,nqtotf,nsnap,phKsit)
+  call save_phU(nmodes,nqtotf,nsnap,phUsit)
+  
   if(lelecsh) then
     call save_pes(nefre,nsnap,naver,pes_e,pes_e_file)
-  
+    call save_csit(nefre,nsnap,naver,csit_e,csit_e_file)
+    call save_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
+    call save_psit(nefre,nsnap,naver,psit_e,psit_e_file)
   endif
   
   if(lholesh) then
     call save_pes(nhfre,nsnap,naver,pes_h,pes_h_file)
-    
+    call save_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
+    call save_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
+    call save_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
   endif
   
   

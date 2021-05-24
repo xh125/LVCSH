@@ -143,9 +143,6 @@ module hamiltonian
   != calculate eigenenergy and eigenstate =!
   !========================================!  
   subroutine calculate_eigen_energy_state(nfre,H,ee,pp)
-    !use kinds,only : dp
-    !use mkl95_precision
-    !use mkl95_lapack
     use f95_precision
     use lapack95
     implicit none
@@ -154,7 +151,6 @@ module hamiltonian
     real(kind=dp),intent(out):: ee(nfre),pp(nfre,nfre) 
     
     pp = H
-    
     call syev(pp,ee,'V','U')
     !!USE MKL lib could have a high speed in dgeev , sgeev   !in page 1131 and 1241
     !!On exit, hh array is overwritten

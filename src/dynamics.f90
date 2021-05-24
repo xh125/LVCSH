@@ -155,6 +155,7 @@ module dynamics
                         dc2(nfre),dc3(nfre),dc4(nfre)
     real(kind=dp),intent(in)        :: tt
     real(kind=dp):: tt2,tt6
+    real(kind=dp):: sum_cc2
     
     tt2=tt/2.0d0; tt6=tt/6.0d0
     
@@ -166,7 +167,10 @@ module dynamics
     cc0=cc+tt*dc3     
     call derivs_electron_diabatic(nfre,HH,cc0,dc4)
     cc=cc+tt6*(dc1+2.0d0*dc2+2.0d0*dc3+dc4)
-  
+    
+    sum_cc2 = REAL(SUM(cc*CONJG(cc)))
+    cc = cc/sqrt(sum_cc2)
+    
   endsubroutine rk4_electron_diabatic
       
   !===========================================================!
