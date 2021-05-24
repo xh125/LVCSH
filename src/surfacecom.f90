@@ -15,6 +15,13 @@ module surfacecom
   real(kind=dp)   :: temp
   real(kind=dp)   :: gamma    ! gamma is the friction coefficient,dimention is 1/t(ps-1)  THZ  
   real(kind=dp)   :: ld_fric  ! 2pi*gamma_qv/w_qv
+  !calculate averager energy from simulation at different ld_gamma and reference temperature.
+  !ref: 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243. Table 1
+  logical         :: l_gamma_energy
+  real(kind=dp)   :: gamma_min,gamma_max
+  real(kind=dp)   :: ld_fric_min,ld_fric_max
+  integer         :: n_gamma
+  
   logical         :: l_ph_quantum
   logical :: lfeedback
   

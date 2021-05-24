@@ -73,8 +73,7 @@ module readscf
     !! correction for variational energy    
     
     pwscfout_unit = io_file_unit()
-    
-    
+
     inquire(file=trim(adjustl(pwscfout_name)),exist=alive)
     if(.NOT. alive) then
       call io_error("Error:PWscf output file "//trim(adjustl(pwscfout_name))//" doesn't exist.")

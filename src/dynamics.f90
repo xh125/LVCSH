@@ -19,7 +19,8 @@ module dynamics
     real(kind=dp),intent(in) :: wf(nmodes,nq)
     real(kind=dp),intent(out):: ld_gamma(nmodes,nq) 
     
-    if(abs(gamma) > eps10) then
+    if(abs(gamma) > eps10) then 
+      !gamma /= 0.0
       ld_gamma = gamma
     else
       ld_gamma = ld_fric * wf

@@ -45,6 +45,7 @@ program lvcsh
                             init_stat_diabatic,init_surface
   use surfacecom,only     : methodsh,lfeedback,naver,nsnap,nstep,dt,pre_nstep,pre_dt,l_ph_quantum,&
                             gamma,temp,iaver,isnap,istep,&
+                            l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&
                             lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,&
                             iesurface,ihsurface,iesurface_j,ihsurface_j,&
                             iesurface_,ihsurface_,&
@@ -72,12 +73,13 @@ program lvcsh
   use dynamics,only       : set_gamma,get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,&
                             ADD_BATH_EFFECT
   
+  use saveinf,only : pes_e_file,pes_h_file,save_pes
   implicit none
   
   !===============!
   != preparation =!
   !===============!
-  integer :: iq,imode,ifre
+  integer :: iq,imode,ifre,igamma
   real(kind=8) :: t0,t1,time
   character(len=9) :: cdate,ctime
   character(len=2) :: ctimeunit
@@ -104,8 +106,52 @@ program lvcsh
   !get H0_h_nk(nhband,nktotf,nhband,nktotf),epcq_h(nhband,nhband,nktotf,nmodes,nqtotf)
   
   call allocatesh(methodsh,lelecsh,lholesh,nmodes,nqtotf)
+  
+  if(l_gamma_energy) then
+    
+    call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,l_ph_quantum,phQ,phP)
+    write(stdout,"(/5X,A51,F11.5,A2)") "The temperature of the non-adiabatic dynamica is : ",temp," K"
+    write(stdout,"(5X,A49,F11.5,A4)") "The average energy of phonon(quantum): <SUM_phE>=",E_ph_QA_sum*ryd2eV," eV."
+    write(stdout,"(5X,A49,F11.5,A4)") "The average energy of phonon(class)  : <SUM_phE>=",E_ph_CA_sum*ryd2eV," eV."
+    if(l_ph_quantum) then
+      write(stdout,"(/5X,A)") "The phonon dynamica set as quantum"
+    else
+      write(stdout,"(/5X,A)") "The phonon dynamica set as classical."
+    endif
+    
+    write(stdout,"(5X,A)") repeat("=",67)
+    write(stdout,"(5X,A)") "   gamma  ld_fric  phK(eV)  phU(eV)  phE(eV)"
+    
+    do igamma=0,n_gamma
+      gamma   = gamma_min+igamma*(gamma_max-gamma_min)/n_gamma
+      ld_fric = ld_fric_min+igamma*(ld_fric_max-ld_fric_min)/n_gamma
+      call set_gamma(nmodes,nqtotf,gamma,ld_fric,wf,ld_gamma)
+      dEa_dQ = 0.0
+      dEa2_dQ2 = 0.0
+      call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,l_ph_quantum,phQ,phP)
+      do istep=1,pre_nstep
+        call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
+        call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
+      enddo
+      SUM_phK = 0.0
+      SUM_phU = 0.0
+      do istep=1,pre_nstep
+        call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
+        call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
+        SUM_phK = SUM_phK+ 0.5*SUM(phP**2)
+        SUM_phU = SUM_phU+ 0.5*SUM((wf**2)*(phQ**2))
+      enddo
+      SUM_phK = SUM_phK/pre_nstep
+      SUM_phU = SUM_phU/pre_nstep
+      write(stdout,"(5X,5(F8.3,1X))") gamma,ld_fric,SUM_phK*ryd2eV,SUM_phU*ryd2eV,(SUM_phK+SUM_phU)*ryd2eV
+    enddo
+    
+    stop
+  endif
+  
   ! set the friction coefficient of Langevin dynamica of all phonon modes.
   call set_gamma(nmodes,nqtotf,gamma,ld_fric,wf,ld_gamma)
+  
   
   
   if(llaser) then
@@ -522,7 +568,6 @@ program lvcsh
         enddo
       endif
       
-      
     enddo
   enddo
   
@@ -546,6 +591,16 @@ program lvcsh
   !====================!
   != save information =!
   !====================!
+  if(lelecsh) then
+    call save_pes(nefre,nsnap,naver,pes_e,pes_e_file)
+  
+  endif
+  
+  if(lholesh) then
+    call save_pes(nhfre,nsnap,naver,pes_h,pes_h_file)
+    
+  endif
+  
   
   
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!

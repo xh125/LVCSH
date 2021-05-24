@@ -5,6 +5,7 @@ module readinput
                         lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
                         methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,pre_dt,&
                         gamma,ld_fric,dt,temp,l_ph_quantum,&
+                        l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
                         llaser,efield,efield_cart,w_laser,fwhm,nelec,&
                         lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
@@ -160,6 +161,7 @@ module readinput
     !   set default values for variables in namelist
     methodsh      = "FSSH"
     lfeedback     = .true.
+    l_ph_quantum  = .true.
     lelecsh       = .false.
     lholesh       = .false.
     lehpairsh     = .false.
@@ -180,9 +182,14 @@ module readinput
     nsnap         = 100
     pre_nstep     = 0
     pre_dt        = 1.0
-    gamma         = 0.0    ! 0.1   ! the friction coefficient 1/ps
-    ld_fric       = 0.001
-    l_ph_quantum  = .true.
+    gamma         = 1.0    ! 0.1   ! the friction coefficient 1/ps
+    ld_fric       = 0.1
+    l_gamma_energy= .false.
+    gamma_min     = 0.00
+    gamma_max     = 0.00
+    ld_fric_min   = 0.00
+    ld_fric_max   = 1.00
+    n_gamma       = 100
     dt            = 0.5    ! fs
     temp          = 300.0  ! K
     init_kx       = 0.0    ! in unit of b_x
