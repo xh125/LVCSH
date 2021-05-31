@@ -79,25 +79,6 @@ module environments
     return
   end subroutine closing_message
   
-  subroutine compilation_info()
-  !
-  ! code borrowed by WanT - prints architecture / compilation details
-  !
-#if defined(__HAVE_CONFIG_INFO)
-#include "configure.h"
-  write( stdout, * )
-  write( stdout, "( 2x,'        ARCH :',4x,a )") trim(adjustl(__conf_ARCH))
-  write( stdout, "( 2x,'          CC :',4x,a )") trim(adjustl(__conf_CC))
-  write( stdout, "( 2x,'         CPP :',4x,a )") trim(adjustl(__conf_CPP))
-  write( stdout, "( 2x,'      MPIF90 :',4x,a )") trim(adjustl(__conf_MPIF90))
-  write( stdout, "( 2x,'         F77 :',4x,a )") trim(adjustl(__conf_F77))
-  write( stdout, "( 2x,'      DFLAGS :',4x,a )") trim(adjustl(__conf_DFLAGS))    
-  write( stdout, "( 2x,'   BLAS_LIBS :',4x,a )") trim(adjustl(__conf_BLAS_LIBS))
-  write( stdout, "( 2x,' LAPACK_LIBS :',4x,a )") trim(adjustl(__conf_LAPACK_LIBS))
-  write( stdout, "( 2x,'    FFT_LIBS :',4x,a )") trim(adjustl(__conf_FFT_LIBS))
-  write( stdout, "( 2x,'   MASS_LIBS :',4x,a )") trim(adjustl(__conf_MASS_LIBS))
-#endif
-  end subroutine compilation_info
 
   subroutine set_mkl_threads(mkl_threads)
     implicit none

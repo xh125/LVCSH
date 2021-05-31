@@ -67,7 +67,7 @@ module surfacecom
   complex(kind=dpc),allocatable :: c_h(:),c_h_nk(:,:),w_h(:),w0_h(:)
   
   real(kind=dp) :: sumg0_e,sumg0_h,sumg1_e,sumg1_h
-  contains
+  
   
   
 end module surfacecom

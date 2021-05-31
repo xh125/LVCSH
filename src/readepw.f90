@@ -953,6 +953,7 @@ module readepw
       enddo
     enddo
     
+    etf = etf - ef
     wf = wf/ryd2mev
     !gamma 3 branch A phonon must be set to 0.
     do nu=1,3

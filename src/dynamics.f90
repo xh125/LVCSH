@@ -137,7 +137,6 @@ module dynamics
   
     dc = dc *(-cmplx_i)
 
-    
   endsubroutine derivs_electron_diabatic
 
   !===========================================================!
@@ -150,8 +149,8 @@ module dynamics
     implicit none
     integer,intent(in)              :: nfre
     complex(kind=dpc),intent(inout) :: cc(nfre)
-    real(kind=dp),intent(in) :: HH(nfre)
-    complex(kind=dpc),intent(out):: cc0(nfre),dc1(nfre),&
+    real(kind=dp),intent(in)        :: HH(nfre)
+    complex(kind=dpc),intent(out)   :: cc0(nfre),dc1(nfre),&
                         dc2(nfre),dc3(nfre),dc4(nfre)
     real(kind=dp),intent(in)        :: tt
     real(kind=dp):: tt2,tt6
@@ -160,12 +159,19 @@ module dynamics
     tt2=tt/2.0d0; tt6=tt/6.0d0
     
     call derivs_electron_diabatic(nfre,HH,cc,dc1)
-    cc0=cc+tt2*dc1  
+    cc0=cc+tt2*dc1
+    !sum_cc2 = REAL(SUM(cc0*CONJG(cc0)))
+    !cc0= cc0/sqrt(sum_cc2)
     call derivs_electron_diabatic(nfre,HH,cc0,dc2)
-    cc0=cc+tt2*dc2     
+    cc0=cc+tt2*dc2
+    !sum_cc2 = REAL(SUM(cc0*CONJG(cc0)))
+    !cc0= cc0/sqrt(sum_cc2)   
     call derivs_electron_diabatic(nfre,HH,cc0,dc3)
     cc0=cc+tt*dc3     
+    !sum_cc2 = REAL(SUM(cc0*CONJG(cc0)))
+    !cc0= cc0/sqrt(sum_cc2)
     call derivs_electron_diabatic(nfre,HH,cc0,dc4)
+    
     cc=cc+tt6*(dc1+2.0d0*dc2+2.0d0*dc3+dc4)
     
     sum_cc2 = REAL(SUM(cc*CONJG(cc)))

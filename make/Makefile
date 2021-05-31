@@ -1,43 +1,139 @@
-include make.inc
+#!/usr/bin/make -f
+
+SHELL = /bin/sh
+
+# path
+#project_home = $(dir $(abspath $(MAKEFILE_LIST)))
+project_home = ..
+srcdir       = $(project_home)/src
+bindir       = $(project_home)/bin
+
+# the path to find the source code. 
+VPATH = $(srcdir)
+
+# output exe file
+exe	    = LVCSH.x
+
+# IFLAGS = how to locate directories with *.h or *.f90 file to be included
+IFLAGS         = -I$(project_home)/include
+
+# MOD_FLAG = flag used by f90 compiler to locate modules  
+MOD_FLAG      = -I
+
+# Compiler 
+F90     = ifort 
+MPIF90 	= mpiifort 
+CC      = icc 
+MPICC   = mpiicc
+CXX     = icpc 
+MPICXX  = mpiicpc
+
+# C preprocessor and preprocessing flags - for explicit preprocessing, 
+# if needed (see the compilation rules above) 
+# preprocessing flags must include DFLAGS and IFLAGS
+CPP      = cpp
+CPPFLAGS = -P -traditional -Uvector $(IFLAGS)
+
+# compiler flags: C, F90
+# C flags must include DFLAGS and IFLAGS
+# F90 flags must include MODFLAGS, IFLAGS, and FDFLAGS with appropriate syntax
+CFLAGS   =  $(OFLAGS) $(IFLAGS)
+F90FLAGS =  $(FFLAGS) -fpp $(IFLAGS)
+OFLAGS   =  -O3
+
+
+# compiler flags with and without optimization for fortran-77
+# the latter is NEEDED to properly compile dlamch.f, used by lapack
+FFLAGS         = -O2
+FFLAGS_NOOPT   = -O0 
+FDEBUG = -g 
+CDEBUG = -g
+LDFLAGS= 
+
+
+# LIB dir
+LIBDIR =  
+LIBS   = 
+
+
+#MKL libraries
+MKLLIB      = -L${MKLROOT}/lib/intel64
+MKLINCLUDE  = -I${MKLROOT}/include/intel64/lp64 -I${MKLROOT}/include
+BLAS_LIB         = -lmkl_intel_lp64  -lmkl_intel_thread -lmkl_core
+LAPACK_LIBS      =
+BLACS_LIBS       = -lmkl_blacs_intelmpi_lp64
+SCALAPACK_LIBS   = -lmkl_scalapack_lp64 
+OneAPIFLAG       = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lpthread -liomp5\
+                   -lmkl_blas95_lp64 -lmkl_lapack95_lp64  
+
 
 #SRC
-SRC      = kinds.f90 errore.f90 constants.f90 global_version.f90 io.f90 date_and_times.f90 \
-           randoms.f90 environments.f90 lasercom.f90  parameters.f90 utility.f90 epwcom.f90 \
-           readinput.f90 atom_weight.f90 cell_base.f90 ions_base.f90 symm_base.f90 wannierEPW.f90 \
-           kpoints.f90 wavefct.f90 pwcom.f90 readscf.f90 phcom.f90 elph_tetra_mod.f90 readphout.f90 \
-           elph2.f90 elphmat.f90 grid.f90  readepw.f90 getmcvk.f90\
-           hamiltonian.f90 surfacecom.f90  surfacehopping.f90 initialsh.f90 dynamics.f90 lvcsh.f90            
+SRCS_F= kinds.f90 constants.f90 date_and_times.f90 version.f90 io.f90 environments.f90 \
+        pwcom.f90 lasercom.f90 surfacecom.f90 parameters.f90 \
+        utility.f90 readinput.f90 \
+        cell_base.f90 ions_base.f90 symm_base.f90 readscf.f90 \
+        phcom.f90 elph_tetra_mod.f90 readphout.f90 \
+        elph2.f90 epwcom.f90 grid.f90 \
+        recvec.f90 lrcom.f90 wannierEPW.f90 errore.f90 readepw.f90 \
+        randoms.f90  getwcvk.f90 initialsh.f90 \
+        hamiltonian.f90 fssh.f90 sc_fssh.f90 cc_fssh.f90 surfacehopping.f90 \
+        dynamics.f90 saveinf.f90 lvcsh.f90     					 
+
+SRCS_C=
+
+SRCS = $(SRCS_C) $(SRCS_F)
 
 
-#objects
-OBJ       = $(SRC:.f90=.o)
+#---------------------------------------------------------------
+#Substitution References
+#---------------------------------------------------------------
+OBJS       = $(SRCS_F:.f90=.o) $(SRCS_C:.c=.o)
 
-# ar command and flags - for most architectures: AR = ar, ARFLAGS = ruv
-ARCH = ar
-ARCHFLAG = ruv
 
-#-------------------------------------------------------------------------------
-# Suffix rules
-#-------------------------------------------------------------------------------
-.SUFFIXES: .o .f90
-.f90.o:
-	$(FCC) $(FFLAGS) ${MKLLIB} ${MKLINCLUDE} ${FCCFLAG} -c $<
+# complilation rules
+
+#--------------------------------------------------------------
+# set the suffix list 
+#--------------------------------------------------------------
+.SUFFIXES:
+.SUFFIXES: .mod .o .c .f90 .h .fh
+
+# most fortran compilers can directly preprocess c-like directives: use 
+# 	$(MPIF90) $(FFLAGS) -c $< 
+# if explicit preprocessing by the C preprocessor is needed, use: 
+#	$(CPP) $(CPPFLAGS) $< -o $*.F90 
+#	$(MPIF90) $(F90FLAGS) -c $*.F90 -o $*.o 
+# remember the tabulator in the first column !!!
+
+#---------------------------------------------------------------
+# Redefining Pattern Rules
+#---------------------------------------------------------------
+%.o : %.f90
+	$(F90) $(F90FLAGS) ${MKLLIB} ${MKLINCLUDE} -c $<
+
+%.o : %.c
+	$(CC) $(CFLAGS) -c $<
+
+%.fh : %.h
+	$(CPP) $(CPPFLAGS) $< -o $*.fh
+
+
+.PHONY: all
+
+all: $(exe)
 
 ##
-${EXE} : ${OBJ}	
-	${FC} -o ${EXE} ${OBJ} ${MKLINCLUDE} ${MKLLIB} ${FCCFLAG}
+${exe} : ${OBJS}	bindir
+	${F90} -o ${exe} ${OBJS} ${MKLINCLUDE} ${MKLLIB} ${OneAPIFLAG}
+	cp -f ${exe} ../bin
 
-all:${EXE}
-	  
+bindir :
+	cd ../ ; test -d bin || mkdir bin
+
 #make clean
-.PHONY:
+.PHONY : clean
 clean:
-	rm -f $(OBJDIR)/*.mod
-	rm -f $(OBJDIR)/*.o
-	rm -f $(BINDIR)/*
-
-#make object dir
-dir:
-	mkdir ./obj_$(COMPILER)
-	mkdir ./obj_$(COMPILER)/debug
-	mkdir ./obj_$(COMPILER)/release
+	- rm -f ./*.mod
+	- rm -f ./*.o
+	- rm -rf $(bindir)
+	- rm -f ./$(exe)
