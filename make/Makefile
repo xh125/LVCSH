@@ -57,15 +57,22 @@ LIBS   =
 
 
 #MKL libraries
-MKLLIB      = -L${MKLROOT}/lib/intel64
-MKLINCLUDE  = -I${MKLROOT}/include/intel64/lp64 -I${MKLROOT}/include
-BLAS_LIB         = -lmkl_intel_lp64  -lmkl_intel_thread -lmkl_core
-LAPACK_LIBS      =
-BLACS_LIBS       = -lmkl_blacs_intelmpi_lp64
-SCALAPACK_LIBS   = -lmkl_scalapack_lp64 
-OneAPIFLAG       = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lpthread -liomp5\
-                   -lmkl_blas95_lp64 -lmkl_lapack95_lp64  
-
+MKLLIB           = ${MKLROOT}/lib/intel64
+MKLINCLUDE       = -I${MKLROOT}/include -I${MKLROOT}/include/intel64/lp64 
+BLAS95_LIB       = ${MKLLIB}/libmkl_blas95_lp64.a
+LAPACP95_LIB     = ${MKLLIB}/libmkl_lapack95_lp64.a
+BLACS_LIBS       = ${MKLLIB}/libmkl_blacs_intelmpi_lp64.a
+SCALAPACK_LIBS   = ${MKLLIB}/libmkl_scalapack_lp64.a 
+lp64_lib         = ${MKLLIB}/libmkl_intel_lp64.a
+thread_lib       = ${MKLLIB}/libmkl_intel_thread.a
+core_lib         = ${MKLLIB}/libmkl_core.a
+MKL_dynamic_Link = ${BLAS95_LIB} ${LAPACP95_LIB} -L${MKLLIB} \
+                   -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core \
+                   -liomp5 -lpthread -lm -ldl
+MKL_static_Link  = ${BLAS95_LIB} ${LAPACP95_LIB} -Wl,--start-group \
+                   ${lp64_lib} ${thread_lib} ${core_lib} ${BLACS_LIBS} \
+									 -Wl,--end-group \
+									 -liomp5 -lpthread -lm -ldl
 
 #SRC
 SRCS_F= kinds.f90 constants.f90 date_and_times.f90 version.f90 io.f90 environments.f90 \
@@ -109,7 +116,7 @@ OBJS       = $(SRCS_F:.f90=.o) $(SRCS_C:.c=.o)
 # Redefining Pattern Rules
 #---------------------------------------------------------------
 %.o : %.f90
-	$(F90) $(F90FLAGS) ${MKLLIB} ${MKLINCLUDE} -c $<
+	$(F90) $(F90FLAGS) ${MKLINCLUDE} -c $<
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<
@@ -124,7 +131,8 @@ all: $(exe)
 
 ##
 ${exe} : ${OBJS}	bindir
-	${F90} -o ${exe} ${OBJS} ${MKLINCLUDE} ${MKLLIB} ${OneAPIFLAG}
+#	${F90} -o ${exe} ${OBJS} ${MKL_dynamic_Link}
+	${F90} -o ${exe} ${OBJS} ${MKL_static_Link}
 	cp -f ${exe} ../bin
 
 bindir :
