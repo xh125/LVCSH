@@ -193,7 +193,7 @@ module readepw
       tau = 0.0
     endif    
     do iat =1 ,nat
-      read(unitepwout,"(17X,a3,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
+      read(unitepwout,"(7X,2x,5x,A3,3X,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
     enddo
     ! atoms mass in "Rydberg" atomic units
     iamass = iamass * amu_ry
@@ -601,7 +601,7 @@ module readepw
 			allocate(ratmax(n_wannier))
 			read(unitepwout,"(36X,3I5)") (wannier_plot_supercell(i), i = 1, 3)
 			do iw=1,n_wannier
-				read(unitepwout,"(60X,f11.6)") ratmax(iw)
+				read(unitepwout,"(60X,f12.6)") ratmax(iw)
 		  enddo
 			!WRITE(stdout, '(/)')
 			!WRITE(stdout, *) ' cube files written'			
