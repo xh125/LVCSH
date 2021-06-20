@@ -60,8 +60,15 @@ module readepw
   real(kind=dp) :: ebndmax,ebndmin
   real(kind=dp),allocatable :: E_nk(:,:),E_mkq(:,:)
   
+
+  real(kind=dp) :: wannier_plot_radius,wannier_plot_scale
+	logical :: reduce_unk,wannier_plot
+	real(kind=dp),allocatable :: ratmax(:)
+	integer :: ngx,ngy,ngz
+	integer :: wannier_plot_supercell(3) 
+
   contains
-  
+	
   subroutine readepwout(fepwout)
     use elph2,    only : nqtotf,xqf,nbndfst
     use grid,     only : loadqmesh,kq2k_map,loadkmesh_fullBZ,get_ikq
@@ -76,7 +83,8 @@ module readepw
     integer :: ipol,ik_,ibnd_,jbnd_,nu_
     real(kind=dp) :: epc_
     real(kind=dp) :: xiq(3),xik(3)
-
+		
+		integer :: iverbosity
     integer :: ierr
     !! error status
     logical :: alive
@@ -213,7 +221,14 @@ module readepw
 
     !IF (iverbosity == 1) THEN
     !WRITE(stdout, '(36x,"s",24x,"frac. trans.")')
-    
+    read(unitepwout,"(A)") ctmp
+		if(ctmp(62:73)=="frac. trans.") then
+			iverbosity = 1
+			!
+		else
+			backspace(unitepwout)
+	  endif
+		
     !
     !     Description of the reciprocal lattice vectors
     !    
@@ -265,9 +280,9 @@ module readepw
     !IF (iverbosity == 1 .OR. nkstot < 10000) THEN
       !WRITE(stdout, '(23x,"cart. coord. in units 2pi/a_0")')
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    read(unitepwout,"(A)") ctmp
-    backspace(unitepwout)
-    if(trim(adjustl(ctmp))=="cart. coord. in units 2pi/a_0") then
+    !read(unitepwout,"(A)") ctmp
+    !backspace(unitepwout)
+		if(iverbosity == 1 .or. nkstot < 10000) then
       read(unitepwout,*)
       do ik=1,nkstot
         read(unitepwout,"(20X,3f12.7,7X,f12.7)") &
@@ -275,10 +290,11 @@ module readepw
       enddo
     endif
     
-    read(unitepwout,"(/23X,A)") ctmp
-    backspace(unitepwout)
-    backspace(unitepwout)
-    if(ctmp == "cryst. coord.") then
+    !read(unitepwout,"(/23X,A)") ctmp
+    !backspace(unitepwout)
+    !backspace(unitepwout)
+		if(iverbosity ==1) then
+    !if(ctmp == "cryst. coord.") then
       read(unitepwout,"(/23X,A)") ctmp
       if(.not. allocated(xkg_all)) then 
         allocate(xkg_all(3,nkstot),stat=ierr)
@@ -295,6 +311,7 @@ module readepw
     !CALL print_ps_info()
     !End call epw_summary()
     
+		!CALL print_clock('EPW' )
     
     !call wann_run()
     !WRITE(stdout, '(5x,a)') REPEAT("-", 67)
@@ -389,11 +406,11 @@ module readepw
 
     !WRITE(stdout, '(/, "      - Number of bands is (", i3, ")")') num_bands
     !call findkline(unitepwout,"      - Number of bands is (",1,28)
-    read(unitepwout,"(/,28X,i3)") num_bands      ! as Wanner90 num_bands,defined in wannierEPW
-    read(unitepwout,"(34X,i3)")   nbnd           ! as Wanner90 num_bands_tot,is define in pwcom.f90 wvfct
+    read(unitepwout,"(/,28X,i3)") num_bands      ! the num_bands from DFT pass to Wanner90,defined in wannierEPW
+    read(unitepwout,"(34X,i3)")   nbnd           ! the total bands of DFT,is define in pwcom.f90 wvfct
     read(unitepwout,"(37X,i3)")   nexband        ! number of excluded bands,defined in wannierEPW
                                                  ! ref: exclude_bands in wannier90:User Guide
-    read(unitepwout,"(40X,i3)")   n_wannier      ! as Wanner90 num_wann,defined in wannierEPW
+    read(unitepwout,"(40X,i3)")   n_wannier      ! number of wannier functions,as Wanner90 num_wann,defined in wannierEPW
     nbndsub = n_wannier
     nbndskip = nexband
     
@@ -555,6 +572,43 @@ module readepw
     read(unitepwout,*)
     !end subroutine run_wannier
     
+		!IF (wannier_plot) CALL write_plot()
+		read(unitepwout,"(A)") ctmp
+		backspace(unitepwout)
+		if(trim(adjustl(ctmp))=='Writing out Wannier function cube files')then
+			wannier_plot = .true.
+			!WRITE(stdout,'(a,/)') '    Writing out Wannier function cube files'
+			!!
+			!IF (iverbosity == 1) THEN
+				!WRITE(stdout,'(a,f6.3)') 'write_plot: wannier_plot_radius =', &
+																!wannier_plot_radius
+				!WRITE(stdout,'(a,f6.3)') 'write_plot: wannier_plot_scale =', &
+																!wannier_plot_scale
+			!ENDIF
+			!!			
+			read(unitepwout,"(A,/)") ctmp
+			if(iverbosity == 1) then
+				read(unitepwout,"(33X,f6.3)") wannier_plot_radius
+				read(unitepwout,"(32X,f6.3)") wannier_plot_scale
+			endif
+			read(unitepwout,"(A)") ctmp
+			if(trim(ctmp)=="write_plot: Real-space grids for plotting Wannier functions are reduced") then
+				reduce_unk = .true.
+		  else
+				backspace(unitepwout)
+			endif
+			read(unitepwout,"(6X,I5,8X,I5,8X,I5)") ngx,ngy,ngz
+			allocate(ratmax(n_wannier))
+			read(unitepwout,"(36X,3I5)") (wannier_plot_supercell(i), i = 1, 3)
+			do iw=1,n_wannier
+				read(unitepwout,"(60X,f11.6)") ratmax(iw)
+		  enddo
+			!WRITE(stdout, '(/)')
+			!WRITE(stdout, *) ' cube files written'			
+			read(unitepwout,"(/)") 
+			read(unitepwout,"(A)") ctmp
+		endif
+		
     !
     !WRITE(stdout, '(5x, a)') REPEAT("-", 67)
     !CALL print_clock('WANNIER')

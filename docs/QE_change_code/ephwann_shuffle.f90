@@ -267,7 +267,6 @@
   real(kind = dp), allocatable :: xkf_all(:, :) !xkf_all(3, nkqtotf)
   !! Collect k-point coordinate from all pools in parallel case  
   REAL(KIND = DP), ALLOCATABLE :: etf_all(:, :)  ! etf_all(nbndsub,nktotf)
-  !real(kind = dp), allocatable :: etf_all2(:, :) ! etf_all2(nbndsub,nkqtotf)
   !! Eigen-energies on the fine grid collected from all pools in parallel case
   COMPLEX(KIND = DP), ALLOCATABLE :: dmef_all(:, :, :, :)
   !! dipole matrix elements on the fine mesh among all pools
@@ -1670,9 +1669,6 @@
       allocate(xkf_all(3,nkqtotf),stat=ierr)
       if(ierr /=0) call errore('ephwann_shuffle','Error allocating xkf_all',1)
       xkf_all = zero
-      allocate(etf_all2(nbndsub,nkqtotf),stat=ierr)
-      if(ierr /=0) call errore('ephwann_shuffle','Error allocating etf_all2',1)
-      etf_all2 = zero
       ALLOCATE(wkf_all(nkqtotf), STAT = ierr)
       IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error allocating wkf_all', 1)
       wkf_all = zero     
@@ -1743,8 +1739,6 @@
       ENDIF ! master node
       deallocate(xkf_all,stat=ierr)
       if(ierr /=0) call errore('ephwann_shuffle','Error deallocating xkf_all',1)
-      deallocate(etf_all2,stat=ierr)
-      if(ierr /=0) call errore('ephwann_shuffle','Error deallocating etf_all2',1)
       deallocate(wkf_all, STAT = ierr)
       IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating wkf_all', 1)
       IF (vme) THEN

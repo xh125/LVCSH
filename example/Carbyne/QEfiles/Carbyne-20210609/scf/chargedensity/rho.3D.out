@@ -1,0 +1,36 @@
+
+     Program POST-PROC v.6.7MaX starts on 12Jun2021 at 15:11:55 
+
+     This program is part of the open-source Quantum ESPRESSO suite
+     for quantum simulation of materials; please cite
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 29 465901 (2017);
+          URL http://www.quantum-espresso.org", 
+     in publications or presentations arising from this work. More details at
+     http://www.quantum-espresso.org/quote
+
+     Parallel version (MPI & OpenMP), running on      56 processor cores
+     Number of MPI processes:                 1
+     Threads/MPI process:                    56
+
+     MPI processes distributed on     1 nodes
+     Reading header from file  carbyne.rho
+     Reading data from file  carbyne.rho
+
+     Writing data to be plotted to file carbyne.rho.xsf
+     Requested parallelepiped sides :   1.0000  1.0000  1.0000
+     Redefined parallelepiped sides :   1.0000  1.0000  1.0014
+     Requested parallelepiped origin:   0.5000  0.0000  0.0000
+     Redefined parallelepiped origin:   0.5000  0.0000  0.0000
+
+     Min, Max, Total, Abs charge:   0.000000  0.385910  8.018214  8.019311
+     Plot Type: 3D                     Output format: XCrySDen     
+ 
+     POST-PROC    :      8.47s CPU   1m 2.09s WALL
+
+ 
+   This run was terminated on:  15:12:57  12Jun2021            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=

@@ -1,0 +1,34 @@
+#!/bin/bash
+#PBS -N bands-bands
+#PBS -o ${PBS_JOBID}.out
+#PBS -e ${PBS_JOBID}.err
+#PBS -q share
+#PBS -l nodes=1:ppn=1
+
+# get the number of processors
+NP=`cat $PBS_NODEFILE | wc -l`
+
+# enter job's working directory
+cd $PBS_O_WORKDIR
+
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+export MODULEPATH=/public/software/modules:/public/home/wzhuang/xh/modulefiles
+
+module load apps/Materials/Quantum_Espresso/6.7.0
+
+# pw
+export exename1=${PBS_JOBNAME%%-*}.x
+# scf
+export infilename1=${PBS_JOBNAME#*-}
+
+#export exename2=ph.x
+#export infilename2=ph
+
+mpirun -np $NP pw.x -npool $NP <scf.in> scf.out
+mpirun -np $NP pw.x -npool $NP <nscf.in> nscf.in
+mpirun -np $NP bands.x <bands.in> bands.in
+#mpirun -np $NP ${exename1} -npool $NP <n${infilename1}.in> n${infilename1}.out
+#mpirun -np $NP ${exename1} <${infilename1}.in> ${infilename1}.out
+#mpirun -np $NP ${exename2} -npool $NP <${infilename2}.in> ${infilename2}.out
+

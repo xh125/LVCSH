@@ -1,0 +1,9 @@
+&dos
+prefix = 'carbyne'
+outdir = './outdir'
+bz_sum = 'tetrahedra_opt'
+ngauss = 1
+degauss = 0.01
+deltaE  = 0.01
+fildos = 'carbyne-0.01.dos'
+/

@@ -1,0 +1,10 @@
+&input
+    asr='simple', 
+!   amass(1)=26.98, amass(2)=74.922,
+    flfrc='flfrc', 
+!    flfrq='flfrq', 
+!    la2F=.true.
+    dos=.true.
+    fldos="phonon.dos"
+    nk1=1,nk2=1,nk3=100
+/

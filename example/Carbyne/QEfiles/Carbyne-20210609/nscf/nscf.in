@@ -1,0 +1,54 @@
+&CONTROL
+    calculation   = "nscf"  
+    restart_mode  = "from_scratch"
+    prefix        = "carbyne"
+    outdir        = "./outdir"
+    pseudo_dir    = "../pseudopot"
+    verbosity     = "high"
+    tprnfor       = .true.  
+    tstress       = .true.
+    etot_conv_thr =  1.0d-8
+    forc_conv_thr =  1.0d-7
+/
+
+&SYSTEM
+    ibrav       = 0
+    nat         = 2
+    ntyp        = 1
+    nbnd        = 8
+    occupations = 'fixed'
+!    occupations = "smearing"
+!    smearing    = "gaussian"    
+!    degauss     =  1.0d-9
+    ecutwfc     =  50
+    ecutrho     =  500
+/
+
+&ELECTRONS
+    conv_thr         =  1.000e-09
+    electron_maxstep =  200
+    mixing_beta      =  7.00000e-01
+    startingpot      = "atomic"
+    startingwfc      = "atomic+random"
+/
+
+&IONS
+    ion_dynamics = "bfgs"
+/
+
+
+K_POINTS {automatic}
+ 1  1  100  0 0 0
+
+CELL_PARAMETERS {angstrom}
+ 20.000000   0.000000   0.000000
+  0.000000  20.000000   0.000000
+  0.000000   0.000000   2.565985410
+
+ATOMIC_SPECIES
+C      12.01070  C.pbe-n-kjpaw_psl.1.0.0.UPF
+
+ATOMIC_POSITIONS {angstrom}
+C            10.0000000000       10.0000000000       -0.0019756118
+C            10.0000000000       10.0000000000        1.2517014809
+

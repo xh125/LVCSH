@@ -1,0 +1,18 @@
+&inputpp
+prefix = 'carbyne'
+outdir = './outdir'
+filplot= 'psi2.carbyne'
+
+plot_num = 7
+kpoint   = 1
+kband(1) = 1
+kband(2) = 8
+lsign    = .true.
+/
+&plot
+fileout = '.xsf'
+iflag   = 3
+nfile   = 1
+output_format = 5
+weight(1)= 1.0
+/

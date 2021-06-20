@@ -1,0 +1,37 @@
+#!/bin/bash
+#BSUB -J ph-carbyne
+#BSUB -q privateq-zw
+#BSUB -n 28
+#BSUB -R "span[ptile=28]"
+#BSUB -o %J.out
+#BSUB -e %J.err
+export NP=28
+
+source ~/xiehua/.bashrc
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+#export MODULEPATH=/share/home/zw/xiehua/opt/modules-4.7.1/modulefiles:/share/home/zw/xiehua/opt/intel/oneapi/modulefiles
+
+module load apps/Materials/Quantum_Espresso/6.7.0
+
+
+export exename1=pw.x
+export infilename1=scf
+
+export exename2=ph.x
+export infilename2=ph
+
+export exename3=q2r.x
+export infilename3=q2r
+
+export exename4=matdyn.x
+export infilename4=matdyn-freq
+
+export exename5=matdyn.x
+export infilename5=matdyn-dos
+
+mpirun -np $NP ${exename1} -ni 1 -nk $NP <${infilename1}.in> ${infilename1}.out
+mpirun -np $NP ${exename2} -ni 1 -nk $NP <${infilename2}.in> ${infilename2}.out
+mpirun -np $NP ${exename3} -ni 1 -nk $NP <${infilename3}.in> ${infilename3}.out
+mpirun -np $NP ${exename4} -ni 1 -nk $NP <${infilename4}.in> ${infilename4}.out
+mpirun -np $NP ${exename5} -ni 1 -nk $NP <${infilename5}.in> ${infilename5}.out

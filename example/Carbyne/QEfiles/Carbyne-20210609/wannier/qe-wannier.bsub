@@ -1,0 +1,46 @@
+#!/bin/bash
+#BSUB -J wannier-carbyne
+#BSUB -q privateq-zw
+#BSUB -n 28
+#BSUB -R "span[ptile=28]"
+#BSUB -o %J.out
+#BSUB -e %J.err
+
+# get the number of processors
+export NP=28
+
+source ~/xiehua/.bashrc
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+#export MODULEPATH=/public/software/modules:/public/home/wzhuang/xh/modulefiles
+
+module load apps/Materials/Quantum_Espresso/6.7.0
+
+export exename1=pw.x
+export infilename1=scf
+
+export exename2=pw.x
+export infilename2=nscf
+
+
+export exename3=wannier90.x
+export seedname=carbyne
+export exename4=pw2wannier90.x
+
+mpirun -np $NP ${exename1} -npool $NP <${infilename1}.in> ${infilename1}.out
+
+kmesh.pl 1 1 40 >>${infilename2}.in
+
+mpirun -np $NP ${exename2} -npool $NP <${infilename2}.in> ${infilename2}.out
+
+echo "mp_grid = 1 1 40">>${seedname}.win 
+echo "begin kpoints">>${seedname}.win 
+kmesh.pl 1 1 40 wannier >>${seedname}.win 
+echo "end kpoints">>${seedname}.win 
+
+mpirun -np $NP ${exename3} -pp ${seedname} >${seedname}-pp.out
+
+mpirun -np $NP ${exename4} <pw2wan.in>pw2wan.out
+
+mpirun -np $NP ${exename3} ${seedname}
+

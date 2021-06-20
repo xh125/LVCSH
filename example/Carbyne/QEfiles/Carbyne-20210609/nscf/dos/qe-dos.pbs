@@ -1,0 +1,46 @@
+#!/bin/bash
+#PBS -N dos-carbyne
+#PBS -o ${PBS_JOBID}.out
+#PBS -e ${PBS_JOBID}.err
+#PBS -q share
+#PBS -l nodes=1:ppn=28
+
+# get the number of processors
+NP=`cat $PBS_NODEFILE | wc -l`
+
+# enter job's working directory
+cd $PBS_O_WORKDIR
+
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+export MODULEPATH=/public/software/modules:/public/home/wzhuang/xh/modulefiles
+
+module load apps/Materials/Quantum_Espresso/6.7.0
+
+export prefix=${PBS_JOBNAME#*-}
+
+# pw 第一个"-"之前的字符串
+#export exename1=${PBS_JOBNAME%%-*}.x
+# scf 第一个“-”之后的所有字符串
+#export infilename1=${PBS_JOBNAME#*-}
+
+export exename1=pw.x
+export infilename1=scf
+#export infilename1=${prefix}.scf
+
+export exename2=pw.x
+export infilename2=nscf
+#export infilename2=${prefix}.nscf
+
+export exename3=dos.x
+export infilename3=dos
+#export infilename3=${prefix}.dos
+
+export exename4=projwfc.x
+export infilename4=projwfc
+#export infilename4=${prefix}.projwfc
+
+mpirun -np $NP ${exename1} -npool $NP <${infilename1}.in> ${infilename1}.out
+mpirun -np $NP ${exename2} -npool $NP <${infilename2}.in> ${infilename2}.out
+mpirun -np $NP ${exename3} <${infilename3}.in> ${infilename3}.out
+mpirun -np $NP ${exename4} <${infilename4}.in> ${infilename4}.out
