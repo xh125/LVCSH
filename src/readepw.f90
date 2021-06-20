@@ -129,10 +129,19 @@ module readepw
     read(unitepwout,"(33X,i12)")   ntyp
     read(unitepwout,"(33X,f12.4)") ecutwfc   
     read(unitepwout,"(33X,f12.4)") ecutrho !ecutwfc * dual
+
+    WRITE(stdout, 100) ibrav, alat, omega, nat, ntyp, ecutwfc, ecutrho
+100 FORMAT(/,5x,75x,/,/,5x, &
+       &     'bravais-lattice index     = ',i12,/,5x, &
+       &     'lattice parameter (a_0)   = ',f12.4,'  a.u.',/,5x, &
+       &     'unit-cell volume          = ',f12.4,' (a.u.)^3',/,5x, &
+       &     'number of atoms/cell      = ',i12,/,5x, &
+       &     'number of atomic types    = ',i12,/,5x, &
+       &     'kinetic-energy cut-off    = ',f12.4,'  Ry',/,5x, &
+       &     'charge density cut-off    = ',f12.4,'  Ry')
     
     nmodes = 3*nat
     
-    write(stdout,"(5x,A,I12)") "Number of phonon modes (nmodes) =",nmodes
     
     !call write_dft_name ( ) 
     read(unitepwout,"(27X,A)") dft
@@ -174,6 +183,17 @@ module readepw
     read(unitepwout,"(/,3(23X,3F8.4,/))") ((bg(ipol,apol),ipol=1,3),apol=1,3)
     read(unitepwout,"(/////)")
 
+		WRITE(stdout, '(2(3x,3(2x,"celldm(",i1,")=",f11.5),/))') &
+				(i, celldm(i), i = 1, 6)
+		WRITE(stdout, '(5x, &
+				& "crystal axes: (cart. coord. in units of a_0)",/, &
+				&         3(15x,"a(",i1,") = (",3f8.4," )  ",/ ) )') &
+				& (apol, (at(ipol, apol), ipol = 1, 3), apol = 1, 3)
+		WRITE(stdout, '(5x, &
+				& "reciprocal axes: (cart. coord. in units 2 pi/a_0)",/, &
+				&         3(15x,"b(",i1,") = (",3f8.4," )  ",/ ) )') &
+				& (apol, (bg(ipol, apol), ipol = 1, 3), apol = 1, 3)
+
     !
     ! Description of the atoms inside the unit cell
     !    
@@ -197,6 +217,17 @@ module readepw
     enddo
     ! atoms mass in "Rydberg" atomic units
     iamass = iamass * amu_ry
+
+		WRITE(stdout, '(/, 5x,"Atoms inside the unit cell: ")')
+		WRITE(stdout, '(/,3x,"Cartesian axes")')
+		WRITE(stdout, '(/,5x,"site n.  atom      mass ", &
+				&                "          positions (a_0 units)")')
+	
+		WRITE(stdout, '(7x,i2,5x,a6,f8.4,"   tau(",i2, &
+				&                              ") = (",3f11.5,"  )")')  &
+				& (iat,iatm(iat), amass(iat)/amu_ry, iat,  &
+				& (tau(ipol,iat), ipol = 1, 3), iat = 1, nat)
+
     
     !
     ! Description of symmetries
@@ -653,7 +684,7 @@ module readepw
     endif
     
     
-    
+    write(stdout,"(5x,A,I12)") "Number of phonon modes (nmodes) =",nmodes
     
     !! Load the fine-grid q and k grids.
     !! nkqtotf is computed inside
@@ -712,7 +743,7 @@ module readepw
     read(unitepwout,"(27X,3i4)") nkf1,nkf2,nkf3
     nktotf = nkf1 * nkf2 * nkf3
     nkqtotf = 2 * nktotf
-    write(stdout,"(5X,A,I12)") "Total number of K-point in fine mesh to be used(nktotf) = ",&
+    write(stdout,"(5X,A,I12)") "Total number of K-point in fine mesh to be used(nktotf)         = ",&
                                nktotf    
     
     
@@ -725,10 +756,7 @@ module readepw
     allocate(wkf(nktotf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating wkf',1)    
     wkf = 0.0d0
-    
-		do ik=1,nktotf
-      wkf(2*ik-1) = 1.0d0/dble(nktotf) !
-    enddo
+    wkf = 1.0d0/dble(nktotf) !
 		
     DO i = 1, nkf1
       DO j = 1, nkf2
@@ -788,8 +816,8 @@ module readepw
     read(unitepwout,"(/32X,f10.6)") ef
     ef = ef /ryd2ev
     
-    if(nelec == 0.0) then
-      write(stdout,"(5X,A,F8.4)") "WARNING! The nelec =",nelec
+    if(nelec == 0.0 .and. ieband_max==0 .and. ihband_min==0) then
+      write(stdout,"(5X,A,F8.4,A)") "WARNING! The nelec =",nelec,"and ieband_max=0 ihband_min=0"
       write(stdout,"(5X,A)") "Need to set nelec right in LVCSH.in .OR. set lreadscfout= .true."
     endif
     
@@ -912,7 +940,7 @@ module readepw
     WRITE(stdout,'(/14x,a,i5,2x,a,f9.3,a)') 'ibndmin = ', ibndmin, 'ebndmin = ', ebndmin * ryd2ev, ' eV'
     WRITE(stdout,'(14x,a,i5,2x,a,f9.3,a/)') 'ibndmax = ', ibndmax, 'ebndmax = ', ebndmax * ryd2ev, ' eV'    
     
-    allocate(etf(nbndsub,nktotf),stat=ierr)
+    allocate(etf(ibndmin:ibndmax,1:nktotf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating etf',1)
     etf = 0.0d0
     
@@ -995,7 +1023,8 @@ module readepw
       do nu=1,nmodes
         if(wf(nu,iq)<0.0) then
           wf(nu,iq)=-1.0*wf(nu,iq) 
-          write(stdout,*) "Carefully!!! the energy of phonon in iq=",iq,"modes=",nu,"=",-1.0*wf(nu,iq)
+          write(stdout,"(A)") "Carefully!!! the energy of phonon in iq=",iq,"modes=",nu,"=",-1.0*wf(nu,iq)
+					write(stdout,"(A)") "Setting asr_type='simple' in epw.in could solve this problem."
         endif
       enddo
     enddo

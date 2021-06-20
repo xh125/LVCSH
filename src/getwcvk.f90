@@ -36,11 +36,10 @@ module getwcvk
     fwhm_2T2 = fwhm**2.0/4.0*log(2.0)
     W_cvk = 0.0
     do ik=1,nkf
-      ikk = 2*ik -1
       do ibnd=ihband_min,ivbm
         do jbnd=icbm,ieband_max
           Evmef = 0.0
-          E_mnk = etf(jbnd,ikk)-etf(ibnd,ikk)
+          E_mnk = etf(jbnd,ik)-etf(ibnd,ik)
           do ipol=1,3
             Evmef =Evmef+ (efield_cart(ipol)*(vmef(ipol,jbnd,ibnd,ik)))
           enddo

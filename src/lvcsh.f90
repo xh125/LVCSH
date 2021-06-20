@@ -111,6 +111,7 @@ program lvcsh
   call allocatesh(methodsh,lelecsh,lholesh,nmodes,nqtotf)
   
   if(l_gamma_energy) then
+	  !在BO势能面进行郎之万动力学计算，设置不同的gamma，测试摩擦系数对于动力学的影响。
     
     call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,l_ph_quantum,phQ,phP)
     write(stdout,"(/5X,A51,F11.5,A2)") "The temperature of the non-adiabatic dynamica is : ",temp," K"

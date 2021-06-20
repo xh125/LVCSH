@@ -82,7 +82,7 @@ module initialsh
   subroutine init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
     use parameters,only : init_ikx,init_iky,init_ikz,init_kx,init_ky,init_kz
     use epwcom,only : nkf1,nkf2,nkf3
-    use readepw,only : etf,icbm
+    use readepw,only : etf,icbm,xkf
     use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,c_e_nk,c_h_nk
     use elph2,only  : vmef,ibndmin,ibndmax,nbndfst,nkf  !vmef(3,nbndsub,nbndsub,nkf)
     use getwcvk,only: W_cvk !(W_cvk(icbm:ieband_max,ihband_min:ivbm,nkf)
@@ -98,7 +98,7 @@ module initialsh
     integer :: ik,ihband,ieband
     real(kind=dp) :: flagr,flagd,W_cvk_all
     real(kind=dp) :: obsorbEn
-    integer :: ivbm
+    integer :: ivbm,ipol
     
     ivbm = icbm - 1
     !allocate(W_cvk(icbm:ieband_max,ihband_min:ivbm,nkf) !光激发下的跃迁几率大小
@@ -120,13 +120,13 @@ module initialsh
                  enddo
                enddo
       enddo outter
-      obsorbEn = (etf(init_eband,2*init_ik-1)-etf(init_hband,2*init_ik-1))*ryd2eV
+      obsorbEn = (etf(init_eband,init_ik)-etf(init_hband,init_ik))*ryd2eV
       write(stdout,"(/5X,A)") "Initial eh_KSstate:  "
-      write(stdout,"(5X,A3,I5)") "ik=",init_ik
+      write(stdout,"(5X,A3,I5,A8,3(F12.6,1X),A2)") "ik=",init_ik, "coord.: ( ",(xkf(ipol,init_ik),ipol=1,3)," )"
       write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_hband=",init_hband," Initial hole Energy:",&
-                                                etf(init_hband,2*init_ik-1)*ryd2eV," eV"
+                                                etf(init_hband,init_ik)*ryd2eV," eV"
       write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_eband=",init_eband," Initial elec Energy:",&
-                                                etf(init_eband,2*init_ik-1)*ryd2eV," eV"      
+                                                etf(init_eband,init_ik)*ryd2eV," eV"      
       write(stdout,"(5X,A18,F12.5,A3)")"elec-hole energy= ",obsorbEn," eV"
     else
       init_ikx = get_ik(init_kx,nkf1)

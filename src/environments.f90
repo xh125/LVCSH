@@ -43,8 +43,8 @@ module environments
     call get_date_and_time(cdate,ctime)
     
     write(stdout,"(1X,A77)") repeat("=",77)
-    write(stdout,*) "LVCSH complied with using Intel Fortran and MKL:"
-    write(stdout,*) trim(adjustl(mkl_version))
+    write(stdout,"(A)") "LVCSH complied with using Intel Fortran and MKL:"
+    write(stdout,"(A)") trim(adjustl(mkl_version))
     write(stdout,"(1X,A77)") repeat("=",77)
     
     write(stdout,"(/,1X,A77)") repeat("=",77)
