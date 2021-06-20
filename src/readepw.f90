@@ -716,30 +716,27 @@ module readepw
                                nktotf    
     
     
-    if(.not. allocated(xkf)) then 
-      allocate(xkf(3,nkqtotf),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating xkf',1)    
-    endif        
-    if(.not. allocated(wkf)) then 
-      allocate(wkf(nkqtotf),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating wkf',1)    
-    endif
+    if(allocated(xkf)) deallocate(xkf) 
+    allocate(xkf(3,nktotf),stat=ierr)
+    if(ierr /=0) call errore('readepw','Error allocating xkf',1)            
+		xkf = 0.0
+		
+    if(allocated(wkf)) deallocate(wkf) 
+    allocate(wkf(nktotf),stat=ierr)
+    if(ierr /=0) call errore('readepw','Error allocating wkf',1)    
     wkf = 0.0d0
-    do ik=1,nktotf
-      wkf(2*ik-1) = 2.0d0/dble(nkqtotf/2) !
+    
+		do ik=1,nktotf
+      wkf(2*ik-1) = 1.0d0/dble(nktotf) !
     enddo
+		
     DO i = 1, nkf1
       DO j = 1, nkf2
         DO k = 1, nkf3
           ik = (i - 1) * nkf2 * nkf3 + (j - 1) * nkf3 + k
-          ikk = 2 * ik - 1
-          ikq = ikk + 1
-          xkf(1, ikk) = DBLE(i - 1) / DBLE(nkf1)
-          xkf(2, ikk) = DBLE(j - 1) / DBLE(nkf2)
-          xkf(3, ikk) = DBLE(k - 1) / DBLE(nkf3)
-          xkf(1, ikq) = xkf(1, ikk)
-          xkf(2, ikq) = xkf(2, ikk)
-          xkf(3, ikq) = xkf(3, ikk)
+          xkf(1, ik) = DBLE(i - 1) / DBLE(nkf1)
+          xkf(2, ik) = DBLE(j - 1) / DBLE(nkf2)
+          xkf(3, ik) = DBLE(k - 1) / DBLE(nkf3)
         ENDDO
       ENDDO
     ENDDO       
@@ -915,13 +912,13 @@ module readepw
     WRITE(stdout,'(/14x,a,i5,2x,a,f9.3,a)') 'ibndmin = ', ibndmin, 'ebndmin = ', ebndmin * ryd2ev, ' eV'
     WRITE(stdout,'(14x,a,i5,2x,a,f9.3,a/)') 'ibndmax = ', ibndmax, 'ebndmax = ', ebndmax * ryd2ev, ' eV'    
     
-    allocate(etf(nbndsub,nkqf),stat=ierr)
+    allocate(etf(nbndsub,nktotf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating etf',1)
     etf = 0.0d0
     
     !! Fine mesh set of g-matrices.  It is large for memory storage
     !ALLOCATE(epf17(nbndfst, nbndfst, nmodes, nkf), STAT = ierr)
-    allocate(epcq(ibndmin:ibndmax,ibndmin:ibndmax,1:nkf,1:nmodes,1:nqf),stat=ierr)
+    allocate(epcq(ibndmin:ibndmax,ibndmin:ibndmax,1:nktotf,1:nmodes,1:nqtotf),stat=ierr)
     if(ierr /=0) call errore('readepw','Error allocating epcq',1)
 
 
@@ -934,24 +931,23 @@ module readepw
     !ELSE
     !  wf(nu, iq) = -DSQRT(ABS(w2(nu)))
     !ENDIF    
-    if(.not. allocated(wf)) then 
-      allocate(wf(nmodes,nqf),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating wf',1)    
-    endif            
+    if(allocated(wf)) deallocate(wf) 
+    allocate(wf(nmodes,nqtotf),stat=ierr)
+    if(ierr /=0) call errore('readepw','Error allocating wf',1)                
+		wf = 0.0
 
-    if(.not. allocated(kqmap)) then 
-      allocate(kqmap(nkf,nqf),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating kqmap',1)    
-    endif              
-    
+    if(allocated(kqmap)) deallocate(kqmap) 
+    allocate(kqmap(nktotf,nqtotf),stat=ierr)
+    if(ierr /=0) call errore('readepw','Error allocating kqmap',1)                  
+    kqmap = 1
   
     call findkline(unitepwout,"We only need to compute",6,28)
     read(unitepwout,"(29X,i8)") totq  ! totq = nqf
-    nqf=totq
+    !nqf=totq
       
 
     ! 1160 DO iqq = iq_restart, totq
-    do iq=1,nqf
+    do iq=1,nqtotf
       !call print_gkk(iq)
       !WRITE(stdout, '(5x, a)') ' Electron-phonon vertex |g| (meV)'   printing.f90
       call findkline(unitepwout," Electron-phonon vertex |g| (meV)",6,38)  
@@ -963,14 +959,12 @@ module readepw
       
       !! This is a loop over k blocks in the pool (size of the local k-set)
       !DO ik = 1, nkf
-      do ik=1,nkf
+      do ik=1,nktotf
         !
         ! xkf is assumed to be in crys coord
         !
-        ikk = 2*ik-1
-        ikq = ikk + 1
         read(unitepwout,'(5x,5x,i7, 9x, 3f12.7)') ik_, (xik(ipol),ipol=1,3)
-        if((xik(1) /= xkf(1,ikk)) .or. (xik(2) /= xkf(2,ikk)) .or. (xik(3) /= xkf(3,ikk)) ) then
+        if((xik(1) /= xkf(1,ik)) .or. (xik(2) /= xkf(2,ik)) .or. (xik(3) /= xkf(3,ik)) ) then
           write(stdout,*) "Warning: xkf set is wrong"
         endif
         kqmap(ik,iq) = get_ikq(xik,xiq)
@@ -989,8 +983,7 @@ module readepw
               ekk = ekk /ryd2eV
               ekq = ekq /ryd2eV
               
-              etf(ibnd,ikk) = ekk
-              etf(ibnd,ikq) = ekq
+              etf(ibnd,ik) = ekk
               !read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
                    !E_nk,E_mkq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
             enddo
