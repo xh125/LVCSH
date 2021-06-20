@@ -1020,22 +1020,37 @@ module readepw
         read(unitepwout,"(/)")
       enddo
       
-      do nu=1,nmodes
-        if(wf(nu,iq)<0.0) then
-          wf(nu,iq)=-1.0*wf(nu,iq) 
-          write(stdout,"(A)") "Carefully!!! the energy of phonon in iq=",iq,"modes=",nu,"=",-1.0*wf(nu,iq)
-					write(stdout,"(A)") "Setting asr_type='simple' in epw.in could solve this problem."
-        endif
-      enddo
     enddo
     
     etf = etf - ef
     wf = wf/ryd2mev
     !gamma 3 branch A phonon must be set to 0.
     do nu=1,3
+			wf(nu,1) = 0.0
       epcq(:,:,:,nu,1) = 0.0
     enddo
-    epcq = epcq/ryd2mev
+		
+	
+    do iq=1,nqtotf
+			do nu=1,nmodes
+				if(wf(nu,iq)<= 0.0) then
+					epcq(:,:,:,nu,iq) = 0.0
+			  endif
+			enddo
+		enddo
+		
+		do iq=1,nqtotf
+		  do nu=1,nmodes
+        if(wf(nu,iq)<0.0) then
+          write(stdout,"(A,I5,1X,A,3(F12.6,1X),A8,I5,A1,F12.6)") &
+					"Carefully!!! the energy of phonon in iq=",iq,"(coord.:",(xqf(ipol,iq),ipol=1,3),") modes=",nu,"=",wf(nu,iq)
+					write(stdout,"(A)") "Setting asr_type='simple' in epw.in could solve this problem."
+					wf(nu,iq)=0.0
+				endif
+      enddo
+		enddo
+		
+		epcq = epcq/ryd2mev
        
     call findkline(unitepwout,"matrix elements",15,29)
     read(unitepwout,"(A)") ctmp

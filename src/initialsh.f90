@@ -122,7 +122,7 @@ module initialsh
       enddo outter
       obsorbEn = (etf(init_eband,init_ik)-etf(init_hband,init_ik))*ryd2eV
       write(stdout,"(/5X,A)") "Initial eh_KSstate:  "
-      write(stdout,"(5X,A3,I5,A8,3(F12.6,1X),A2)") "ik=",init_ik, "coord.: ( ",(xkf(ipol,init_ik),ipol=1,3)," )"
+      write(stdout,"(5X,A3,I5,1X,A10,3(F12.6,1X),A2)") "ik=",init_ik, "coord.: ( ",(xkf(ipol,init_ik),ipol=1,3)," )"
       write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_hband=",init_hband," Initial hole Energy:",&
                                                 etf(init_hband,init_ik)*ryd2eV," eV"
       write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_eband=",init_eband," Initial elec Energy:",&
@@ -220,23 +220,23 @@ module initialsh
     do iq=1,nq
       do imode=1,nmodes
         womiga = w(imode,iq)
-        E_ph_class   = K_B_Ryd*T  ! IN class 
-        E_ph_CA_sum  = E_ph_CA_sum + E_ph_class
-        E_ph_quantum = (bolziman(womiga,T)+0.5)*womiga ! In Quantum
-        E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum
-        
-        if(l_ph_quantum) then
-          ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)
-          ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))      
+
+        if(womiga <= 0.0) then
+          ph_Q(imode,iq)=0.0
+          ph_P(imode,iq)=0.0
         else
-          ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class)/womiga)
-          ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class))                
+					E_ph_class   = K_B_Ryd*T  ! IN class 
+					E_ph_CA_sum  = E_ph_CA_sum + E_ph_class
+					E_ph_quantum = (bolziman(womiga,T)+0.5)*womiga ! In Quantum
+					E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum				
+					if(l_ph_quantum) then
+						ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)
+						ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))      
+					else
+						ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class)/womiga)
+						ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class))                
+					endif
         endif
-        
-        !if(iq==1 .and. imode <=3) then
-        !  ph_Q(imode,iq)=0.0
-        !  ph_P(imode,iq)=0.0
-        !endif
         
       enddo
     enddo

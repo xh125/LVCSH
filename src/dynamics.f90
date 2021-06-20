@@ -239,12 +239,16 @@ module dynamics
       do imode=1,nmodes
         womiga = wf(imode,iq)
         gamma = ld_gamma(imode,iq)
-        if(l_ph_quantum) then
-          aver_E_T = (bolziman(womiga,temp)+0.5)*womiga
-          !aver_E_T = KB*TEMP
-        else
-          aver_E_T = KB*TEMP
-        endif
+        if(womiga > 0.0) then
+					if(l_ph_quantum) then
+						aver_E_T = (bolziman(womiga,temp)+0.5)*womiga
+						!aver_E_T = KB*TEMP
+					else
+						aver_E_T = KB*TEMP
+					endif
+				else
+					aver_E_T = 0.0
+				endif
         SIGMAR=DSQRT(2.0*gamma*aver_E_T*TT)
         wwf2 = wf(imode,iq)**2+dEa2_dQ2(imode,iq)
       
