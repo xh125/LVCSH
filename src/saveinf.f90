@@ -13,8 +13,13 @@ module saveinf
   character(len=10):: wsit_e_file="wsit_e.dat"
   character(len=10):: wsit_h_file="wsit_h.dat" 
   character(len=10):: psit_e_file="psit_e.dat"
-  character(len=10):: psit_h_file="psit_h.dat"   
-  
+  character(len=10):: psit_h_file="psit_h.dat"
+  character(len=10):: mskd_e_file="mskd_e.dat"
+  character(len=10):: mskd_h_file="mskd_h.dat"
+  character(len=11):: mskds_e_file="mskds_e.dat"
+  character(len=11):: mskds_h_file="mskds_h.dat"	
+  character(len=9):: ipr_e_file  ="ipr_e.dat"
+  character(len=9):: ipr_h_file  ="ipr_h.dat"  
   contains 
   
   subroutine save_pes(nfre,nsnap,naver,pes,pes_filename)
@@ -180,4 +185,61 @@ module saveinf
    
   end subroutine save_phU  
   
+	subroutine save_mskd(nsnap,mskd,mskd_file)
+		implicit none
+		integer,intent(in) :: nsnap
+		real(kind=dp),intent(in) :: mskd(0:nsnap)
+		character(len=10),intent(in) :: mskd_file
+		
+		integer :: mskd_unit
+		
+		mskd_unit = io_file_unit()
+		call open_file(mskd_file,mskd_unit)
+		
+		do isnap=0,nsnap
+      write(mskd_unit,"(A5,F11.2,A5,1X,A6,1X,E12.5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs).","mskd= ",mskd(isnap)
+    enddo  			
+		
+		call close_file(mskd_file,mskd_unit)
+		
+	end subroutine save_mskd
+	
+	subroutine save_mskds(nsnap,naver,mskds,mskds_file)
+		implicit none
+		integer,intent(in) :: nsnap,naver
+		real(kind=dp),intent(in) :: mskds(0:nsnap,naver)
+		character(len=11),intent(in) :: mskds_file
+		
+		integer :: mskds_unit
+		
+		mskds_unit = io_file_unit()
+		call open_file(mskds_file,mskds_unit)
+		
+		do isnap=0,nsnap
+      write(mskds_unit,"(A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)."
+			write(mskds_unit,"(7(1X,E12.5))") (mskds(isnap,iaver),iaver=1,naver)
+    enddo  			
+		
+		call close_file(mskds_file,mskds_unit)		
+	
+	end subroutine
+	
+	subroutine save_ipr(nsnap,ipr,ipr_file)
+		implicit none
+		integer,intent(in) :: nsnap
+		real(kind=dp),intent(in) :: ipr(0:nsnap)
+		character(len=9),intent(in) :: ipr_file
+		
+		integer :: ipr_unit
+		
+		ipr_unit = io_file_unit()
+		call open_file(ipr_file,ipr_unit)
+		
+		do isnap=0,nsnap
+      write(ipr_unit,"(A5,F11.2,A5,1X,A6,1X,E12.5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs).","ipr= ",ipr(isnap)
+    enddo  			
+		
+		call close_file(ipr_file,ipr_unit)	
+	end subroutine save_ipr
+	
 end module saveinf

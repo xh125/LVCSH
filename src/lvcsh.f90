@@ -79,7 +79,10 @@ program lvcsh
   use saveinf,only : pes_e_file,pes_h_file,save_pes,save_phQ,save_phP,save_phK,save_phU,&
                      csit_e_file,csit_h_file,save_csit,&
                      wsit_e_file,wsit_h_file,save_wsit,&
-                     psit_e_file,psit_h_file,save_psit
+                     psit_e_file,psit_h_file,save_psit,&
+										 mskd_e_file,mskd_h_file,save_mskd,&
+										 mskds_e_file,mskds_h_file,save_mskds,&
+										 ipr_e_file,ipr_h_file,save_ipr
   implicit none
   
   !===============!
@@ -695,6 +698,9 @@ program lvcsh
     call save_csit(nefre,nsnap,naver,csit_e,csit_e_file)
     call save_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
     call save_psit(nefre,nsnap,naver,psit_e,psit_e_file)
+		call save_mskds(nsnap,naver,mskds_e,mskds_e_file)
+		call save_mskd(nsnap,mskd_e,mskd_e_file)
+		call save_ipr(nsnap,ipr_e,ipr_e_file)
   endif
   
   if(lholesh) then
@@ -702,6 +708,9 @@ program lvcsh
     call save_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
     call save_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
     call save_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
+		call save_mskds(nsnap,naver,mskds_h,mskds_h_file)
+		call save_mskd(nsnap,mskd_h,mskd_h_file)
+		call save_ipr(nsnap,ipr_h,ipr_h_file)
   endif
   
   
