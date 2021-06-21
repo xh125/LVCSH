@@ -57,9 +57,9 @@ module surfacecom
   real(kind=dp),allocatable :: d_e(:,:,:,:) ,d_h(:,:,:,:) ,g_e(:) ,g_h(:)
   real(kind=dp),allocatable :: d0_e(:,:,:,:),d0_h(:,:,:,:),g1_e(:),g1_h(:)  
   real(kind=dp),allocatable :: pes_e(:,:,:),csit_e(:,:),wsit_e(:,:),&
-                               psit_e(:,:),& 
+                               psit_e(:,:),mskds_e(:,:),mskd_e(:),ipr_e(:),& 
                                pes_h(:,:,:),csit_h(:,:),wsit_h(:,:),&
-                               psit_h(:,:) 
+                               psit_h(:,:),mskds_h(:,:),mskd_h(:),ipr_h(:)
                                
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
   

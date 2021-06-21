@@ -14,8 +14,8 @@ module surfacehopping
                          d0_e,&
                          d_h,g_h,g1_h,c_h_nk,w_h,w0_h,&
                          d0_h,&
-                         pes_e,csit_e,wsit_e,psit_e,&
-                         pes_h,csit_h,wsit_h,psit_h
+                         pes_e,csit_e,wsit_e,psit_e,mskds_e,mskd_e,ipr_e,&
+                         pes_h,csit_h,wsit_h,psit_h,mskds_h,mskd_h,ipr_h
                          
   use cc_fssh,only : S_ai_e,S_ai_h,S_bi_e,S_bi_h
                   
@@ -41,10 +41,10 @@ module surfacehopping
     if(ierr /=0) call errore('surfacehopping','Error allocating phQ',1)
     phQ = 0.0
     ! phonons normal mode coordinates
-    allocate(phQsit(nmodes,nq,nsnap))
-    allocate(phPsit(nmodes,nq,nsnap))
-    allocate(phKsit(nmodes,nq,nsnap))
-    allocate(phUsit(nmodes,nq,nsnap))
+    allocate(phQsit(nmodes,nq,0:nsnap))
+    allocate(phPsit(nmodes,nq,0:nsnap))
+    allocate(phKsit(nmodes,nq,0:nsnap))
+    allocate(phUsit(nmodes,nq,0:nsnap))
     phQsit = 0.0d0
     phPsit = 0.0d0
     phKsit = 0.0d0
@@ -80,15 +80,20 @@ module surfacehopping
       allocate(c_e_nk(neband,nktotf),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)
       
-      allocate(pes_e(0:nefre,1:nsnap,1:naver))
-      allocate(csit_e(nefre,nsnap))
-      allocate(wsit_e(nefre,nsnap))
-      allocate(psit_e(nefre,nsnap))
+      allocate(pes_e(0:nefre,0:nsnap,1:naver))
+      allocate(csit_e(nefre,0:nsnap))
+      allocate(wsit_e(nefre,0:nsnap))
+      allocate(psit_e(nefre,0:nsnap))
+			allocate(mskds_e(0:nsnap,naver),mskd_e(0:nsnap),ipr_e(0:nsnap))
       pes_e  = 0.0d0
       csit_e = 0.0d0
       wsit_e = 0.0d0
       psit_e = 0.0d0
-      
+      mskds_e= 0.0
+			mskd_e = 0.0
+			ipr_e  = 0.0
+			
+			
       if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
         allocate(cc0_e(nefre),stat=ierr)
         if(ierr /=0) call errore('surfacehopping','Error allocating cc0_e',1)
@@ -143,15 +148,18 @@ module surfacehopping
       allocate(c_h_nk(nhband,nktotf),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h_nk',1)  
       
-      allocate(pes_h(0:nefre,1:nsnap,1:naver))
-      allocate(csit_h(nhfre,nsnap))
-      allocate(wsit_h(nhfre,nsnap))
-      allocate(psit_h(nhfre,nsnap))
+      allocate(pes_h(0:nefre,0:nsnap,1:naver))
+      allocate(csit_h(nhfre,0:nsnap))
+      allocate(wsit_h(nhfre,0:nsnap))
+      allocate(psit_h(nhfre,0:nsnap))
+		  allocate(mskds_h(0:nsnap,naver),mskd_h(0:nsnap),ipr_h(0:nsnap))
       pes_h  = 0.0
       csit_h = 0.0
       wsit_h = 0.0
       psit_h = 0.0
-      
+      mskds_h= 0.0
+			mskd_h = 0.0
+			ipr_h  = 0.0
       if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
         allocate(cc0_h(nhfre),stat=ierr)
         if(ierr /=0) call errore('surfacehopping','Error allocating cc0_h',1)

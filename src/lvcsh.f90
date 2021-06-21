@@ -24,6 +24,8 @@ program lvcsh
   !!=================================================================================================  
   use mkl_service
   use omp_lib
+  use f95_precision
+  use blas95	
   use constants,only      : maxlen,ryd2eV,ry_to_fs
   use environments,only   : environment_start,mkl_threads,&
                             set_mkl_threads,lsetthreads
@@ -52,8 +54,8 @@ program lvcsh
                             c_e,c_e_nk,d_e,d0_e,&
                             c_h,c_h_nk,d_h,d0_h,&
                             dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
-                            csit_e,wsit_e,pes_e,psit_e,&
-                            csit_h,wsit_h,pes_h,psit_h,&
+                            csit_e,wsit_e,pes_e,psit_e,mskds_e,mskd_e,ipr_e,&
+                            csit_h,wsit_h,pes_h,psit_h,mskds_h,mskd_h,ipr_h,&
                             E_ph_CA_sum,E_ph_QA_sum,ld_fric,ld_gamma
   use fssh,only           : nonadiabatic_transition_fssh
   use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
@@ -66,8 +68,9 @@ program lvcsh
                             allocatesh,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability
-  use elph2,only          : wf,nqtotf,nktotf,nbndfst
+  use elph2,only          : wf,xkf,nqtotf,nktotf,nbndfst
   use modes,only          : nmodes
+	use cell_base,only      : bg
   use date_and_times,only : get_date_and_time
   use io      ,only       : stdout,io_time,time1,time2,time_
   use dynamics,only       : set_gamma,get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,&
@@ -82,8 +85,9 @@ program lvcsh
   !===============!
   != preparation =!
   !===============!
-  integer :: iq,imode,ifre,igamma
+  integer :: iq,imode,ifre,igamma,ik,iband
   real(kind=8) :: t0,t1,time
+	real(kind=dp) :: flagd,xkg_(3),xk_(3)
   character(len=9) :: cdate,ctime
   character(len=2) :: ctimeunit
   call cpu_time(t0)  
@@ -327,6 +331,66 @@ program lvcsh
     endif
 
 
+
+    !=============================!
+    != store initial information =!
+    !=============================!    
+      isnap = 0
+			do iq=1,nqtotf
+        do imode=1,nmodes
+          phQsit(imode,iq,isnap) = phQsit(imode,iq,isnap)+phQ(imode,iq)
+          phPsit(imode,iq,isnap) = phPsit(imode,iq,isnap)+phP(imode,iq)
+          phKsit(imode,iq,isnap) = phKsit(imode,iq,isnap)+phK(imode,iq)
+          phUsit(imode,iq,isnap) = phUsit(imode,iq,isnap)+phU(imode,iq)
+        enddo
+      enddo
+      
+      if(lelecsh) then
+        pes_e(0,isnap,iaver) = E_e(iesurface)
+				flagd = 0.0
+        do ik=1,nktotf
+					xkg_ = xkf(:,ik)-xkf(:,init_ik)
+					call gemv(bg,xkg_,xk_)
+					do iband=1,neband
+						ifre = (ik-1) *neband+iband
+						csit_e(ifre,isnap) = csit_e(ifre,isnap)+REAL(c_e(ifre)*CONJG(c_e(ifre)))
+						wsit_e(ifre,isnap) = wsit_e(ifre,isnap)+REAL(w_e(ifre)*CONJG(w_e(ifre)))
+						psit_e(ifre,isnap) = psit_e(ifre,isnap)+P_e(ifre,iesurface)**2
+						pes_e( ifre,isnap,iaver) = E_e(ifre)
+						mskds_e(isnap,iaver) = mskds_e(isnap,iaver)+&
+						P_e(ifre,iesurface)**2*SUM((xk_)**2) !in unit of (2pi/a0)**2
+						flagd = flagd + P_e(ifre,iesurface)**4
+					enddo
+				enddo
+				ipr_e(isnap) = ipr_e(isnap) + 1/flagd
+				mskd_e(isnap) = mskd_e(isnap)+mskds_e(isnap,iaver)
+      endif
+      
+      if(lholesh) then
+        pes_h(0,isnap,iaver) = -E_h(ihsurface)
+				flagd = 0.0
+				do ik=1,nktotf
+					xkg_ = xkf(:,ik)-xkf(:,init_ik)
+					call gemv(bg,xkg_,xk_)
+					do iband = 1, nhband
+						ifre = (ik-1) *nhband + iband
+						csit_h(ifre,isnap) = csit_h(ifre,isnap)+REAL(c_h(ifre)*CONJG(c_h(ifre)))
+						wsit_h(ifre,isnap) = wsit_h(ifre,isnap)+REAL(w_h(ifre)*CONJG(w_h(ifre)))
+						psit_h(ifre,isnap) = psit_h(ifre,isnap)+P_h(ifre,iesurface)**2
+						pes_h( ifre,isnap,iaver) = -1.0*E_h(ifre)
+						mskds_h(isnap,iaver) = mskds_h(isnap,iaver)+&
+						P_h(ifre,ihsurface)**2*SUM((xk_)**2) !in unit of (2pi/a0)**2
+						flagd = flagd + P_h(ifre,iesurface)**4						
+					enddo
+        enddo
+				ipr_h(isnap) = ipr_h(isnap) + 1/flagd
+				mskd_h(isnap) = mskd_h(isnap)+mskds_h(isnap,iaver)				
+      endif
+    !=================================!
+    != End store initial information =!
+    !=================================!    
+			
+		 
     !=======================!
     != loop over snapshots =!
     !=======================!
@@ -554,22 +618,44 @@ program lvcsh
       
       if(lelecsh) then
         pes_e(0,isnap,iaver) = E_e(iesurface)
-        do ifre = 1,nefre
-          csit_e(ifre,isnap) = csit_e(ifre,isnap)+REAL(c_e(ifre)*CONJG(c_e(ifre)))
-          wsit_e(ifre,isnap) = wsit_e(ifre,isnap)+REAL(w_e(ifre)*CONJG(w_e(ifre)))
-          psit_e(ifre,isnap) = psit_e(ifre,isnap)+P_e(ifre,iesurface)**2
-          pes_e( ifre,isnap,iaver) = E_e(ifre)
-        enddo
+				flagd = 0.0
+        do ik=1,nktotf
+					xkg_ = xkf(:,ik)-xkf(:,init_ik)
+					call gemv(bg,xkg_,xk_)
+					do iband=1,neband
+						ifre = (ik-1) *neband+iband
+						csit_e(ifre,isnap) = csit_e(ifre,isnap)+REAL(c_e(ifre)*CONJG(c_e(ifre)))
+						wsit_e(ifre,isnap) = wsit_e(ifre,isnap)+REAL(w_e(ifre)*CONJG(w_e(ifre)))
+						psit_e(ifre,isnap) = psit_e(ifre,isnap)+P_e(ifre,iesurface)**2
+						pes_e( ifre,isnap,iaver) = E_e(ifre)
+						mskds_e(isnap,iaver) = mskds_e(isnap,iaver)+&
+						P_e(ifre,iesurface)**2*SUM((xk_)**2) !in unit of (2pi/a0)**2
+						flagd = flagd + P_e(ifre,iesurface)**4
+					enddo
+				enddo
+				ipr_e(isnap) = ipr_e(isnap) + 1/flagd
+				mskd_e(isnap) = mskd_e(isnap)+mskds_e(isnap,iaver)
       endif
       
       if(lholesh) then
         pes_h(0,isnap,iaver) = -E_h(ihsurface)
-        do ifre = 1,nhfre
-          csit_h(ifre,isnap) = csit_h(ifre,isnap)+abs(c_h(ifre))**2
-          wsit_h(ifre,isnap) = wsit_h(ifre,isnap)+abs(w_h(ifre))**2
-          psit_h(ifre,isnap) = psit_h(ifre,isnap)+P_h(ifre,iesurface)**2
-          pes_h( ifre,isnap,iaver) = -1.0*E_h(ifre)
+				flagd = 0.0
+				do ik=1,nktotf
+					xkg_ = xkf(:,ik)-xkf(:,init_ik)
+					call gemv(bg,xkg_,xk_)
+					do iband = 1, nhband
+						ifre = (ik-1) *nhband + iband
+						csit_h(ifre,isnap) = csit_h(ifre,isnap)+REAL(c_h(ifre)*CONJG(c_h(ifre)))
+						wsit_h(ifre,isnap) = wsit_h(ifre,isnap)+REAL(w_h(ifre)*CONJG(w_h(ifre)))
+						psit_h(ifre,isnap) = psit_h(ifre,isnap)+P_h(ifre,iesurface)**2
+						pes_h( ifre,isnap,iaver) = -1.0*E_h(ifre)
+						mskds_h(isnap,iaver) = mskds_h(isnap,iaver)+&
+						P_h(ifre,ihsurface)**2*SUM((xk_)**2) !in unit of (2pi/a0)**2
+						flagd = flagd + P_h(ifre,iesurface)**4						
+					enddo
         enddo
+				ipr_h(isnap) = ipr_h(isnap) + 1/flagd
+				mskd_h(isnap) = mskd_h(isnap)+mskds_h(isnap,iaver)				
       endif
       
     enddo
@@ -583,12 +669,16 @@ program lvcsh
     csit_e = csit_e /naver
     wsit_e = wsit_e /naver
     psit_e = psit_e /naver
+		mskd_e = mskd_e /naver
+		ipr_e  = ipr_e /naver
   endif
   
   if(lholesh) then
     csit_h = csit_h /naver
     wsit_h = wsit_h /naver
     psit_h = psit_h /naver
+		mskd_h = mskd_h /naver
+		ipr_h  = ipr_h /naver
   endif
 
 
