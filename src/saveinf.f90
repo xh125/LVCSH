@@ -37,7 +37,7 @@ module saveinf
     write(apes_unit,"(A6,I8,A)") "naver=",naver, " apes(isnap,iaver)"
     do isnap=0,nsnap
       write(apes_unit,"(5X,A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)."
-      write(apes_unit,"(7(1X,E12.5))") (apes(isnap,iaver),iaver=0,naver)
+      write(apes_unit,"(7(1X,E12.5))") (apes(isnap,iaver),iaver=1,naver)
     enddo
  
     call close_file(apes_filename,apes_unit)
@@ -68,7 +68,7 @@ module saveinf
 
     do isnap=0,nsnap
       read(apes_unit,*)
-		  read(apes_unit,"(7(1X,E12.5))") (apes_(isnap,iaver),iaver=0,naver)
+		  read(apes_unit,"(7(1X,E12.5))") (apes_(isnap,iaver),iaver=1,naver)
     enddo
 
 		

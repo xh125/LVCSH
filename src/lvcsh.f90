@@ -588,7 +588,7 @@ program lvcsh
             iesurface_ = iesurface+(ieband_min-1)*nktotf
             !write(stdout,"(/,A)") "isnap istep runtime iesur ihsur  &
             !&en_e(eV)  en_h(eV)  en_eh(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)" 
-           if(trim(verbosity)=="high") then
+           if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
 						write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") time_,(time2-time1),ihsurface_,iesurface_,&
             -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV
@@ -596,7 +596,7 @@ program lvcsh
 					else 
             !write(stdout,"(/,A)") "isnap istep runtime ihsur  &
             !& en_h(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"  
-           if(trim(verbosity)=="high") then
+           if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
 						write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),ihsurface_,-e_h(ihsurface)*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV
 					 endif
@@ -606,7 +606,7 @@ program lvcsh
             iesurface_ = iesurface+(ieband_min-1)*nktotf
             !write(stdout,"(/,A)") "isnap istep runtime iesur  &
             !&en_e(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"
-           if(trim(verbosity)=="high") then
+           if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
 						write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),iesurface_,E_e(iesurface)*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV            
            endif
@@ -785,6 +785,8 @@ program lvcsh
 			mskd_h = mskd_h /nnode*ncore
 			ipr_h  = ipr_h / nnode*ncore
 		endif		
+		
+		
 		
 		
 	endif
