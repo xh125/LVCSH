@@ -59,7 +59,8 @@ module surfacecom
   real(kind=dp),allocatable :: pes_e(:,:,:),csit_e(:,:),wsit_e(:,:),&
                                psit_e(:,:),mskds_e(:,:),mskd_e(:),ipr_e(:),& 
                                pes_h(:,:,:),csit_h(:,:),wsit_h(:,:),&
-                               psit_h(:,:),mskds_h(:,:),mskd_h(:),ipr_h(:)
+                               psit_h(:,:),mskds_h(:,:),mskd_h(:),ipr_h(:),&
+															 apes_e(:,:),apes_sum_e(:,:),apes_h(:,:),apes_sum_h(:,:)
                                
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
   

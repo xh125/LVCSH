@@ -5,7 +5,7 @@ module surfacehopping
   use hamiltonian,only : nphfre,neband,nhband,nefre,nhfre,&
                          E_e,P_e,P_e_nk,E0_e,P0_e,P0_e_nk,&
                          E_h,E_h_,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
-  use parameters, only : nsnap,naver
+  use parameters, only : nsnap,naver,ncore,nnode
   use surfacecom, only : iesurface,ihsurface,esurface_type,hsurface_type,&
                          phQ,phP,phQ0,phP0,phK,phU,SUM_phU,SUM_phK,SUM_phE,&
                          phQsit,phPsit,phKsit,phUsit,ld_gamma,&
@@ -15,7 +15,8 @@ module surfacehopping
                          d_h,g_h,g1_h,c_h_nk,w_h,w0_h,&
                          d0_h,&
                          pes_e,csit_e,wsit_e,psit_e,mskds_e,mskd_e,ipr_e,&
-                         pes_h,csit_h,wsit_h,psit_h,mskds_h,mskd_h,ipr_h
+                         pes_h,csit_h,wsit_h,psit_h,mskds_h,mskd_h,ipr_h,&
+												 apes_e,apes_sum_e,apes_h,apes_sum_h
                          
   use cc_fssh,only : S_ai_e,S_ai_h,S_bi_e,S_bi_h
                   
@@ -81,6 +82,7 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)
       
       allocate(pes_e(0:nefre,0:nsnap,1:naver))
+			allocate(apes_e(0:nsnap,1:naver),apes_sum_e(0:nsnap,1:naver*ncore*nnode))
       allocate(csit_e(nefre,0:nsnap))
       allocate(wsit_e(nefre,0:nsnap))
       allocate(psit_e(nefre,0:nsnap))
@@ -149,6 +151,7 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h_nk',1)  
       
       allocate(pes_h(0:nefre,0:nsnap,1:naver))
+			allocate(apes_h(0:nsnap,1:naver),apes_sum_h(0:nsnap,1:naver*ncore*nnode))
       allocate(csit_h(nhfre,0:nsnap))
       allocate(wsit_h(nhfre,0:nsnap))
       allocate(psit_h(nhfre,0:nsnap))

@@ -34,7 +34,8 @@ program lvcsh
   use readphout,only      : readph_out
   use readepw,only        : readepwout
   use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,inputfilename,&
-                            llaser,init_ik,init_eband,init_hband                        
+                            llaser,init_ik,init_eband,init_hband,&
+														calculation,verbosity,nnode,ncore,naver_sum
   use hamiltonian,only    : nefre,neband,H_e,H_e_nk,E_e,P_e,P_e_nk,P0_e_nk,epcq_e,H0_e_nk,E0_e,P0_e,&
                             nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,epcq_h,H0_h_nk,E0_h,P0_h,&
                             E_h_,&
@@ -56,6 +57,7 @@ program lvcsh
                             dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
                             csit_e,wsit_e,pes_e,psit_e,mskds_e,mskd_e,ipr_e,&
                             csit_h,wsit_h,pes_h,psit_h,mskds_h,mskd_h,ipr_h,&
+														apes_e,apes_sum_e,apes_h,apes_sum_h,&
                             E_ph_CA_sum,E_ph_QA_sum,ld_fric,ld_gamma
   use fssh,only           : nonadiabatic_transition_fssh
   use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
@@ -76,19 +78,21 @@ program lvcsh
   use dynamics,only       : set_gamma,get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,&
                             ADD_BATH_EFFECT
   
-  use saveinf,only : pes_e_file,pes_h_file,save_pes,save_phQ,save_phP,save_phK,save_phU,&
-                     csit_e_file,csit_h_file,save_csit,&
-                     wsit_e_file,wsit_h_file,save_wsit,&
-                     psit_e_file,psit_h_file,save_psit,&
-										 mskd_e_file,mskd_h_file,save_mskd,&
-										 mskds_e_file,mskds_h_file,save_mskds,&
-										 ipr_e_file,ipr_h_file,save_ipr
+  use saveinf,only : pes_e_file,pes_h_file,apes_e_file,apes_h_file,&
+									   save_pes,save_apes,save_phQ,save_phP,save_phK,save_phU,&
+                     read_pes,read_apes,read_phQ,read_phP,read_phK,read_phU,&
+										 csit_e_file,csit_h_file,save_csit,read_csit,&
+                     wsit_e_file,wsit_h_file,save_wsit,read_wsit,&
+                     psit_e_file,psit_h_file,save_psit,read_psit,&
+										 mskd_e_file,mskd_h_file,save_mskd,read_mskd,&
+										 mskds_e_file,mskds_h_file,save_mskds,read_mskds,&
+										 ipr_e_file,ipr_h_file,save_ipr,read_ipr
   implicit none
   
   !===============!
   != preparation =!
   !===============!
-  integer :: iq,imode,ifre,igamma,ik,iband
+  integer :: iq,imode,ifre,igamma,ik,iband,inode,icore,iaver_i,iaver_f
   real(kind=8) :: t0,t1,time
 	real(kind=dp) :: flagd,xkg_(3),xk_(3)
   character(len=9) :: cdate,ctime
@@ -117,6 +121,7 @@ program lvcsh
   
   call allocatesh(methodsh,lelecsh,lholesh,nmodes,nqtotf)
   
+	if(trim(calculation) == "lvcsh") then
   if(l_gamma_energy) then
 	  !在BO势能面进行郎之万动力学计算，设置不同的gamma，测试摩擦系数对于动力学的影响。
     
@@ -583,23 +588,29 @@ program lvcsh
             iesurface_ = iesurface+(ieband_min-1)*nktotf
             !write(stdout,"(/,A)") "isnap istep runtime iesur ihsur  &
             !&en_e(eV)  en_h(eV)  en_eh(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)" 
-            write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") time_,(time2-time1),ihsurface_,iesurface_,&
+           if(trim(verbosity)=="high") then
+						write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") time_,(time2-time1),ihsurface_,iesurface_,&
             -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV
-          else 
+					 endif
+					else 
             !write(stdout,"(/,A)") "isnap istep runtime ihsur  &
             !& en_h(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"  
-            write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),ihsurface_,-e_h(ihsurface)*ryd2eV,&
+           if(trim(verbosity)=="high") then
+						write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),ihsurface_,-e_h(ihsurface)*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV
-          endif
+					 endif
+					endif
         else
           if(lelecsh) then
             iesurface_ = iesurface+(ieband_min-1)*nktotf
             !write(stdout,"(/,A)") "isnap istep runtime iesur  &
             !&en_e(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"
-            write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),iesurface_,E_e(iesurface)*ryd2eV,&
+           if(trim(verbosity)=="high") then
+						write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),iesurface_,E_e(iesurface)*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV            
-          else
+           endif
+					else
             write(stdout,"(/,A)") "Error!! lelecsh and lholesh must have one need to be set TRUE."
           endif
         endif        
@@ -621,6 +632,7 @@ program lvcsh
       
       if(lelecsh) then
         pes_e(0,isnap,iaver) = E_e(iesurface)
+				apes_e(isnap,iaver)  = E_e(iesurface)
 				flagd = 0.0
         do ik=1,nktotf
 					xkg_ = xkf(:,ik)-xkf(:,init_ik)
@@ -642,6 +654,7 @@ program lvcsh
       
       if(lholesh) then
         pes_h(0,isnap,iaver) = -E_h(ihsurface)
+				apes_h(isnap,iaver)  = -E_h(ihsurface)
 				flagd = 0.0
 				do ik=1,nktotf
 					xkg_ = xkf(:,ik)-xkf(:,init_ik)
@@ -695,6 +708,7 @@ program lvcsh
   
   if(lelecsh) then
     call save_pes(nefre,nsnap,naver,pes_e,pes_e_file)
+		call save_apes(nsnap,naver,apes_e,apes_e_file)
     call save_csit(nefre,nsnap,naver,csit_e,csit_e_file)
     call save_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
     call save_psit(nefre,nsnap,naver,psit_e,psit_e_file)
@@ -705,6 +719,7 @@ program lvcsh
   
   if(lholesh) then
     call save_pes(nhfre,nsnap,naver,pes_h,pes_h_file)
+		call save_apes(nsnap,naver,apes_h,apes_h_file)
     call save_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
     call save_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
     call save_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
@@ -714,6 +729,65 @@ program lvcsh
   endif
   
   
+	elseif(trim(calculation)=="plot") then
+		naver_sum = naver*nnode*ncore
+		do inode=1,nnode
+			do icore=1,ncore
+				iaver_i = (((inode-1)*ncore+icore-1)*naver)+1
+				iaver_f = ((inode-1)*ncore+icore)*naver
+				call read_phQ(inode,icore,nmodes,nqtotf,nsnap,phQsit)
+				call read_phP(inode,icore,nmodes,nqtotf,nsnap,phPsit)
+				call read_phK(inode,icore,nmodes,nqtotf,nsnap,phKsit)
+				call read_phU(inode,icore,nmodes,nqtotf,nsnap,phUsit)
+				if(lelecsh) then
+					call read_apes(inode,icore,nsnap,naver,apes_e,apes_e_file)
+					apes_sum_e(0:nsnap,iaver_i:iaver_f) = apes_e
+					call read_pes( inode,icore,nefre,nsnap,naver,pes_e,pes_e_file)
+					call read_csit(inode,icore,nefre,nsnap,naver,csit_e,csit_e_file)
+					call read_wsit(inode,icore,nefre,nsnap,naver,wsit_e,wsit_e_file)
+					call read_psit(inode,icore,nefre,nsnap,naver,psit_e,psit_e_file)
+					call read_mskds(inode,icore,nsnap,naver,mskds_e,mskds_e_file)
+					call read_mskd( inode,icore,nsnap,mskd_e,mskd_e_file)
+					call read_ipr(  inode,icore,nsnap,ipr_e,ipr_e_file)
+				endif
+				
+				if(lholesh) then
+					call read_apes(inode,icore,nsnap,naver,apes_h,apes_h_file)
+					apes_sum_h(0:nsnap,iaver_i:iaver_f) = apes_h
+					call read_pes( inode,icore,nhfre,nsnap,naver,pes_h,pes_h_file)
+					call read_csit(inode,icore,nhfre,nsnap,naver,csit_h,csit_h_file)
+					call read_wsit(inode,icore,nhfre,nsnap,naver,wsit_h,wsit_h_file)
+					call read_psit(inode,icore,nhfre,nsnap,naver,psit_h,psit_h_file)
+					call read_mskds(inode,icore,nsnap,naver,mskds_h,mskds_h_file)
+					call read_mskd( inode,icore,nsnap,mskd_h,mskd_h_file)
+					call read_ipr(  inode,icore,nsnap,ipr_h,ipr_h_file)
+				endif
+
+				
+			enddo
+	  enddo
+		phQsit = phQsit /nnode*ncore
+		phPsit = phPsit /nnode*ncore
+		phKsit = phKsit /nnode*ncore
+		phUsit = phUsit /nnode*ncore		
+		if(lelecsh) then
+			csit_e = csit_e /nnode*ncore
+			wsit_e = wsit_e /nnode*ncore
+			psit_e = psit_e /nnode*ncore
+			mskd_e = mskd_e /nnode*ncore
+			ipr_e  = ipr_e / nnode*ncore
+		endif
+		
+		if(lholesh) then
+			csit_h = csit_h /nnode*ncore
+			wsit_h = wsit_h /nnode*ncore
+			psit_h = psit_h /nnode*ncore
+			mskd_h = mskd_h /nnode*ncore
+			ipr_h  = ipr_h / nnode*ncore
+		endif		
+		
+		
+	endif
   
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% Write End information          %!

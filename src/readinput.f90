@@ -1,7 +1,7 @@
 module readinput
   use kinds,     only : dp
   use constants, only : maxlen
-  use parameters,only : &
+  use parameters,only : calculation,verbosity,&
                         lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
                         methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,pre_dt,&
                         gamma,ld_fric,dt,temp,l_ph_quantum,&
@@ -9,7 +9,7 @@ module readinput
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
                         llaser,efield,efield_cart,w_laser,fwhm,nelec,&
                         lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
-                        ieband_min,ieband_max,ihband_min,ihband_max
+                        ieband_min,ieband_max,ihband_min,ihband_max,nnode,ncore
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
   implicit none
@@ -159,6 +159,8 @@ module readinput
     rewind(incar_unit)
     
     !   set default values for variables in namelist
+		calculation   = "lvcsh"
+		verbosity     = "low"
     methodsh      = "FSSH"
     lfeedback     = .true.
     l_ph_quantum  = .true.
@@ -202,6 +204,8 @@ module readinput
     efield_cart   = (/ 0.0,0.0,1.0 /)  ! V/m
     w_laser       = 1.0    ! eV
     fwhm          = 10     ! fs
+		nnode         = 1
+		ncore         = 1
     
     lsetthreads   = .FALSE.
     mkl_threads   = 4    
