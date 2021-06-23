@@ -47,7 +47,7 @@ program lvcsh
   use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_eh_KSstat,&
                             init_stat_diabatic,init_surface
   use surfacecom,only     : methodsh,lfeedback,naver,nsnap,nstep,dt,pre_nstep,pre_dt,l_ph_quantum,&
-                            gamma,temp,iaver,isnap,istep,&
+                            gamma,temp,iaver,isnap,istep,ldecoherence,Cdecoherence,&
                             l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&
                             lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,&
                             iesurface,ihsurface,iesurface_j,ihsurface_j,&
@@ -55,21 +55,22 @@ program lvcsh
                             c_e,c_e_nk,d_e,d0_e,&
                             c_h,c_h_nk,d_h,d0_h,&
                             dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
-                            csit_e,wsit_e,pes_e,psit_e,mskds_e,mskd_e,ipr_e,&
-                            csit_h,wsit_h,pes_h,psit_h,mskds_h,mskd_h,ipr_h,&
+                            csit_e,wsit_e,pes_e,psit_e,mskds_e,mskds_sum_e,mskd_e,ipr_e,&
+                            csit_h,wsit_h,pes_h,psit_h,mskds_h,mskds_sum_h,mskd_h,ipr_h,&
 														apes_e,apes_sum_e,apes_h,apes_sum_h,&
                             E_ph_CA_sum,E_ph_QA_sum,ld_fric,ld_gamma
   use fssh,only           : nonadiabatic_transition_fssh
   use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
   use cc_fssh,only        : S_ai_e,S_ai_h,S_bi_e,S_bi_h,&
                             get_G_CC_FSSH,nonadiabatic_transition_ccfssh
-  use surfacehopping,only : phQ,phP,phQ0,phP0,phK,phU,SUM_phE,SUM_phK,SUM_phU,&
+  use surfacehopping,only : phQ,phP,phQ0,phP0,phK,phU,SUM_phE,SUM_phK,SUM_phK0,SUM_phU,&
                             phQsit,phPsit,phKsit,phUsit,&
                             w_e,w0_e,g_e,g1_e,esurface_type,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,&
                             w_h,w0_h,g_h,g1_h,hsurface_type,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,&
                             allocatesh,&
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
-                            calculate_hopping_probability
+                            calculate_hopping_probability,convert_adiabatic_diabatic,&
+														add_decoherence
   use elph2,only          : wf,xkf,nqtotf,nktotf,nbndfst
   use modes,only          : nmodes
 	use cell_base,only      : bg
@@ -81,12 +82,13 @@ program lvcsh
   use saveinf,only : pes_e_file,pes_h_file,apes_e_file,apes_h_file,&
 									   save_pes,save_apes,save_phQ,save_phP,save_phK,save_phU,&
                      read_pes,read_apes,read_phQ,read_phP,read_phK,read_phU,&
-										 csit_e_file,csit_h_file,save_csit,read_csit,&
-                     wsit_e_file,wsit_h_file,save_wsit,read_wsit,&
-                     psit_e_file,psit_h_file,save_psit,read_psit,&
-										 mskd_e_file,mskd_h_file,save_mskd,read_mskd,&
-										 mskds_e_file,mskds_h_file,save_mskds,read_mskds,&
-										 ipr_e_file,ipr_h_file,save_ipr,read_ipr
+										 plot_pes,plot_apes,plot_phQ,plot_phP,plot_phK,plot_phU,&
+										 csit_e_file,csit_h_file,save_csit,read_csit,plot_csit,&
+                     wsit_e_file,wsit_h_file,save_wsit,read_wsit,plot_wsit,&
+                     psit_e_file,psit_h_file,save_psit,read_psit,plot_psit,&
+										 mskd_e_file,mskd_h_file,save_mskd,read_mskd,plot_mskd,&
+										 mskds_e_file,mskds_h_file,save_mskds,read_mskds,plot_mskds,&
+										 ipr_e_file,ipr_h_file,save_ipr,read_ipr,plot_ipr
   implicit none
   
   !===============!
@@ -304,6 +306,7 @@ program lvcsh
     SUM_phU = SUM(phU)
     SUM_phE = SUM_phK+SUM_phU
     
+		SUM_phK0 = SUM_phK
     
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     !% Write initial non-adiabatic dynamica information        %!
@@ -354,6 +357,7 @@ program lvcsh
       enddo
       
       if(lelecsh) then
+			  apes_e(isnap,iaver)  = E_e(iesurface)
         pes_e(0,isnap,iaver) = E_e(iesurface)
 				flagd = 0.0
         do ik=1,nktotf
@@ -375,6 +379,7 @@ program lvcsh
       endif
       
       if(lholesh) then
+			  apes_h(isnap,iaver)  = -E_h(ihsurface)
         pes_h(0,isnap,iaver) = -E_h(ihsurface)
 				flagd = 0.0
 				do ik=1,nktotf
@@ -458,6 +463,11 @@ program lvcsh
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_e in time t0+dt, to convert c_e(t0+dt) to w_e(t0+dt) 
             call convert_diabatic_adiabatic(nefre,p_e,c_e,w_e)
+						if(ldecoherence) then
+							call add_decoherence(Cdecoherence,SUM_phK0,dt,nefre,iesurface,E0_e,w_e)
+							call convert_adiabatic_diabatic(nefre,p_e,w_e,c_e)
+						endif
+						
           endif          
           
           ! use FSSH calculation hopping probability in adiabatic representation,get g_e,g1_e
@@ -510,6 +520,11 @@ program lvcsh
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_h in time t0+dt, to convert c_h(t0+dt) to w_h(t0+dt) 
             call convert_diabatic_adiabatic(nhfre,p_h,c_h,w_h)
+						if(ldecoherence) then
+							call add_decoherence(Cdecoherence,SUM_phK0,dt,nhfre,ihsurface,E0_h,w_h)
+							call convert_adiabatic_diabatic(nhfre,p_h,w_h,c_h)
+						endif						
+						
           endif          
 
           ! use FSSH calculation hopping probability in adiabatic representation
@@ -580,7 +595,8 @@ program lvcsh
         phK = 0.5*phP**2        
         SUM_phK = SUM(phK)
         SUM_phU = SUM(phU)
-        SUM_phE = SUM_phK+SUM_phU        
+        SUM_phE = SUM_phK+SUM_phU 
+				SUM_phK0= SUM_phK
         time_ = ((isnap-1)*nstep+istep)*dt*ry_to_fs
         if(lholesh) then
           ihsurface_ = 1-ihsurface+(ihband_max)*nktotf
@@ -747,6 +763,8 @@ program lvcsh
 					call read_wsit(inode,icore,nefre,nsnap,naver,wsit_e,wsit_e_file)
 					call read_psit(inode,icore,nefre,nsnap,naver,psit_e,psit_e_file)
 					call read_mskds(inode,icore,nsnap,naver,mskds_e,mskds_e_file)
+					mskds_sum_e(0:nsnap,iaver_i:iaver_f) = mskds_e
+					
 					call read_mskd( inode,icore,nsnap,mskd_e,mskd_e_file)
 					call read_ipr(  inode,icore,nsnap,ipr_e,ipr_e_file)
 				endif
@@ -759,6 +777,7 @@ program lvcsh
 					call read_wsit(inode,icore,nhfre,nsnap,naver,wsit_h,wsit_h_file)
 					call read_psit(inode,icore,nhfre,nsnap,naver,psit_h,psit_h_file)
 					call read_mskds(inode,icore,nsnap,naver,mskds_h,mskds_h_file)
+					mskds_sum_h(0:nsnap,iaver_i:iaver_f) = mskds_h
 					call read_mskd( inode,icore,nsnap,mskd_h,mskd_h_file)
 					call read_ipr(  inode,icore,nsnap,ipr_h,ipr_h_file)
 				endif
@@ -766,6 +785,7 @@ program lvcsh
 				
 			enddo
 	  enddo
+		
 		phQsit = phQsit /nnode*ncore
 		phPsit = phPsit /nnode*ncore
 		phKsit = phKsit /nnode*ncore
@@ -785,9 +805,35 @@ program lvcsh
 			mskd_h = mskd_h /nnode*ncore
 			ipr_h  = ipr_h / nnode*ncore
 		endif		
+	
+
+		!!plot !!!!	
+		call plot_phQ(nmodes,nqtotf,nsnap,phQsit)
+		call plot_phP(nmodes,nqtotf,nsnap,phPsit)
+		call plot_phK(nmodes,nqtotf,nsnap,phKsit)
+		call plot_phU(nmodes,nqtotf,nsnap,phUsit)
 		
+		if(lelecsh) then
+			call plot_pes(nefre,nsnap,naver,pes_e,pes_e_file)
+			call plot_apes(nnode,ncore,nsnap,naver,apes_sum_e,apes_e_file)
+			call plot_csit(nefre,nsnap,naver,csit_e,csit_e_file)
+			call plot_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
+			call plot_psit(nefre,nsnap,naver,psit_e,psit_e_file)
+			call plot_mskds(nnode,ncore,nsnap,naver,mskds_sum_e,mskds_e_file)
+			call plot_mskd(nsnap,mskd_e,mskd_e_file)
+			call plot_ipr(nsnap,ipr_e,ipr_e_file)
+		endif
 		
-		
+		if(lholesh) then
+			call plot_pes(nhfre,nsnap,naver,pes_h,pes_h_file)
+			call plot_apes(nnode,ncore,nsnap,naver,apes_sum_h,apes_h_file)
+			call plot_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
+			call plot_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
+			call plot_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
+			call plot_mskds(nnode,ncore,nsnap,naver,mskds_sum_h,mskds_h_file)
+			call plot_mskd(nsnap,mskd_h,mskd_h_file)
+			call plot_ipr(nsnap,ipr_h,ipr_h_file)
+		endif
 		
 	endif
   

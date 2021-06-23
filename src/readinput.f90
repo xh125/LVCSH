@@ -1,7 +1,7 @@
 module readinput
   use kinds,     only : dp
   use constants, only : maxlen
-  use parameters,only : calculation,verbosity,&
+  use parameters,only : calculation,verbosity,outdir,ldecoherence,Cdecoherence,&
                         lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
                         methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,pre_dt,&
                         gamma,ld_fric,dt,temp,l_ph_quantum,&
@@ -43,6 +43,7 @@ module readinput
     implicit none
     character(*),intent(in):: filename
     logical :: alive
+		integer :: istat
     !ia = ichar('a')
     !iz = ichar('z')
     
@@ -140,7 +141,7 @@ module readinput
     use parameters,only : shinput
     use io
     implicit none
-    integer::incar_unit,i
+    integer::incar_unit,i,long,istat
     
     !!write input file to namelist input file
     incar_unit = io_file_unit()
@@ -161,8 +162,11 @@ module readinput
     !   set default values for variables in namelist
 		calculation   = "lvcsh"
 		verbosity     = "low"
+		outdir        = "./"
     methodsh      = "FSSH"
     lfeedback     = .true.
+		ldecoherence  = .true.
+		cdecoherence  = 0.1   
     l_ph_quantum  = .true.
     lelecsh       = .false.
     lholesh       = .false.
@@ -224,6 +228,15 @@ module readinput
       call io_error(msg)
     endif  
     close(incar_unit)
+		
+		long = len_trim(adjustl(outdir))
+		if(long == 0) write(stdout,"(5X,A)") "Warring! the input of outdir name empty "
+		outdir = trim(adjustl(outdir))
+		if(outdir(long:long) /= "/") then
+			outdir(long+1:long+1) = "/"
+		endif
+		!call system("mkdir "//trim(outdir))
+		
     if(lehpairsh) then
       lelecsh = .true.
       lholesh = .true.
@@ -239,6 +252,7 @@ module readinput
     use lasercom,only  : fwhm_2T2
     implicit none
     
+		cdecoherence = cdecoherence/2.0 ! Hartree to Rydberg
     gamma = gamma / Ry_TO_THZ ! change gamma in unit of (THZ) to (Ryd)
     dt    = dt / Ry_TO_fs     ! in Rydberg atomic units(1 a.u.=4.8378 * 10^-17 s)
     pre_dt= pre_dt/ Ry_TO_fs

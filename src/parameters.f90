@@ -9,7 +9,7 @@ module parameters
   use surfacecom,only   : methodsh,lfeedback,naver,nstep,nsnap,dt,pre_nstep,pre_dt,&
                           temp,gamma,ld_fric,l_ph_quantum,&
                           l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&
-                          lelecsh,lholesh,lehpairsh,&
+                          lelecsh,lholesh,lehpairsh,ldecoherence,Cdecoherence,&
                           ieband_min,ieband_max,ihband_min,ihband_max
   implicit none
   
@@ -23,6 +23,7 @@ module parameters
   character(len=maxlen) :: inputfilename = "LVCSH.in"
 	character(len=maxlen) :: calculation
 	character(len=maxlen) :: verbosity
+	character(len=maxlen) :: outdir
 	integer :: nnode,ncore,naver_sum
   logical :: lreadscfout,lreadphout,lreadfildyn
   
@@ -30,7 +31,8 @@ module parameters
   !! number of electrons
   
   namelist / shinput / &
-           calculation,verbosity,lreadscfout,lreadphout, scfoutname,phoutname,lreadfildyn,fildyn,&
+           calculation,verbosity,outdir,ldecoherence,Cdecoherence,&
+					 lreadscfout,lreadphout,scfoutname,phoutname,lreadfildyn,fildyn,&
 					 epwoutname,methodsh,lfeedback,naver,nstep,nsnap,&
            pre_nstep,pre_dt,gamma,ld_fric,l_ph_quantum,dt,temp,&
            l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&

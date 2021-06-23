@@ -7,15 +7,15 @@ module surfacehopping
                          E_h,E_h_,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
   use parameters, only : nsnap,naver,ncore,nnode
   use surfacecom, only : iesurface,ihsurface,esurface_type,hsurface_type,&
-                         phQ,phP,phQ0,phP0,phK,phU,SUM_phU,SUM_phK,SUM_phE,&
+                         phQ,phP,phQ0,phP0,phK,phU,SUM_phU,SUM_phK,SUM_phK0,SUM_phE,&
                          phQsit,phPsit,phKsit,phUsit,ld_gamma,&
                          dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
                          d_e,g_e,g1_e,c_e_nk,w_e,w0_e,&
                          d0_e,&
                          d_h,g_h,g1_h,c_h_nk,w_h,w0_h,&
                          d0_h,&
-                         pes_e,csit_e,wsit_e,psit_e,mskds_e,mskd_e,ipr_e,&
-                         pes_h,csit_h,wsit_h,psit_h,mskds_h,mskd_h,ipr_h,&
+                         pes_e,csit_e,wsit_e,psit_e,mskds_e,mskds_sum_e,mskd_e,ipr_e,&
+                         pes_h,csit_h,wsit_h,psit_h,mskds_h,mskds_sum_h,mskd_h,ipr_h,&
 												 apes_e,apes_sum_e,apes_h,apes_sum_h
                          
   use cc_fssh,only : S_ai_e,S_ai_h,S_bi_e,S_bi_h
@@ -86,7 +86,7 @@ module surfacehopping
       allocate(csit_e(nefre,0:nsnap))
       allocate(wsit_e(nefre,0:nsnap))
       allocate(psit_e(nefre,0:nsnap))
-			allocate(mskds_e(0:nsnap,naver),mskd_e(0:nsnap),ipr_e(0:nsnap))
+			allocate(mskds_e(0:nsnap,naver),mskds_sum_e(0:nsnap,naver*ncore*nnode),mskd_e(0:nsnap),ipr_e(0:nsnap))
       pes_e  = 0.0d0
       csit_e = 0.0d0
       wsit_e = 0.0d0
@@ -155,7 +155,7 @@ module surfacehopping
       allocate(csit_h(nhfre,0:nsnap))
       allocate(wsit_h(nhfre,0:nsnap))
       allocate(psit_h(nhfre,0:nsnap))
-		  allocate(mskds_h(0:nsnap,naver),mskd_h(0:nsnap),ipr_h(0:nsnap))
+		  allocate(mskds_h(0:nsnap,naver),mskds_sum_h(0:nsnap,naver*ncore*nnode),mskd_h(0:nsnap),ipr_h(0:nsnap))
       pes_h  = 0.0
       csit_h = 0.0
       wsit_h = 0.0
@@ -284,6 +284,65 @@ module surfacehopping
     
   
   end subroutine convert_diabatic_adiabatic
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !% convert wavefunction from adiabatix to diabatic basis %!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  subroutine convert_adiabatic_diabatic(nfre,pp,ww,cc)                                        
+    use f95_precision
+    use blas95
+    implicit none
+    integer,intent(in) :: nfre 
+    real(kind=dp),intent(in) :: pp(nfre,nfre)
+    complex(kind=dpc),intent(in) :: ww(nfre)
+    complex(kind=dpc),intent(out):: cc(nfre)
+    real(kind=dp) :: sum_cc2,sum_ww2
+    
+    sum_ww2 = REAL(SUM(ww*CONJG(ww)))
+    
+    cc= 0.0d0
+    !call gemv(pp,cc,ww)
+    call gemv(pp,ww,cc)
+    
+    sum_cc2 = REAL(SUM(cc*CONJG(cc)))
+  
+  end subroutine convert_adiabatic_diabatic
+
+
+	!ref:1	Bedard-Hearn, M. J., Larsen, R. E. & Schwartz, B. J. Mean-field dynamics with stochastic decoherence (MF-SD):
+	!				a new algorithm for nonadiabatic mixed quantum/classical molecular-dynamics simulations with nuclear-induced decoherence.
+	!				J Chem Phys 123, 234106, doi:10.1063/1.2131056 (2005).
+	!ref:2 1	Granucci, G. & Persico, M. Critical appraisal of the fewest switches algorithm for surface hopping. 
+	!				J Chem Phys 126, 134114, doi:10.1063/1.2715585 (2007).
+	!ref:3 1	Zhu, C., Nangia, S., Jasper, A. W. & Truhlar, D. G.
+	!				Coherent switching with decay of mixing: an improved treatment of electronic coherence for non-Born-Oppenheimer trajectories. 
+	!				J Chem Phys 121, 7658-7670, doi:10.1063/1.1793991 (2004).
+	!ref:4 1	Qiu, J., Bai, X. & Wang, L. Crossing Classified and Corrected Fewest Switches Surface Hopping.
+	!					The Journal of Physical Chemistry Letters 9, 4319-4325, doi:10.1021/acs.jpclett.8b01902 (2018). 
+	subroutine add_decoherence(C,Ekin,dt,nfre,isurface,E,ww)
+		implicit none
+		integer ,intent(in) :: nfre,isurface
+		real(kind=dp), intent(in) :: C,Ekin,dt
+		real(kind=dp), intent(in) :: E(nfre)
+		complex(kind=dpc),intent(inout) :: ww(nfre)
+		
+		integer :: ifre
+		real(kind=dp) :: tau
+		real(kind=dp) :: flad
+		
+		tau = 0.0
+		flad = 0.0
+		do ifre=1,nfre
+			if(ifre /= isurface) then
+				tau = (1.0 + C/Ekin)/abs(E(ifre)-E(isurface))
+				ww(ifre) = ww(ifre)*exp(-1.0*dt/tau)
+				flad = flad + ww(ifre)*CONJG(ww(ifre))
+			endif
+		enddo
+		
+		ww(isurface) = ww(isurface)*sqrt(1.0 - flad)/abs(ww(isurface))
+		
+	end subroutine add_decoherence
   
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% calculate nonadiabatic coupling %!

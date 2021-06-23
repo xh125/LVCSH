@@ -25,6 +25,21 @@ module surfacecom
   logical         :: l_ph_quantum
   logical :: lfeedback
   
+	!ref:1	Bedard-Hearn, M. J., Larsen, R. E. & Schwartz, B. J. Mean-field dynamics with stochastic decoherence (MF-SD):
+	!				a new algorithm for nonadiabatic mixed quantum/classical molecular-dynamics simulations with nuclear-induced decoherence.
+	!				J Chem Phys 123, 234106, doi:10.1063/1.2131056 (2005).
+	!ref:2 1	Granucci, G. & Persico, M. Critical appraisal of the fewest switches algorithm for surface hopping. 
+	!				J Chem Phys 126, 134114, doi:10.1063/1.2715585 (2007).
+	!ref:3 1	Zhu, C., Nangia, S., Jasper, A. W. & Truhlar, D. G.
+	!				Coherent switching with decay of mixing: an improved treatment of electronic coherence for non-Born-Oppenheimer trajectories. 
+	!				J Chem Phys 121, 7658-7670, doi:10.1063/1.1793991 (2004).
+	!ref:4 1	Qiu, J., Bai, X. & Wang, L. Crossing Classified and Corrected Fewest Switches Surface Hopping.
+	!					The Journal of Physical Chemistry Letters 9, 4319-4325, doi:10.1021/acs.jpclett.8b01902 (2018).
+	logical :: ldecoherence
+	real(kind=dp) :: cdecoherence  !0.1 Hartree
+	
+	
+	
   logical :: lelecsh
   logical :: lholesh
   logical :: lehpairsh
@@ -51,15 +66,16 @@ module surfacecom
   ! ref : <固体物理> (3-44) (3-45)
   real(kind=dp),allocatable :: phU(:,:),phK(:,:)
   real(kind=dp) :: SUM_phU,SUM_phK,SUM_phE
+	real(kind=dp) :: SUM_phU0,SUM_phK0,SUM_phE0
   real(kind=dp) :: E_ph_CA_sum,E_ph_QA_sum
   ! averager crystal energy and temperature T,in classical and quantum . 
   
   real(kind=dp),allocatable :: d_e(:,:,:,:) ,d_h(:,:,:,:) ,g_e(:) ,g_h(:)
   real(kind=dp),allocatable :: d0_e(:,:,:,:),d0_h(:,:,:,:),g1_e(:),g1_h(:)  
   real(kind=dp),allocatable :: pes_e(:,:,:),csit_e(:,:),wsit_e(:,:),&
-                               psit_e(:,:),mskds_e(:,:),mskd_e(:),ipr_e(:),& 
+                               psit_e(:,:),mskds_e(:,:),mskds_sum_e(:,:),mskd_e(:),ipr_e(:),& 
                                pes_h(:,:,:),csit_h(:,:),wsit_h(:,:),&
-                               psit_h(:,:),mskds_h(:,:),mskd_h(:),ipr_h(:),&
+                               psit_h(:,:),mskds_h(:,:),mskds_sum_h(:,:),mskd_h(:),ipr_h(:),&
 															 apes_e(:,:),apes_sum_e(:,:),apes_h(:,:),apes_sum_h(:,:)
                                
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
