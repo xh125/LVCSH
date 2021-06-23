@@ -318,7 +318,7 @@ module surfacehopping
 	!				Coherent switching with decay of mixing: an improved treatment of electronic coherence for non-Born-Oppenheimer trajectories. 
 	!				J Chem Phys 121, 7658-7670, doi:10.1063/1.1793991 (2004).
 	!ref:4 1	Qiu, J., Bai, X. & Wang, L. Crossing Classified and Corrected Fewest Switches Surface Hopping.
-	!					The Journal of Physical Chemistry Letters 9, 4319-4325, doi:10.1021/acs.jpclett.8b01902 (2018). 
+	!					The Journal of Physical Chemistry Letters 9, 4319-4325, doi:10.1021/acs.jpclett.8b01902 (2018 
 	subroutine add_decoherence(C,Ekin,dt,nfre,isurface,E,ww)
 		implicit none
 		integer ,intent(in) :: nfre,isurface
