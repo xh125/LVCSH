@@ -2,12 +2,13 @@ module readepw
   use kinds ,only :dp
   use constants,only : maxlen,amu_ry,rytoev,ryd2mev,ryd2eV
   use io, only : io_file_unit,open_file,close_file,findkword,findkline,stdout,io_error
+	use parameters,only : verbosity
   use klist, only : nelec,lgauss, degauss, ngauss, nkstot, wk
   use klist_epw, only : xk_all,xkg_all
   use epwcom, only : nkc1,nkc2,nkc3,nqf1,nqf2,nqf3,nkf1,nkf2,nkf3,nbndsub,kqmap,scdm_proj,vme
   use pwcom, only : ef
   use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max
-  use elph2, only : nkqf,nkqtotf,wf,wqf,xkf,wkf,etf,epcq,nkf,&
+  use elph2, only : nkqf,nkqtotf,wf,wqf,xkf,wkf,etf,gmnvkq,nkf,&
                     nktotf,nqf,nqtotf,ibndmin,ibndmax,efnew,vmef,dmef
   use cell_base,only : ibrav,alat,omega,at,bg,celldm
   use ions_base,only : nat,iat, ntyp,ityp,atm,zv,amass,iatm,tau,iamass 
@@ -946,8 +947,8 @@ module readepw
     
     !! Fine mesh set of g-matrices.  It is large for memory storage
     !ALLOCATE(epf17(nbndfst, nbndfst, nmodes, nkf), STAT = ierr)
-    allocate(epcq(ibndmin:ibndmax,ibndmin:ibndmax,1:nktotf,1:nmodes,1:nqtotf),stat=ierr)
-    if(ierr /=0) call errore('readepw','Error allocating epcq',1)
+    allocate(gmnvkq(ibndmin:ibndmax,ibndmin:ibndmax,1:nmodes,1:nktotf,1:nqtotf),stat=ierr)
+    if(ierr /=0) call errore('readepw','Error allocating gmnvkq',1)
 
 
     !!
@@ -1007,13 +1008,13 @@ module readepw
               !ekk = etf_all(ibndmin - 1 + ibnd, ikk)
               !WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 1e20.10)') ibndmin - 1 + ibnd, ibndmin - 1 + jbnd, &
               !nu, ryd2ev * ekk, ryd2ev * ekq, ryd2mev * wf(nu, iq), ryd2mev * epc(ibnd, jbnd, nu, ik)
-              read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,ekk,ekq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
-              ekk = ekk /ryd2eV
-              ekq = ekq /ryd2eV
+              read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,ekk,ekq,wf(nu,iq),gmnvkq(ibnd,jbnd,nu,ik,iq)
+              !ekk = ekk /ryd2eV
+              !ekq = ekq /ryd2eV
               
               etf(ibnd,ik) = ekk
               !read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
-                   !E_nk,E_mkq,wf(nu,iq),epcq(ibnd,jbnd,ik,nu,iq)
+                   !E_nk,E_mkq,wf(nu,iq),gmnvkq(ibnd,jbnd,ik,nu,iq)
             enddo
           enddo
         enddo
@@ -1022,19 +1023,44 @@ module readepw
       
     enddo
     
+		!for testing
+		if(verbosity == "high" .and. .false. ) then
+			write(stdout,"(5X,A,I8,1X,A)") "We only need to compute",totq,"q-points"
+			do iq=1,nqtotf
+				write(stdout,"(/,5X,A)") " Electron-phonon vertex |g| (meV)"
+				WRITE(stdout, '(/5x, "iq = ", i7, " coord.: ", 3f12.7)') iq, xqf(:, iq)
+				do ik=1,nktotf
+					WRITE(stdout, '(5x, "ik = ", i7, " coord.: ", 3f12.7)') ik, xkf(:, ik)
+					WRITE(stdout, '(5x, a)') ' ibnd     jbnd     imode   enk[eV]    enk+q[eV]  omega(q)[meV]   |g|[meV]'
+					WRITE(stdout, '(5x, a)') REPEAT('-', 78)
+					do ibnd = ibndmin,ibndmax ! ibnd = 1,nbndfst
+						do jbnd = ibndmin,ibndmax !jbnd= 1,nbndfst
+							do nu = 1, nmodes		
+								WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd, jbnd, &
+                   nu, etf(ibnd,ik), etf(ibnd,kqmap(ik,iq)), wf(nu, iq),gmnvkq(ibnd, jbnd, nu, ik,iq)								
+							enddo
+					  enddo
+					enddo
+					WRITE(stdout, '(5x, a/)') REPEAT('-', 78)
+				enddo
+			enddo
+		endif
+		
+		
+		etf = etf/ryd2eV
     etf = etf - ef
     wf = wf/ryd2mev
     !gamma 3 branch A phonon must be set to 0.
     do nu=1,3
 			wf(nu,1) = 0.0
-      epcq(:,:,:,nu,1) = 0.0
+      gmnvkq(:,:,nu,:,1) = 0.0
     enddo
 		
 	
     do iq=1,nqtotf
 			do nu=1,nmodes
 				if(wf(nu,iq)<= 0.0) then
-					epcq(:,:,:,nu,iq) = 0.0
+					gmnvkq(:,:,nu,:,iq) = 0.0
 			  endif
 			enddo
 		enddo
@@ -1050,7 +1076,7 @@ module readepw
       enddo
 		enddo
 		
-		epcq = epcq/ryd2mev
+		gmnvkq = gmnvkq/ryd2mev
        
     call findkline(unitepwout,"matrix elements",15,29)
     read(unitepwout,"(A)") ctmp

@@ -29,13 +29,13 @@ module dynamics
     
   end subroutine
   
-  subroutine get_dEa_dQ(nmodes,nq,nband,nk,wf,P_nk,epcq,isurface,dEa_dQ)
+  subroutine get_dEa_dQ(nmodes,nq,nband,nk,wf,P_nk,gmnvkq,isurface,dEa_dQ)
     implicit none
     integer,intent(in) :: nmodes,nq,nband,nk
     integer,intent(in) :: isurface
     real(kind=dp),intent(in)  :: wf(nmodes,nq)
     real(kind=dp),intent(in)  :: P_nk(nband,nk,nband*nk)
-    real(kind=dp),intent(in)  :: epcq(nband,nband,nk,nmodes,nq)
+    real(kind=dp),intent(in)  :: gmnvkq(nband,nband,nmodes,nk,nq)
     real(kind=dp),intent(out) :: dEa_dQ(nmodes,nq)
     
     integer :: iq,imode,ik,ikq,iband1,iband2
@@ -48,7 +48,7 @@ module dynamics
           do iband1=1,nband
             do iband2=1,nband
               dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
-              P_nk(iband1,ik,isurface)*P_nk(iband2,ikq,isurface)*epcq(iband1,iband2,ik,imode,iq)                 
+              P_nk(iband1,ik,isurface)*P_nk(iband2,ikq,isurface)*gmnvkq(iband1,iband2,imode,ik,iq)                 
             enddo
           enddo
         enddo

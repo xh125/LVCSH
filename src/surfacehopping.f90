@@ -348,12 +348,12 @@ module surfacehopping
   !% calculate nonadiabatic coupling %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   ! ref : PPT-91
-  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,wf,ee,p_nk,epcq,dd)
+  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,wf,ee,p_nk,gmnvkq,dd)
     use kinds,only :  dp
     implicit none
     integer, intent(in) :: nmodes,nq,nband,nk
     real(kind=dp),intent(in) :: wf(nmodes,nq),ee(nband*nk)
-    real(kind=dp),intent(in) :: epcq(nband,nband,nk,nmodes,nq)
+    real(kind=dp),intent(in) :: gmnvkq(nband,nband,nmodes,nk,nq)
     real(kind=dp),intent(in) :: p_nk(nband,nk,nband*nk)
     real(kind=dp),intent(out):: dd(nband*nk,nband*nk,nmodes,nq)
     integer :: nfre,ifre,jfre,iq,imode 
@@ -361,26 +361,52 @@ module surfacehopping
     
     nfre = nband*nk
     
+    !dd=0.0d0
+    !do ifre=1,nfre-1
+    !  do jfre=ifre+1,nfre
+    !    do iq =1, nq
+    !      do imode=1,nmodes
+    !        do ik=1,nk
+    !          ikq = kqmap(ik,iq)
+    !          do iband1=1,nband
+    !            do iband2=1,nband
+    !              dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
+    !              &p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)*gmnvkq(iband1,iband2,imode,ik,iq)
+    !            enddo
+    !          enddo
+    !        enddo
+    !        dd(ifre,jfre,imode,iq) = sqrt(2.0*wf(imode,iq)/nq)*dd(ifre,jfre,imode,iq)/(ee(jfre)-ee(ifre))
+    !      enddo
+    !    enddo
+    !    dd(jfre,ifre,:,:) = - dd(ifre,jfre,:,:)
+    !  enddo
+    !enddo
+		
+		!new
     dd=0.0d0
-    do ifre=1,nfre-1
-      do jfre=ifre+1,nfre
-        do iq =1, nq
-          do imode=1,nmodes
-            do ik=1,nk
+		do iq=1,nq
+			do imode=1,nmodes
+				do ifre=1,nfre-1
+					do jfre=ifre+1,nfre
+            
+						do ik=1,nk
               ikq = kqmap(ik,iq)
               do iband1=1,nband
                 do iband2=1,nband
                   dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
-                  &p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)*epcq(iband1,iband2,ik,imode,iq)
+                  &gmnvkq(iband1,iband2,imode,ik,iq)*p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)
                 enddo
               enddo
             enddo
-            dd(ifre,jfre,imode,iq) = sqrt(2.0*wf(imode,iq)/nq)*dd(ifre,jfre,imode,iq)/(ee(jfre)-ee(ifre))
+						dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)/(ee(jfre)-ee(ifre))
+						dd(jfre,ifre,imode,iq) = - dd(ifre,jfre,imode,iq)
+						
           enddo
         enddo
-        dd(jfre,ifre,:,:) = - dd(ifre,jfre,:,:)
+				dd(:,:,imode,iq)=sqrt(2.0*wf(imode,iq)/nq)*dd(:,:,imode,iq)
       enddo
-    enddo    
+    enddo
+    
     
   end subroutine calculate_nonadiabatic_coupling
   
