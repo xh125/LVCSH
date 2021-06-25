@@ -65,14 +65,15 @@ BLACS_LIBS       = ${MKLLIB}/libmkl_blacs_intelmpi_lp64.a
 SCALAPACK_LIBS   = ${MKLLIB}/libmkl_scalapack_lp64.a 
 lp64_lib         = ${MKLLIB}/libmkl_intel_lp64.a
 thread_lib       = ${MKLLIB}/libmkl_intel_thread.a
+sequential_lib   = ${MKLLIB}/libmkl_sequential.a
 core_lib         = ${MKLLIB}/libmkl_core.a
 MKL_dynamic_Link = ${BLAS95_LIB} ${LAPACP95_LIB} -L${MKLLIB} \
                    -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core \
                    -liomp5 -lpthread -lm -ldl
 MKL_static_Link  = ${BLAS95_LIB} ${LAPACP95_LIB} -Wl,--start-group \
-                   ${lp64_lib} ${thread_lib} ${core_lib} ${BLACS_LIBS} \
+                   ${lp64_lib} ${sequential_lib} ${core_lib} \
 									 -Wl,--end-group \
-									 -liomp5 -lpthread -lm -ldl
+									 -lpthread -lm -ldl
 
 #SRC
 SRCS_F= kinds.f90 constants.f90 date_and_times.f90 version.f90 io.f90 environments.f90 \
