@@ -15,11 +15,11 @@ program lvcsh
   !=====================================================================================================!
   !=  system interaction with environment by system-bath interactions                                  =!     
   !=====================================================================================================!
-  != Last updata 2021-05.18 Version:0.1.3                                                              =!   
+  != Last updata 2021-06.25 Version:0.1.5                                                              =!   
   != Developed by XieHua at department of physic, USTC;xh125@mail.ustc.edu.cn                          =!
   !=====================================================================================================!
   !! Author: HuaXie
-  !! Version: v0.1.1
+  !! Version: v0.1.5
   !! License: GNU
   !!=================================================================================================  
   use mkl_service
@@ -38,9 +38,9 @@ program lvcsh
 														calculation,verbosity,nnode,ncore,naver_sum
   use hamiltonian,only    : nefre,neband,H_e,H_e_nk,E_e,P_e,P_e_nk,P0_e_nk,gmnvkq_e,H0_e_nk,E0_e,P0_e,&
                             nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,gmnvkq_h,H0_h_nk,E0_h,P0_h,&
-                            E_h_,&
+                            H_e_eq,E_e_eq,P_e_eq,H_h_eq,E_h_eq,P_h_eq,&
                             allocate_hamiltonian,set_H_nk,set_H0_nk,&
-                            calculate_eigen_energy_state
+                            calculate_eigen_energy_state,resort_eigen_energy_stat
   use randoms,only        : init_random_seed
   use lasercom,only       : fwhm,w_laser
   use getwcvk,only        : get_Wcvk
@@ -112,10 +112,15 @@ program lvcsh
   call allocate_hamiltonian(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
   if(lelecsh) then
     call set_H0_nk(nktotf,neband,H0_e_nk,ieband_min,gmnvkq_e)
+    H_e_eq = reshape(H0_e_nk,(/ nefre,nefre /))		
+		call calculate_eigen_energy_state(nefre,H_e_eq,E_e_eq,P_e_eq)
   endif
   if(lholesh) then
     call set_H0_nk(nktotf,nhband,H0_h_nk,ihband_min,gmnvkq_h)
     H0_h_nk = -1.0 * H0_h_nk
+    H_h_eq = reshape(H0_h_nk,(/ nhfre,nhfre /))		
+		call calculate_eigen_energy_state(nhfre,H_h_eq,E_h_eq,P_h_eq)		
+		
     gmnvkq_h  = -1.0 * gmnvkq_h
   endif
   !get H0_e_nk(neband,nktotf,neband,nktotf),gmnvkq_e(neband,neband,nktotf,nmodes,nqtotf)
@@ -254,6 +259,7 @@ program lvcsh
       call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ,wf,gmnvkq_e,H0_e_nk,H_e_nk)
       H_e = reshape(H_e_nk,(/ nefre,nefre /))
       call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
+			call resort_eigen_energy_stat(nefre,E_e,P_e,E_e_eq,P_e_eq)
       P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
       call convert_diabatic_adiabatic(nefre,P_e,c_e,w_e)
       call init_surface(nefre,w_e,iesurface)
@@ -267,6 +273,7 @@ program lvcsh
       call set_H_nk(nhband,nktotf,nmodes,nqtotf,phQ,wf,gmnvkq_h,H0_h_nk,H_h_nk)
       H_h = reshape(H_h_nk,(/ nhfre,nhfre /))    
       call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
+			call resort_eigen_energy_stat(nhfre,E_h,P_h,E_h_eq,P_h_eq)
       P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
       call convert_diabatic_adiabatic(nhfre,P_h,c_h,w_h)
       call init_surface(nhfre,w_h,ihsurface)                
@@ -454,6 +461,7 @@ program lvcsh
           H_e = reshape(H_e_nk,(/ nefre,nefre /))          
           ! update E_e,P_e to time t0+dt
           call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
+					call resort_eigen_energy_stat(nefre,E_e,P_e,E_e_eq,P_e_eq)
           P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
@@ -511,6 +519,7 @@ program lvcsh
           H_h = reshape(H_h_nk,(/ nhfre,nhfre /))          
           ! update E_h,P_h in time t0+dt
           call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
+					call resort_eigen_energy_stat(nhfre,E_h,P_h,E_h_eq,P_h_eq)
           P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.

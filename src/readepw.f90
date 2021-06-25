@@ -1057,13 +1057,13 @@ module readepw
     enddo
 		
 	
-    do iq=1,nqtotf
-			do nu=1,nmodes
-				if(wf(nu,iq)<= 0.0) then
-					gmnvkq(:,:,nu,:,iq) = 0.0
-			  endif
-			enddo
-		enddo
+    !do iq=1,nqtotf
+		!	do nu=1,nmodes
+		!		if(wf(nu,iq)<= 0.0) then
+		!			gmnvkq(:,:,nu,:,iq) = 0.0
+		!	  endif
+		!	enddo
+		!enddo
 		
 		do iq=1,nqtotf
 		  do nu=1,nmodes
@@ -1071,6 +1071,7 @@ module readepw
           write(stdout,"(A,I5,1X,A,3(F12.6,1X),A8,I5,A1,F12.6,A3)") &
 					"Carefully!!! the energy of phonon in iq=",iq,"(coord.:",(xqf(ipol,iq),ipol=1,3),") modes=",nu,"=",wf(nu,iq)*ryd2mev,"meV"
 					write(stdout,"(A)") "Setting asr_type='simple' in epw.in could solve gamma point problem."
+					write(stdout,"(A)") "Take a callfully check for the ph.x calculation."
 					wf(nu,iq)=0.0
 				endif
       enddo

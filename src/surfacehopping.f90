@@ -4,7 +4,7 @@ module surfacehopping
   use elph2,only  : wf,nktotf,nbndfst,ibndmin,ibndmax
   use hamiltonian,only : nphfre,neband,nhband,nefre,nhfre,&
                          E_e,P_e,P_e_nk,E0_e,P0_e,P0_e_nk,&
-                         E_h,E_h_,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
+                         E_h,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
   use parameters, only : nsnap,naver,ncore,nnode
   use surfacecom, only : iesurface,ihsurface,esurface_type,hsurface_type,&
                          phQ,phP,phQ0,phP0,phK,phU,SUM_phU,SUM_phK,SUM_phK0,SUM_phE,&
@@ -73,6 +73,8 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e',1)
       allocate(P_e_nk(neband,nktotf,nefre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e_nk',1)
+      allocate(P0_e_nk(neband,nktotf,nefre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating P0_e_nk',1)			
       allocate(d_e(nefre,nefre,nmodes,nq),stat=ierr) !d_ijk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_e',1)
       allocate(dEa_dQ_e(nmodes,nq))
@@ -142,6 +144,8 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h',1)
       allocate(P_h_nk(nhband,nktotf,nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h_nk',1)
+      allocate(P0_h_nk(nhband,nktotf,nhfre),stat=ierr)
+      if(ierr /=0) call errore('surfacehopping','Error allocating P0_h_nk',1)			
       allocate(d_h(nhfre,nhfre,nmodes,nq),stat=ierr) !d_ijk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_h',1)
       allocate(dEa_dQ_h(nmodes,nq))
@@ -190,8 +194,8 @@ module surfacehopping
       
       allocate(E0_h(1:nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating E0_h',1)
-      allocate(E_h_(1:nhfre),stat=ierr)
-      if(ierr /=0) call errore('surfacehopping','Error allocating E_h_',1)      
+      !allocate(E_h_(1:nhfre),stat=ierr)
+      !if(ierr /=0) call errore('surfacehopping','Error allocating E_h_',1)      
       
       allocate(P0_h(nhfre,nhfre),stat=ierr)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h',1)
@@ -328,19 +332,20 @@ module surfacehopping
 		
 		integer :: ifre
 		real(kind=dp) :: tau
-		real(kind=dp) :: flad
+		real(kind=dp) :: flad,factor
 		
 		tau = 0.0
 		flad = 0.0
 		do ifre=1,nfre
 			if(ifre /= isurface) then
 				tau = (1.0 + C/Ekin)/abs(E(ifre)-E(isurface))
+				factor = exp(-1.0*dt/tau)
 				ww(ifre) = ww(ifre)*exp(-1.0*dt/tau)
 				flad = flad + ww(ifre)*CONJG(ww(ifre))
 			endif
 		enddo
 		
-		ww(isurface) = ww(isurface)*sqrt(1.0 - flad)/abs(ww(isurface))
+		ww(isurface) = ww(isurface)*sqrt(1.0 - flad)/sqrt(ww(isurface)*CONJG(ww(isurface)))
 		
 	end subroutine add_decoherence
   

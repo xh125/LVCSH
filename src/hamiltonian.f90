@@ -16,6 +16,9 @@ module hamiltonian
   real(kind=dp),allocatable :: H0_e_nk(:,:,:,:),H_e_nk(:,:,:,:)
   real(kind=dp),allocatable :: H0_h(:,:),H_h(:,:)
   real(kind=dp),allocatable :: H0_h_nk(:,:,:,:),H_h_nk(:,:,:,:)
+
+	real(kind=dp),allocatable :: H_e_eq(:,:),E_e_eq(:),P_e_eq(:,:) !for position of equilibrium
+	real(kind=dp),allocatable :: H_h_eq(:,:),E_h_eq(:),P_h_eq(:,:) !for position of equilibrium
   
   real(kind=dp),allocatable :: gmnvkq_e(:,:,:,:,:)
   real(kind=dp),allocatable :: gmnvkq_h(:,:,:,:,:)
@@ -25,7 +28,6 @@ module hamiltonian
                                E0_e(:),P0_e(:,:),P0_e_nk(:,:,:)
   real(kind=dp),allocatable :: E_h(:),P_h(:,:),P_h_nk(:,:,:),&
                                E0_h(:),P0_h(:,:),P0_h_nk(:,:,:)
-  real(kind=dp),allocatable :: E_h_(:)
   !哈密顿量的本征值与本征矢   
   integer :: ierr
   contains
@@ -52,7 +54,16 @@ module hamiltonian
       allocate(H_e_nk(neband,nk,neband,nk),stat=ierr)
       if(ierr /=0) call errore('hamiltonian','Error allocating H_e_nk',1)
       H_e_nk = 0.0
-      
+      allocate(E_e_eq(nefre),stat=ierr)
+      if(ierr /=0) call errore('hamiltonian','Error allocating E_e_eq',1)
+      E_e_eq = 0.0
+      allocate(P_e_eq(nefre,nefre),stat=ierr)
+      if(ierr /=0) call errore('hamiltonian','Error allocating P_e_eq',1)
+      P_e_eq = 0.0      
+      allocate(H_e_eq(nefre,nefre),stat=ierr)
+      if(ierr /=0) call errore('hamiltonian','Error allocating H_e_eq',1)
+      H_e_eq = 0.0      			
+			
     endif
     
     if(lholesh) then
@@ -72,7 +83,17 @@ module hamiltonian
       H_h = 0.0
       allocate(H_h_nk(nhband,nk,nhband,nk),stat=ierr)
       if(ierr /=0) call errore('hamiltonian','Error allocating H_h_nk',1)
-      H_h_nk = 0.0    
+      H_h_nk = 0.0   
+      allocate(E_h_eq(nhfre),stat=ierr)
+      if(ierr /=0) call errore('Energy of hamiltonian for position of equilibrium ','Error allocating E_h_eq',1)
+      E_h_eq = 0.0
+      allocate(P_h_eq(nhfre,nhfre),stat=ierr)
+      if(ierr /=0) call errore('hamiltonian','Error allocating P_h_eq',1)
+      P_h_eq = 0.0      
+      allocate(H_h_eq(nhfre,nhfre),stat=ierr)
+      if(ierr /=0) call errore('hamiltonian for position of equilibrium ','Error allocating E_h_eq',1)
+      H_h_eq = 0.0
+			
     endif
     
   end subroutine allocate_hamiltonian
@@ -129,7 +150,7 @@ module hamiltonian
           do iband=1,nband !|iband,ik>
             do jband=1,nband !|jband,ikq>
               H_nk(jband,ikq,iband,ik) = H_nk(jband,ikq,iband,ik)+&
-              ph_Q(nu,iq)*sqrt(2.0*wf(nu,iq)/nq)*gmnvkq_eh(iband,jband,nu,ik,iq)
+              gmnvkq_eh(iband,jband,nu,ik,iq)*ph_Q(nu,iq)*sqrt(2.0*wf(nu,iq)/nq)
             enddo
           enddo
         enddo
@@ -158,4 +179,40 @@ module hamiltonian
     
   end subroutine calculate_eigen_energy_state
   
+	subroutine resort_eigen_energy_stat(nfre,ee,pp,ee_eq,pp_eq)
+		implicit none
+		integer,intent(in) :: nfre
+		real(kind=dp),intent(inout) :: ee(nfre),pp(nfre,nfre)
+		real(kind=dp),intent(in) :: ee_eq(nfre),pp_eq(nfre,nfre)
+		
+		real(kind=dp),allocatable :: p_tmp(:),pdotp(:)
+		real(kind=dp) :: e_tmp,flad
+		
+		integer :: ifre,jfre,cfre(1)
+		
+		if(.not. allocated(p_tmp)) allocate(p_tmp(nfre))
+		if(.not. allocated(pdotp)) allocate(pdotp(nfre))
+		
+		
+		do ifre =1 ,nfre
+			flad = ABS(SUM(pp(:,ifre)*pp_eq(:,ifre)))
+			if(flad >= 0.5) then
+				cycle
+			else
+				pdotp = 0.0
+				do jfre=ifre,nfre
+					pdotp(jfre) = ABS(SUM(pp(:,jfre)*pp_eq(:,ifre)))
+				enddo
+				cfre = Maxloc(pdotp)
+				e_tmp= ee(ifre)
+				p_tmp= pp(:,ifre)
+				ee(ifre) = ee(cfre(1))
+				pp(:,ifre) = pp(:,cfre(1))
+				ee(cfre(1))= e_tmp
+				pp(:,cfre(1)) = p_tmp
+		  endif
+		enddo
+		
+	end subroutine
+	
 end module hamiltonian
