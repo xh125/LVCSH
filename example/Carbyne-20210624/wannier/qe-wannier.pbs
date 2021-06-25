@@ -1,0 +1,41 @@
+#!/bin/bash
+#PBS -N wannier-carbyne
+#PBS -o ${PBS_JOBID}.out
+#PBS -e ${PBS_JOBID}.err
+#PBS -q share
+#PBS -l nodes=1:ppn=28
+
+# get the number of processors
+NP=`cat $PBS_NODEFILE | wc -l`
+
+# enter job's working directory
+cd $PBS_O_WORKDIR
+
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+export MODULEPATH=/public/software/modules:/public/home/wzhuang/xh/modulefiles
+
+module load apps/Materials/Quantum_Espresso/6.7.0
+
+export prefix=${PBS_JOBNAME#*-}
+
+#mpirun -np $NP pw.x -npool $NP <vc-relax.in> vc-relax.out
+#mpirun -np $NP pw.x -npool $NP <relax.in> relax.out
+#mpirun -np $NP pw.x -npool $NP <scf.in> scf.out
+#mpirun -np $NP pw.x -npool $NP <nscf.in> nscf.out
+#mpirun -np $NP pw.x -npool $NP <band.in> band.out
+#mpirun -np $NP bands.x -npool $NP <bands.in> bands.out
+#mpirun -np $NP ph.x -npool $NP <ph.in> ph.out
+
+export seedname=${prefix}
+#echo "mp_grid = 100 1 1">>${seedname}.win
+#echo "begin kpoints">>${seedname}.win
+#kmesh.pl 100 1 1 wannier >>${seedname}.win
+#echo "end kpoints">>${seedname}.win
+#mpirun -np $NP wannier90.x -pp ${seedname}
+#pw2wannier90.x <pw2wan.in>pw2wan.out
+mpirun -np $NP wannier90.x ${seedname}
+
+
+
+

@@ -1,0 +1,26 @@
+#!/bin/bash
+#PBS -N pw-carbyne
+#PBS -o ${PBS_JOBID}.out
+#PBS -e ${PBS_JOBID}.err
+#PBS -q share
+#PBS -l nodes=1:ppn=28
+
+# get the number of processors
+NP=`cat $PBS_NODEFILE | wc -l`
+
+# enter job's working directory
+cd $PBS_O_WORKDIR
+
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+export MODULEPATH=/public/software/modules:/public/home/wzhuang/xh/modulefiles
+
+module load apps/Materials/Quantum_Espresso/6.7.0
+
+export prefix=${PBS_JOBNAME#*-}
+
+#mpirun -np $NP pw.x -npool $NP <vc-relax.in> vc-relax.out
+#mpirun -np $NP pw.x -npool $NP <relax.in> relax.out
+#mpirun -np $NP pw.x -npool $NP <scf.in> scf.out
+#mpirun -np $NP pw.x -npool $NP <band.in> band.out
+mpirun -np $NP bands.x -npool $NP <bands.in> bands.out

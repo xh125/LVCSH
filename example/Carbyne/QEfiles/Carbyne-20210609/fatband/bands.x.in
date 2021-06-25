@@ -1,7 +1,0 @@
-&bands
-prefix = carbyne
-outdir = './outdir'
-filband = 'bands.dat'
-lsym = .true.
-/
-

@@ -1,9 +1,0 @@
-&projwfc
-prefix = 'carbyne'
-outdir = './outdir'
-ngauss = 1
-degauss = 0.02
-deltaE  = 0.01
-filpdos = 'carbyne.pdos'
-filproj = 'carbyne.proj'
-/

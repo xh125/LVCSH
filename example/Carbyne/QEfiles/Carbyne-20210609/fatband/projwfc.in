@@ -1,6 +1,0 @@
-&projwfc
-prefix = 'carbyne'
-outdir = './outdir'
-lsym = .false.
-filproj = 'fatband'
-/
