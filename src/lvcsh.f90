@@ -26,13 +26,14 @@ program lvcsh
   use omp_lib
   use f95_precision
   use blas95	
-  use constants,only      : maxlen,ryd2eV,ry_to_fs
+  use constants,only      : maxlen,ryd2eV,ry_to_fs,ryd2meV
   use environments,only   : environment_start,mkl_threads,&
                             set_mkl_threads,lsetthreads
   use readinput,only      : get_inputfile
   use readscf,only        : readpwscf_out
   use readphout,only      : readph_out
   use readepw,only        : readepwout
+	use types,only          : gmnvkq_n0
   use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,inputfilename,&
                             llaser,init_ik,init_eband,init_hband,&
 														calculation,verbosity,nnode,ncore,naver_sum
@@ -40,13 +41,14 @@ program lvcsh
                             nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,gmnvkq_h,H0_h_nk,E0_h,P0_h,&
                             H_e_eq,E_e_eq,P_e_eq,H_h_eq,E_h_eq,P_h_eq,&
                             allocate_hamiltonian,set_H_nk,set_H0_nk,&
-                            calculate_eigen_energy_state,resort_eigen_energy_stat
+                            calculate_eigen_energy_state,resort_eigen_energy_stat,&
+														ngfre_e,ngfre_h,gmnvkq_n0_e,gmnvkq_n0_h,get_gmnvkq_n0,lgmnvkq_e,lgmnvkq_h
   use randoms,only        : init_random_seed
   use lasercom,only       : fwhm,w_laser
   use getwcvk,only        : get_Wcvk
   use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,init_eh_KSstat,&
                             init_stat_diabatic,init_surface
-  use surfacecom,only     : methodsh,lfeedback,naver,nsnap,nstep,dt,pre_nstep,pre_dt,l_ph_quantum,&
+  use surfacecom,only     : methodsh,lfeedback,lit_gmnvkq,naver,nsnap,nstep,dt,pre_nstep,pre_dt,l_ph_quantum,&
                             gamma,temp,iaver,isnap,istep,ldecoherence,Cdecoherence,&
                             l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&
                             lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,&
@@ -111,16 +113,27 @@ program lvcsh
   !get ieband_min,ieband_max,ihband_min,ihband_max
   call allocate_hamiltonian(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
   if(lelecsh) then
-    call set_H0_nk(nktotf,neband,H0_e_nk,ieband_min,gmnvkq_e)
+    call set_H0_nk(nktotf,neband,H0_e_nk,ieband_min,gmnvkq_e,lit_gmnvkq,ngfre_e)
     H_e_eq = reshape(H0_e_nk,(/ nefre,nefre /))		
 		call calculate_eigen_energy_state(nefre,H_e_eq,E_e_eq,P_e_eq)
-  endif
+		allocate(gmnvkq_n0_e(ngfre_e))
+		call get_gmnvkq_n0(lit_gmnvkq,nktotf,neband,nqtotf,nmodes,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e)
+		write(stdout,"(5X,A,/,5x,A,F12.5,A)")"For electron non-adiabatic coupling calculation,",&
+		"only the Energy of gmnvkq_e >",lit_gmnvkq*ryd2meV," meV take into account"
+		write(stdout,"(5X,I12,A)") ngfre_e, " gmnvkq_e be account in calculation."
+	endif
   if(lholesh) then
-    call set_H0_nk(nktotf,nhband,H0_h_nk,ihband_min,gmnvkq_h)
+    call set_H0_nk(nktotf,nhband,H0_h_nk,ihband_min,gmnvkq_h,lit_gmnvkq,ngfre_h)
     H0_h_nk = -1.0 * H0_h_nk
     H_h_eq = reshape(H0_h_nk,(/ nhfre,nhfre /))		
 		call calculate_eigen_energy_state(nhfre,H_h_eq,E_h_eq,P_h_eq)		
     gmnvkq_h  = -1.0 * gmnvkq_h
+		allocate(gmnvkq_n0_h(ngfre_h))
+		call get_gmnvkq_n0(lit_gmnvkq,nktotf,nhband,nqtotf,nmodes,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h)
+		write(stdout,"(5X,A,/,5x,A,F12.5,A)")"For hole non-adiabatic coupling calculation,",&
+		"only the Energy of gmnvkq_h >",lit_gmnvkq*ryd2meV," meV take into account"
+		write(stdout,"(5X,I12,A)") ngfre_h, " gmnvkq_e be account in calculation."		
+		
   endif
   !get H0_e_nk(neband,nktotf,neband,nktotf),gmnvkq_e(neband,neband,nktotf,nmodes,nqtotf)
   !get H0_h_nk(nhband,nktotf,nhband,nktotf),gmnvkq_h(nhband,nhband,nktotf,nmodes,nqtotf)
@@ -263,7 +276,7 @@ program lvcsh
       P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
       call convert_diabatic_adiabatic(nefre,P_e,c_e,w_e)
       call init_surface(nefre,w_e,iesurface)
-      call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,P_e_nk,gmnvkq_e,d_e)
+      call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,P_e_nk,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e,d_e)
       E0_e = E_e;P0_e=P_e;P0_e_nk=P_e_nk;d0_e=d_e;w0_e=w_e
     endif
     
@@ -277,7 +290,7 @@ program lvcsh
       P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
       call convert_diabatic_adiabatic(nhfre,P_h,c_h,w_h)
       call init_surface(nhfre,w_h,ihsurface)                
-      call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,gmnvkq_h,d_h)
+      call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h,d_h)
       E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
     endif
 
@@ -467,7 +480,7 @@ program lvcsh
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
           ! update d_e in time t0+dt
-          call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,p_e,gmnvkq_e,d_e)
+          call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,p_e,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e,d_e)
           
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_e in time t0+dt, to convert c_e(t0+dt) to w_e(t0+dt) 
@@ -525,7 +538,7 @@ program lvcsh
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
           ! update d_h in time t0+dt
-          call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,p_h,gmnvkq_h,d_h)          
+          call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,p_h,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h,d_h)          
 
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_h in time t0+dt, to convert c_h(t0+dt) to w_h(t0+dt) 

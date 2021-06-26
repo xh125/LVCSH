@@ -353,19 +353,25 @@ module surfacehopping
   !% calculate nonadiabatic coupling %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   ! ref : PPT-91
-  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,wf,ee,p_nk,gmnvkq,dd)
+  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,wf,ee,p_nk,gmnvkq,lgmnvkq,ngfre,g_n0,dd)
     use kinds,only :  dp
+		use types
     implicit none
-    integer, intent(in) :: nmodes,nq,nband,nk
+    integer, intent(in) :: nmodes,nq,nband,nk,ngfre
     real(kind=dp),intent(in) :: wf(nmodes,nq),ee(nband*nk)
     real(kind=dp),intent(in) :: gmnvkq(nband,nband,nmodes,nk,nq)
+		logical,intent(in) :: lgmnvkq(nband,nband,nmodes,nk,nq)
     real(kind=dp),intent(in) :: p_nk(nband,nk,nband*nk)
+		type(gmnvkq_n0),intent(in) :: g_n0(ngfre)
     real(kind=dp),intent(out):: dd(nband*nk,nband*nk,nmodes,nq)
-    integer :: nfre,ifre,jfre,iq,imode 
+    integer :: nfre,ifre,jfre,iq,imode ,igfre
     integer :: ik,ikq,iband1,iband2
+		real(kind=dp) :: epc
+		logical :: larglit
     
     nfre = nband*nk
     
+		!version 1 原始版本时间长
     !dd=0.0d0
     !do ifre=1,nfre-1
     !  do jfre=ifre+1,nfre
@@ -387,32 +393,92 @@ module surfacehopping
     !  enddo
     !enddo
 		
-		!new
+		!version 2 时间稍微变短
+    !dd=0.0d0
+		!do iq=1,nq
+		!	do imode=1,nmodes
+		!		do ifre=1,nfre-1
+		!			do jfre=ifre+1,nfre
+    !        
+		!				do ik=1,nk
+    !          ikq = kqmap(ik,iq)
+    !          do iband1=1,nband
+    !            do iband2=1,nband
+    !              dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
+    !              &gmnvkq(iband1,iband2,imode,ik,iq)*p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)
+    !            enddo
+    !          enddo
+    !        enddo
+		!				dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)/(ee(jfre)-ee(ifre))
+		!				dd(jfre,ifre,imode,iq) = - dd(ifre,jfre,imode,iq)
+		!				
+    !      enddo
+    !    enddo
+		!		dd(:,:,imode,iq)=sqrt(2.0*wf(imode,iq)/nq)*dd(:,:,imode,iq)
+    !  enddo
+    !enddo
+    
+		!version 3 时间变短五倍，由gmnvkg中0的个数决定缩短时间
+    !dd=0.0d0
+		!do iq=1,nq
+		!	do imode=1,nmodes
+		!		do ik =1 ,nk
+		!			ikq = kqmap(ik,iq)
+		!			do iband1=1,nband
+		!				do iband2=1,nband
+		!					epc = gmnvkq(iband1,iband2,imode,ik,iq)
+		!					!larglit = lgmnvkq(iband1,iband2,imode,ik,iq)
+		!					!if(larglit) then
+		!					if(epc /= 0.0) then
+		!						do ifre=1,nfre-1
+		!							do jfre=ifre+1,nfre
+		!								dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
+		!								&epc*p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)
+		!							enddo
+		!						enddo
+		!					endif
+    !        enddo
+    !      enddo
+    !    enddo
+		!		dd(:,:,imode,iq)=sqrt(2.0*wf(imode,iq)/nq)*dd(:,:,imode,iq)
+    !  enddo
+    !enddo
+		!do ifre=1,nfre-1
+		!	do jfre=ifre+1,nfre
+		!		dd(ifre,jfre,:,:) = dd(ifre,jfre,:,:)/(ee(jfre)-ee(ifre))
+		!		dd(jfre,ifre,:,:) = - dd(ifre,jfre,:,:)		
+		!	enddo
+		!enddo
+    
+		!version 4 时间缩短5倍，在有大量为0的gmnvkq时，加速更加可观
     dd=0.0d0
+		do igfre=1,ngfre
+			iband1= g_n0(igfre)%m
+			iband2= g_n0(igfre)%n
+			imode = g_n0(igfre)%v
+			ik    = g_n0(igfre)%ik
+			iq    = g_n0(igfre)%iq
+			ikq   = g_n0(igfre)%ikq
+			epc   = g_n0(igfre)%g 
+			do ifre=1,nfre-1
+				do jfre=ifre+1,nfre
+					dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
+					&epc*p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)
+				enddo
+			enddo
+    enddo
 		do iq=1,nq
 			do imode=1,nmodes
-				do ifre=1,nfre-1
-					do jfre=ifre+1,nfre
-            
-						do ik=1,nk
-              ikq = kqmap(ik,iq)
-              do iband1=1,nband
-                do iband2=1,nband
-                  dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
-                  &gmnvkq(iband1,iband2,imode,ik,iq)*p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)
-                enddo
-              enddo
-            enddo
-						dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)/(ee(jfre)-ee(ifre))
-						dd(jfre,ifre,imode,iq) = - dd(ifre,jfre,imode,iq)
-						
-          enddo
-        enddo
 				dd(:,:,imode,iq)=sqrt(2.0*wf(imode,iq)/nq)*dd(:,:,imode,iq)
-      enddo
-    enddo
-    
-    
+			enddo
+		enddo
+		do ifre=1,nfre-1
+			do jfre=ifre+1,nfre
+				dd(ifre,jfre,:,:) = dd(ifre,jfre,:,:)/(ee(jfre)-ee(ifre))
+				dd(jfre,ifre,:,:) = - dd(ifre,jfre,:,:)		
+			enddo
+		enddo		
+		
   end subroutine calculate_nonadiabatic_coupling
   
   

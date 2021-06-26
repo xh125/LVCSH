@@ -1,5 +1,22 @@
+!module types
+!	use kinds,only :dp
+!	implicit none
+!	!declare type of gmnvkq_n0 with gmnvkq>0.0
+!	type :: gmnvkq_n0
+!		integer :: m
+!		integer :: n
+!		integer :: v
+!		integer :: ik
+!		integer :: iq
+!		integer :: ikq
+!		real(kind=dp) :: g
+!	end type gmnvkq_n0	
+!	
+!end module types
+
 module hamiltonian
   use kinds,only : dp,dpc
+	use types
   use parameters
   use elph2, only  : nbndfst,nk=>nktotf,gmnvkq,nq => nqtotf,wf,&
                      ibndmin,ibndmax
@@ -22,7 +39,12 @@ module hamiltonian
   
   real(kind=dp),allocatable :: gmnvkq_e(:,:,:,:,:)
   real(kind=dp),allocatable :: gmnvkq_h(:,:,:,:,:)
-  
+	
+  logical,allocatable :: lgmnvkq_e(:,:,:,:,:)
+  logical,allocatable :: lgmnvkq_h(:,:,:,:,:)	
+	integer :: ngfre_e,ngfre_h
+	type(gmnvkq_n0),allocatable :: gmnvkq_n0_e(:),gmnvkq_n0_h(:)
+	
   !平衡位置哈密顿量，电声耦合项，总的H和临时H
   real(kind=dp),allocatable :: E_e(:),P_e(:,:),P_e_nk(:,:,:),&
                                E0_e(:),P0_e(:,:),P0_e_nk(:,:,:)
@@ -42,6 +64,9 @@ module hamiltonian
       allocate(gmnvkq_e(neband,neband,nmodes,nk,nq),stat=ierr)
       if(ierr /=0) call errore('hamiltonian','Error allocating gmnvkq_e',1)
       gmnvkq_e = 0.0
+      allocate(lgmnvkq_e(neband,neband,nmodes,nk,nq),stat=ierr)
+      if(ierr /=0) call errore('hamiltonian','Error allocating lgmnvkq_e',1)
+      lgmnvkq_e = .false.			
       allocate(H0_e(nefre,nefre),stat=ierr)
       if(ierr /=0) call errore('hamiltonian','Error allocating H0_e',1)    
       H0_e = 0.0
@@ -71,7 +96,10 @@ module hamiltonian
       nhfre   = nhband * nk
       allocate(gmnvkq_h(nhband,nhband,nmodes,nk,nq),stat=ierr)
       if(ierr /=0) call errore('hamiltonian','Error allocating gmnvkq_h',1)
-      gmnvkq_h = 0.0      
+      gmnvkq_h = 0.0
+      allocate(lgmnvkq_h(nhband,nhband,nmodes,nk,nq),stat=ierr)
+      if(ierr /=0) call errore('hamiltonian','Error allocating lgmnvkq_h',1)
+      lgmnvkq_h = .false.            
       allocate(H0_h(nhfre,nhfre),stat=ierr)
       if(ierr /=0) call errore('hamiltonian','Error allocating H0_h',1)    
       H0_h = 0.0
@@ -98,7 +126,7 @@ module hamiltonian
     
   end subroutine allocate_hamiltonian
   
-  subroutine set_H0_nk(nk,nband,H0_nk,iehband_min,gmnvkq_eh)
+  subroutine set_H0_nk(nk,nband,H0_nk,iehband_min,gmnvkq_eh,lit,ngfre)
     use elph2, only : etf,gmnvkq
     implicit none
     integer , intent(in) :: nk
@@ -106,9 +134,12 @@ module hamiltonian
     integer , intent(in) :: iehband_min
     real(kind=dp), intent(out) :: H0_nk(nband,nk,nband,nk)
     real(kind=dp), intent(out) :: gmnvkq_eh(nband,nband,nmodes,nk,nq)
-    
+    real(kind=dp), intent(in) :: lit
+		integer, intent(out) :: ngfre
+		
     integer :: ik,iband,jband,nfre
-    
+    integer :: m,n,nu,iq
+		
     nfre = nband*nk
     
     H0_nk = 0.0
@@ -121,7 +152,20 @@ module hamiltonian
     iband = iehband_min
     jband = iehband_min+nband-1
     gmnvkq_eh = gmnvkq(iband:jband,iband:jband,:,:,:)    
-    
+		
+		ngfre= 0
+		do iq=1,nq
+			do ik=1,nk
+				do nu=1,nmodes
+					do n=iband,jband
+						do m=iband,jband
+							if(ABS(gmnvkq(m,n,nu,ik,iq))>lit) ngfre = ngfre+1
+						enddo
+					enddo
+				enddo
+			enddo
+		enddo
+		
   end subroutine set_H0_nk
   
 
@@ -158,6 +202,47 @@ module hamiltonian
     enddo
         
   end subroutine set_H_nk
+
+	subroutine get_gmnvkq_n0(lit,nk,nband,nq,nmode,gmnvkq,lgmnvkq,ngfre,g_n0)
+		use epwcom,only  : kqmap
+		use types
+		implicit none
+		integer ,intent(in) :: nk,nband,nq,nmode,ngfre
+		real(kind=dp),intent(in) :: lit
+		real(kind=dp),intent(in) :: gmnvkq(nband,nband,nmode,nk,nq)
+		logical,intent(out) :: lgmnvkq(nband,nband,nmode,nk,nq)
+		type(gmnvkq_n0),intent(out) :: g_n0(ngfre)
+		
+		integer :: ik,iband,jband,iq,imode,igfre
+		
+		igfre=0
+		lgmnvkq = .false.
+		do iq=1,nq
+			do ik=1,nk
+				do imode=1,nmode
+					do iband=1,nband
+						do jband=1,nband
+							if(abs(gmnvkq(jband,iband,imode,ik,iq))>lit) then
+								igfre=igfre+1
+								g_n0(igfre)%m=jband
+								g_n0(igfre)%n=iband
+								g_n0(igfre)%v=imode
+								g_n0(igfre)%ik=ik
+								g_n0(igfre)%iq=iq
+								g_n0(igfre)%ikq=kqmap(ik,iq)
+								g_n0(igfre)%g= gmnvkq(jband,iband,imode,ik,iq)
+								lgmnvkq(jband,iband,imode,ik,iq) = .true.
+							endif
+						enddo
+					enddo
+				enddo
+			enddo
+		enddo
+		
+		
+		
+	end subroutine get_gmnvkq_n0
+
 
 
   !========================================!

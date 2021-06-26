@@ -1,7 +1,7 @@
 module readinput
   use kinds,     only : dp
   use constants, only : maxlen
-  use parameters,only : calculation,verbosity,outdir,ldecoherence,Cdecoherence,&
+  use parameters,only : calculation,verbosity,outdir,ldecoherence,Cdecoherence,lit_gmnvkq,&
                         lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
                         methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,pre_dt,&
                         gamma,ld_fric,dt,temp,l_ph_quantum,&
@@ -166,7 +166,8 @@ module readinput
     methodsh      = "FSSH"
     lfeedback     = .true.
 		ldecoherence  = .true.
-		cdecoherence  = 0.1   
+		cdecoherence  = 0.1
+		lit_gmnvkq    = 0.0 !meV		
     l_ph_quantum  = .true.
     lelecsh       = .false.
     lholesh       = .false.
@@ -248,12 +249,13 @@ module readinput
   
   subroutine param_in_atomicunits()
     ! change the input parameters into Rydberg atomic units
-    use constants,only : Ryd2V_m,ryd2eV,Ry_TO_THZ,Ry_TO_fs
+    use constants,only : Ryd2V_m,ryd2eV,Ry_TO_THZ,Ry_TO_fs,ryd2mev
     use lasercom,only  : fwhm_2T2
     implicit none
     
 		cdecoherence = cdecoherence/2.0 ! Hartree to Rydberg
-    gamma = gamma / Ry_TO_THZ ! change gamma in unit of (THZ) to (Ryd)
+    lit_gmnvkq   = lit_gmnvkq/ryd2meV
+		gamma = gamma / Ry_TO_THZ ! change gamma in unit of (THZ) to (Ryd)
     dt    = dt / Ry_TO_fs     ! in Rydberg atomic units(1 a.u.=4.8378 * 10^-17 s)
     pre_dt= pre_dt/ Ry_TO_fs
     efield= efield / Ryd2V_m  ! (in Ry a.u.;1 a.u. = 36.3609*10^10 V/m)

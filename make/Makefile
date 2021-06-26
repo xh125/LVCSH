@@ -82,7 +82,7 @@ SRCS_F= kinds.f90 constants.f90 date_and_times.f90 version.f90 io.f90 environmen
         cell_base.f90 ions_base.f90 symm_base.f90 readscf.f90 \
         phcom.f90 elph_tetra_mod.f90 readphout.f90 \
         elph2.f90 epwcom.f90 grid.f90 \
-        recvec.f90 lrcom.f90 wannierEPW.f90 errore.f90 readepw.f90 \
+        recvec.f90 lrcom.f90 wannierEPW.f90 errore.f90 readepw.f90 types.f90 \
         randoms.f90  getwcvk.f90 initialsh.f90 \
         hamiltonian.f90 fssh.f90 sc_fssh.f90 cc_fssh.f90 surfacehopping.f90 \
         dynamics.f90 saveinf.f90 lvcsh.f90     					 

@@ -21,7 +21,8 @@ module surfacecom
   real(kind=dp)   :: gamma_min,gamma_max
   real(kind=dp)   :: ld_fric_min,ld_fric_max
   integer         :: n_gamma
-  
+  real(kind=dp) 	:: lit_gmnvkq  !in unit of mev
+	
   logical         :: l_ph_quantum
   logical :: lfeedback
   
