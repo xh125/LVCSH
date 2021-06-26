@@ -120,7 +120,6 @@ program lvcsh
     H0_h_nk = -1.0 * H0_h_nk
     H_h_eq = reshape(H0_h_nk,(/ nhfre,nhfre /))		
 		call calculate_eigen_energy_state(nhfre,H_h_eq,E_h_eq,P_h_eq)		
-		
     gmnvkq_h  = -1.0 * gmnvkq_h
   endif
   !get H0_e_nk(neband,nktotf,neband,nktotf),gmnvkq_e(neband,neband,nktotf,nmodes,nqtotf)
@@ -280,6 +279,7 @@ program lvcsh
       call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,gmnvkq_h,d_h)
       E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
     endif
+
     
     phQ0=phQ; phP0=phP 
     
