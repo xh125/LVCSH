@@ -199,7 +199,8 @@ program lvcsh
   !==========================!  
   do iaver=1,naver
     write(stdout,'(/,a,I4,a)') '###### iaver=',iaver,' ######'    
-    
+		call get_date_and_time(cdate,ctime)
+		write(stdout,'(1X,"This trajectory start on ",A9," at ",A9)') cdate,ctime      
     !==================!
     != initialization =!
     !==================!
@@ -700,6 +701,10 @@ program lvcsh
       endif
       
     enddo
+		
+		call get_date_and_time(cdate,ctime)
+		write(stdout,'(1X,"This trajectory end on ",A9," at ",A9)') cdate,ctime      
+		
   enddo
   
   phQsit = phQsit / naver
