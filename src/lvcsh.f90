@@ -774,6 +774,10 @@ program lvcsh
   
 	elseif(trim(calculation)=="plot") then
 		naver_sum = naver*nnode*ncore
+		!phQsit = 0.0
+		!phPsit = 0.0
+		!phKsit = 0.0
+		!phUsit = 0.0
 		do inode=1,nnode
 			do icore=1,ncore
 				iaver_i = (((inode-1)*ncore+icore-1)*naver)+1
@@ -813,24 +817,24 @@ program lvcsh
 			enddo
 	  enddo
 		
-		phQsit = phQsit /nnode*ncore
-		phPsit = phPsit /nnode*ncore
-		phKsit = phKsit /nnode*ncore
-		phUsit = phUsit /nnode*ncore		
+		phQsit = phQsit /(nnode*ncore)
+		phPsit = phPsit /(nnode*ncore)
+		phKsit = phKsit /(nnode*ncore)
+		phUsit = phUsit /(nnode*ncore)		
 		if(lelecsh) then
-			csit_e = csit_e /nnode*ncore
-			wsit_e = wsit_e /nnode*ncore
-			psit_e = psit_e /nnode*ncore
-			mskd_e = mskd_e /nnode*ncore
-			ipr_e  = ipr_e / nnode*ncore
+			csit_e = csit_e /(nnode*ncore )
+			wsit_e = wsit_e /(nnode*ncore )
+			psit_e = psit_e /(nnode*ncore )
+			mskd_e = mskd_e /(nnode*ncore )
+			ipr_e  = ipr_e / (nnode*ncore )
 		endif
 		
 		if(lholesh) then
-			csit_h = csit_h /nnode*ncore
-			wsit_h = wsit_h /nnode*ncore
-			psit_h = psit_h /nnode*ncore
-			mskd_h = mskd_h /nnode*ncore
-			ipr_h  = ipr_h / nnode*ncore
+			csit_h = csit_h /(nnode*ncore  )
+			wsit_h = wsit_h /(nnode*ncore  )
+			psit_h = psit_h /(nnode*ncore  )
+			mskd_h = mskd_h /(nnode*ncore  )
+			ipr_h  = ipr_h / (nnode*ncore  )
 		endif		
 	
 

@@ -2,7 +2,7 @@ module saveinf
   use kinds,only : dp
   use surfacecom,only : dt,nstep
   use io,only : io_file_unit,open_file,close_file
-  use constants,only : ry_to_fs,maxlen
+  use constants,only : ry_to_fs,maxlen,RYTOEV
 	use parameters,only : outdir
   implicit none
   integer :: iaver,isnap,ifre,iq,imode
@@ -93,19 +93,21 @@ module saveinf
     character(len=maxlen) :: apes_file_
 		
     integer :: apes_unit
-		character(len=maxlen) :: ctmp1,ctmp2
+		!character(len=maxlen) :: ctmp1,ctmp2
 		
-		write(ctmp1,*) naver*nnode*ncore+1
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"
+		!write(ctmp1,*) naver*nnode*ncore+1
+		!ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"
 		
 		apes_file_ = trim(outdir)//trim(adjustl(apes_file))//".gnu"
 
 
     apes_unit = io_file_unit()
     call open_file(apes_file_,apes_unit)
-    write(apes_unit,"(2(1X,A12))") "time(fs) ","apes_iaver"
+		write(apes_unit,"(A)") "Plot the average active potential Energy Surface."
+    write(apes_unit,"(2(1X,A12))")   "time ","aver_apes"
+		write(apes_unit,"(2(1X,A12))") " fs "," eV"
     do isnap=0,nsnap
-      write(apes_unit,ctmp2) dt*nstep*isnap*ry_to_fs,(apes(isnap,iaver),iaver=1,naver*nnode*ncore)
+      write(apes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(apes(isnap,:))/(naver*nnode*ncore)*RYTOEV
     enddo
  
     call close_file(apes_file,apes_unit)
@@ -190,10 +192,12 @@ module saveinf
 
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
-    write(pes_unit,"(3(1X,A12))") "time(fs) ","active_pes","i_pes"
+		write(pes_unit,"(A)") "Plotting an example of potential Energy Surface(PES),and the electron(hole) hopping on the PES."
+    write(pes_unit,"(3(1X,A12))") "time ","active_pes","i_pes"
+		write(pes_unit,"(3(1X,A12))") " fs  ","   eV     ","  eV "
 		do iaver =1 , 1
       do isnap=0,nsnap
-				write(pes_unit,trim(ctmp2)) dt*nstep*isnap*ry_to_fs,(pes(ifre,isnap,iaver),ifre=0,nfre)
+				write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(pes(ifre,isnap,iaver)*RYTOEV,ifre=0,nfre)
       enddo
     enddo
 		
@@ -520,9 +524,10 @@ module saveinf
     phq_unit = io_file_unit()
     call open_file(phQ_file_,phq_unit)
     
+		write(phq_unit,"(A)") "Average of Normal mode coordinate for all trajecotry."
 		write(phq_unit,"(2(1X,A12))") "time(fs) ","phQ(ifre)"
     do isnap=0,nsnap
-      write(phq_unit,ctmp2) dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      write(phq_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phQ_file_,phq_unit)
@@ -597,6 +602,7 @@ module saveinf
     php_unit = io_file_unit()
     call open_file(phP_file_,php_unit)
     
+		write(php_unit,"(A)") "Average of Normal mode verlocity for all trajecotry."
 		write(php_unit,"(2(1X,A12))") "time(fs) ","phP(ifre)"
     do isnap=0,nsnap
       write(php_unit,ctmp2) dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
@@ -667,16 +673,21 @@ module saveinf
 
 		character(len=maxlen) :: phK_file_
 		character(len=maxlen) :: ctmp1,ctmp2
-		write(ctmp1,*) nmodes*nq+1
+		write(ctmp1,*) nmodes*nq+2
 		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"    
 		phK_file_ = trim(outdir)//trim(adjustl(phK_file))//".gnu"    
     
     phK_unit = io_file_unit()
     call open_file(phK_file_,phK_unit)
 		
-    write(phK_unit,"(2(1X,A12))") "time(fs) ","phK(ifre)"
+		write(phK_unit,"(A)") "Average of Normal mode kinetic energy for all trajecotry."
+    write(phK_unit,"(3(1X,A12))") "time ","SUM_phK","phK(mode,q)"
+		write(phK_unit,"(3(1X,A12))") " fs  ","  eV   ","    eV     "
     do isnap=0,nsnap
-        write(phK_unit,ctmp2) dt*nstep*isnap*ry_to_fs,((phKsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+        !write(phK_unit,ctmp2) dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap)),&
+				!((phKsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+        write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap))*RYTOEV,&
+				((phKsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phK_file_,phK_unit)
@@ -745,16 +756,19 @@ module saveinf
 
 		character(len=maxlen) :: phU_file_
 		character(len=maxlen) :: ctmp1,ctmp2
-		write(ctmp1,*) nmodes*nq+1
+		write(ctmp1,*) nmodes*nq+2
 		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"    
 		phU_file_ = trim(outdir)//trim(adjustl(phU_file))//".gnu"    
     
     phU_unit = io_file_unit()
     call open_file(phU_file_,phU_unit)
     
-		write(phU_unit,"(2(1X,A12))") "time(fs) ","phU(ifre)"
+		write(phU_unit,"(A)") "Average of Normal mode potential energy for all trajecotry."
+		write(phU_unit,"(3(1X,A12))") "time ","SUM_phU","phU(mode,q)"
+		write(phU_unit,"(3(1X,A12))") "  fs ","   eV  ","    eV     "
     do isnap=0,nsnap
-        write(phU_unit,"(7(1X,E12.5))") dt*nstep*isnap*ry_to_fs,((phUsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+        write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap))*RYTOEV,&
+				((phUsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phU_file_,phU_unit)

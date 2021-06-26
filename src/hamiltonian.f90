@@ -280,10 +280,10 @@ module hamiltonian
 		
 		
 		do ifre =1 ,nfre
-			flad = ABS(SUM(pp(:,ifre)*pp_eq(:,ifre)))
-			if(flad >= 0.5) then
-				cycle
-			else
+			!flad = ABS(SUM(pp(:,ifre)*pp_eq(:,ifre)))
+			!if(flad >= 0.5) then
+			!	cycle
+			!else
 				pdotp = 0.0
 				do jfre=ifre,nfre
 					pdotp(jfre) = ABS(SUM(pp(:,jfre)*pp_eq(:,ifre)))
@@ -295,7 +295,7 @@ module hamiltonian
 				pp(:,ifre) = pp(:,cfre(1))
 				ee(cfre(1))= e_tmp
 				pp(:,cfre(1)) = p_tmp
-		  endif
+		  !endif
 		enddo
 		
 	end subroutine
