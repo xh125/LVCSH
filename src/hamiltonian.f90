@@ -274,28 +274,33 @@ module hamiltonian
 		real(kind=dp) :: e_tmp,flad
 		
 		integer :: ifre,jfre,cfre(1)
+		real(kind=dp) :: maxsv
+		integer :: nmax
 		
 		if(.not. allocated(p_tmp)) allocate(p_tmp(nfre))
-		if(.not. allocated(pdotp)) allocate(pdotp(nfre))
-		
+		if(.not. allocated(pdotp)) allocate(pdotp(nfre))	
 		
 		do ifre =1 ,nfre
-			!flad = ABS(SUM(pp(:,ifre)*pp_eq(:,ifre)))
-			!if(flad >= 0.5) then
-			!	cycle
-			!else
 				pdotp = 0.0
 				do jfre=ifre,nfre
-					pdotp(jfre) = ABS(SUM(pp(:,jfre)*pp_eq(:,ifre)))
+					pdotp(jfre) = SUM(pp(:,jfre)*pp_eq(:,ifre))
 				enddo
-				cfre = Maxloc(pdotp)
+				cfre = Maxloc(ABS(pdotp))
+				maxsv= Maxval(ABS(pdotp))
+				nmax = 0
+				do jfre=ifre,nfre
+					if(ABS(pdotp(jfre)) == maxsv) then
+						nmax=nmax+1
+						if(pdotp(jfre) > pdotp(cfre(1))) cfre(1) = jfre
+					endif
+				enddo
+				
 				e_tmp= ee(ifre)
 				p_tmp= pp(:,ifre)
 				ee(ifre) = ee(cfre(1))
 				pp(:,ifre) = pp(:,cfre(1))
 				ee(cfre(1))= e_tmp
 				pp(:,cfre(1)) = p_tmp
-		  !endif
 		enddo
 		
 	end subroutine

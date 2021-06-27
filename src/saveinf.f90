@@ -1,11 +1,11 @@
 module saveinf
   use kinds,only : dp
   use surfacecom,only : dt,nstep
-  use io,only : io_file_unit,open_file,close_file
+  use io,only : io_file_unit,open_file,close_file,stdout
   use constants,only : ry_to_fs,maxlen,RYTOEV
 	use parameters,only : outdir
   implicit none
-  integer :: iaver,isnap,ifre,iq,imode
+  integer :: iaver,isnap,ifre,iq,imode,inode,icore
   
   character(len=maxlen) :: pes_e_file   ="pes_e.dat"
   character(len=maxlen) :: pes_h_file   ="pes_h.dat"
@@ -29,93 +29,324 @@ module saveinf
   character(len=maxlen) :: phK_file     = "phKsit.dat"  	
   contains 
 
-  subroutine save_apes(nsnap,naver,apes,apes_file)
-    implicit none
-    integer , intent(in) :: nsnap,naver
-    real(kind=dp),intent(in) :: apes(0:nsnap,1:naver)
-    character(len=*),intent(in) :: apes_file
-    character(len=maxlen) :: apes_file_
-		
-    integer :: apes_unit
-		apes_file_ = trim(outdir)//trim(adjustl(apes_file))
-		
-    apes_unit = io_file_unit()
-    call open_file(apes_file_,apes_unit)
-    write(apes_unit,"(A6,I8,A)") "naver=",naver, " apes(isnap,iaver)"
-    do isnap=0,nsnap
-      write(apes_unit,"(5X,A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)."
-      write(apes_unit,"(7(1X,E12.5))") (apes(isnap,iaver),iaver=1,naver)
-    enddo
- 
-    call close_file(apes_file_,apes_unit)
-    
-  end subroutine save_apes
+  
+  subroutine save_phQ(nmodes,nq,nsnap,phQsit)  
+    integer,intent(in) :: nmodes,nq,nsnap
+    real(kind=dp),intent(in) :: phQsit(nmodes,nq,0:nsnap)
+		character(len=maxlen) :: phQ_file_    
+    integer :: phq_unit
 
-  subroutine read_apes(inode,icore,nsnap,naver,apes,apes_file)
-    implicit none
-    integer , intent(in) :: nsnap,naver,inode,icore
-    real(kind=dp),intent(inout) :: apes(0:nsnap,1:naver)
-    character(len=*),intent(in) :: apes_file
-		character(len=maxlen) :: apes_file_
+    phQ_file_ = trim(outdir)//trim(adjustl(phQ_file))    
+    phq_unit = io_file_unit()
+    call open_file(phQ_file_,phq_unit)
+
+		
+		write(phq_unit,"(A40)")  "phQsit(imode,iq,isnap)"
+    do isnap=0,nsnap
+      write(phq_unit,"(A5,F11.2,A4)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
+      write(phq_unit,"(7(1X,E12.5))") ((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+    enddo
     
-    integer :: apes_unit
+    call close_file(phQ_file_,phq_unit)
+   
+  end subroutine save_phQ
+	
+  subroutine read_phQ(inode,icore,nmodes,nq,nsnap,phQsit)  
+    integer,intent(in) :: inode,icore,nmodes,nq,nsnap
+    real(kind=dp),intent(inout) :: phQsit(nmodes,nq,0:nsnap)
+    
+    integer :: phq_unit
+		character(len=maxlen) :: phQ_file_
 		character(len=maxlen) :: ctmp1,ctmp2
+		real(kind=dp),allocatable :: phQsit_(:,:,:)
 		
-		real(kind=dp),allocatable :: apes_(:,:)
-		
-		if(.not. allocated(apes_)) allocate(apes_(0:nsnap,1:naver))
+		if(.not. allocated(phQsit_)) allocate(phQsit_(nmodes,nq,0:nsnap))
 		
 		write(ctmp1,*) inode
 		write(ctmp2,*) icore
-		apes_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(apes_file))
-
-    apes_unit = io_file_unit()
-    call open_file(apes_file_,apes_unit)
-    read(apes_unit,*)
-
-    do isnap=0,nsnap
-      read(apes_unit,*)
-		  read(apes_unit,"(7(1X,E12.5))") (apes_(isnap,iaver),iaver=1,naver)
-    enddo
-
-		
-		apes =  apes_
-		
-    call close_file(apes_file_,apes_unit)
+		phQ_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(phQ_file))
     
-  end subroutine read_apes
-
-  subroutine plot_apes(nnode,ncore,nsnap,naver,apes,apes_file)
-    implicit none
-    integer , intent(in) :: nsnap,naver,nnode,ncore
-    real(kind=dp),intent(in) :: apes(0:nsnap,1:naver*nnode*ncore)
-    character(len=*),intent(in) :: apes_file
-    character(len=maxlen) :: apes_file_
+    phq_unit = io_file_unit()
+    call open_file(phQ_file_,phq_unit)
 		
-    integer :: apes_unit
-		!character(len=maxlen) :: ctmp1,ctmp2
-		
-		!write(ctmp1,*) naver*nnode*ncore+1
-		!ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"
-		
-		apes_file_ = trim(outdir)//trim(adjustl(apes_file))//".gnu"
-
-
-    apes_unit = io_file_unit()
-    call open_file(apes_file_,apes_unit)
-		write(apes_unit,"(A)") "Plot the average active potential Energy Surface."
-    write(apes_unit,"(2(1X,A12))")   "time ","aver_apes"
-		write(apes_unit,"(2(1X,A12))") " fs "," eV"
+		read(phq_unit,*)
     do isnap=0,nsnap
-      write(apes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(apes(isnap,:))/(naver*nnode*ncore)*RYTOEV
+      read(phq_unit,"(A)") ctmp1
+      read(phq_unit,"(7(1X,E12.5))") ((phQsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
- 
-    call close_file(apes_file,apes_unit)
     
-  end subroutine plot_apes
+		phQsit =phQsit + phQsit_
+		
+    call close_file(phQ_file_,phq_unit)
+   
+  end subroutine read_phQ	
+		
+  subroutine plot_phQ(nmodes,nq,nsnap,phQsit)  
+    integer,intent(in) :: nmodes,nq,nsnap
+    real(kind=dp),intent(in) :: phQsit(nmodes,nq,0:nsnap)
+    
+    integer :: phq_unit
+		
+		character(len=maxlen) :: phQ_file_
+		phQ_file_ = trim(outdir)//trim(adjustl(phQ_file))//".gnu"
+	
+    phq_unit = io_file_unit()
+    call open_file(phQ_file_,phq_unit)
+    
+		write(phq_unit,"(5X,A)") "Average of Normal mode coordinate for all trajecotry. ((phQ(imode,iq),imode=1,nmodes),iq=1,nq)"
+		write(phq_unit,"(*(1X,A12))") "time ",(("phQ(ifre)",imode=1,nmodes),iq=1,nq)
+		write(phq_unit,"(*(1X,A12))") " fs  ",((" a.u. ",imode=1,nmodes),iq=1,nq)
+    do isnap=0,nsnap
+      write(phq_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+    enddo
+    
+    call close_file(phQ_file_,phq_unit)
+		
+		write(stdout,"(A,A)") "Write average phQ infortmation to the file: ",trim(phQ_file_)
+   
+  end subroutine plot_phQ  
 
- 
- 
+	
+
+	
+  subroutine save_phP(nmodes,nq,nsnap,phPsit)  
+    integer,intent(in) :: nmodes,nq,nsnap
+    real(kind=dp),intent(in) :: phPsit(nmodes,nq,0:nsnap)
+    
+    integer :: php_unit
+		character(len=maxlen) :: phP_file_    
+    php_unit = io_file_unit()
+		phP_file_ = trim(outdir)//trim(adjustl(phP_file))
+    call open_file(phP_file_,php_unit)
+    
+		write(php_unit,"(A40)") "phPsit(imode,iq,isnap)"
+    do isnap=0,nsnap
+			write(php_unit,"(A5,F11.2,A4)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
+      write(php_unit,"(7(1X,E12.5))") ((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+    enddo
+    
+    call close_file(phP_file_,php_unit)
+   
+  end subroutine save_phP  
+
+  subroutine read_phP(inode,icore,nmodes,nq,nsnap,phPsit)  
+    integer,intent(in) :: inode,icore,nmodes,nq,nsnap
+    real(kind=dp),intent(inout) :: phPsit(nmodes,nq,0:nsnap)
+    
+    integer :: php_unit
+		character(len=maxlen) :: phP_file_
+		character(len=maxlen) :: ctmp1,ctmp2
+		real(kind=dp),allocatable :: phPsit_(:,:,:)
+		
+		if(.not. allocated(phPsit_)) allocate(phPsit_(nmodes,nq,0:nsnap))
+		
+		write(ctmp1,*) inode
+		write(ctmp2,*) icore
+		phP_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(phP_file))
+    
+    php_unit = io_file_unit()
+    call open_file(phP_file_,php_unit)
+		
+		read(php_unit,*)
+    do isnap=0,nsnap
+      read(php_unit,"(A)") ctmp1
+      read(php_unit,"(7(1X,E12.5))") ((phPsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+    enddo
+    
+		phPsit =phPsit + phPsit_
+		
+    call close_file(phP_file_,php_unit)
+   
+  end subroutine read_phP	
+  
+  subroutine plot_phP(nmodes,nq,nsnap,phPsit)  
+    integer,intent(in) :: nmodes,nq,nsnap
+    real(kind=dp),intent(in) :: phPsit(nmodes,nq,0:nsnap)
+    
+    integer :: php_unit
+
+		character(len=maxlen) :: phP_file_  
+		phP_file_ = trim(outdir)//trim(adjustl(phP_file))//".gnu"    
+		
+    php_unit = io_file_unit()
+    call open_file(phP_file_,php_unit)
+    
+		write(php_unit,"(5X,A)") "Average of Normal mode verlocity for all trajecotry.((phP(imode,iq),imode=1,nmodes),iq=1,nq)"
+		write(php_unit,"(*(1X,A12))") "time ",(("phP(ifre)",imode=1,nmodes),iq=1,nq)
+		write(php_unit,"(*(1X,A12))") " fs  ",((" a.u. ",imode=1,nmodes),iq=1,nq)
+    do isnap=0,nsnap
+      write(php_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+    enddo
+    
+    call close_file(phP_file_,php_unit)
+  
+		write(stdout,"(A,A)") "Write average phP infortmation to the file: ",trim(phP_file_)
+	 
+  end subroutine plot_phP  	
+
+	
+	
+  subroutine save_phK(nmodes,nq,nsnap,phKsit)  
+    integer,intent(in) :: nmodes,nq,nsnap
+    real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap)
+    
+    integer :: phK_unit
+
+		character(len=maxlen) :: phK_file_    
+    phK_unit = io_file_unit()
+		phK_file_ = trim(outdir)//trim(adjustl(phK_file))
+		
+    call open_file(phK_file_,phK_unit)
+    write(phK_unit,"(A40)")  "phKsit(imode,iq,isnap)"
+    do isnap=0,nsnap
+				write(phK_unit,"(A5,F11.2,A4)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
+        write(phK_unit,"(7(1X,E12.5))") ((phKsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+    enddo
+    
+    call close_file(phK_file_,phK_unit)
+   
+  end subroutine save_phK
+
+  subroutine read_phK(inode,icore,nmodes,nq,nsnap,phKsit)  
+    integer,intent(in) :: inode,icore,nmodes,nq,nsnap
+    real(kind=dp),intent(inout) :: phKsit(nmodes,nq,0:nsnap)
+    
+    integer :: phk_unit
+		character(len=maxlen) :: phK_file_
+		character(len=maxlen) :: ctmp1,ctmp2
+		real(kind=dp),allocatable :: phKsit_(:,:,:)
+		
+		if(.not. allocated(phKsit_)) allocate(phKsit_(nmodes,nq,0:nsnap))
+		
+		write(ctmp1,*) inode
+		write(ctmp2,*) icore
+		phK_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(phK_file))
+    
+    phk_unit = io_file_unit()
+    call open_file(phK_file_,phk_unit)
+		
+		read(phK_unit,*)
+    do isnap=0,nsnap
+      read(phk_unit,"(A)") ctmp1
+      read(phk_unit,"(7(1X,E12.5))") ((phKsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+    enddo
+    
+		phKsit =phKsit + phKsit_
+		
+    call close_file(phK_file_,phk_unit)
+   
+  end subroutine read_phK	
+
+  subroutine plot_phK(nmodes,nq,nsnap,phKsit)  
+    integer,intent(in) :: nmodes,nq,nsnap
+    real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap)
+    
+    integer :: phK_unit
+
+		character(len=maxlen) :: phK_file_   
+		phK_file_ = trim(outdir)//trim(adjustl(phK_file))//".gnu"    
+    
+    phK_unit = io_file_unit()
+    call open_file(phK_file_,phK_unit)
+		
+		write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
+    write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
+		write(phK_unit,"(*(1X,A12))") " fs  ","  eV   ",(("    eV     ",imode=1,nmodes),iq=1,nq)
+    do isnap=0,nsnap
+        write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap))*RYTOEV,&
+				((phKsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
+    enddo
+    
+    call close_file(phK_file_,phK_unit)
+   
+		write(stdout,"(A,A)") "Write average phK infortmation to the file: ",trim(phK_file_)
+	 
+  end subroutine plot_phK
+
+
+
+  subroutine save_phU(nmodes,nq,nsnap,phUsit)  
+    integer,intent(in) :: nmodes,nq,nsnap
+    real(kind=dp),intent(in) :: phUsit(nmodes,nq,0:nsnap)
+    
+    integer :: phU_unit
+    
+		character(len=maxlen) :: phU_file_
+    phU_unit = io_file_unit()
+		phU_file_ = trim(outdir)//trim(adjustl(phU_file))
+    call open_file(phU_file_,phU_unit)
+
+		
+		write(phU_unit,"(A40)")  "phUsit(imode,iq,isnap)"
+    do isnap=0,nsnap
+				write(phU_unit,"(A5,F11.2,A4)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
+        write(phU_unit,"(7(1X,E12.5))") ((phUsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+    enddo
+    
+    call close_file(phU_file_,phU_unit)
+   
+  end subroutine save_phU  
+
+  subroutine read_phU(inode,icore,nmodes,nq,nsnap,phUsit)  
+    integer,intent(in) :: inode,icore,nmodes,nq,nsnap
+    real(kind=dp),intent(inout) :: phUsit(nmodes,nq,0:nsnap)
+    
+    integer :: phu_unit
+		character(len=maxlen) :: phU_file_
+		character(len=maxlen) :: ctmp1,ctmp2
+		real(kind=dp),allocatable :: phUsit_(:,:,:)
+		
+		if(.not. allocated(phUsit_)) allocate(phUsit_(nmodes,nq,0:nsnap))
+		
+		write(ctmp1,*) inode
+		write(ctmp2,*) icore
+		phU_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(phU_file))
+    
+    phu_unit = io_file_unit()
+    call open_file(phU_file_,phu_unit)
+		
+		read(phu_unit,*)
+    do isnap=0,nsnap
+      read(phu_unit,"(A)") ctmp1
+      read(phu_unit,"(7(1X,E12.5))") ((phUsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+    enddo
+    
+		phUsit =phUsit + phUsit_
+		
+    call close_file(phU_file_,phu_unit)
+   
+  end subroutine read_phU	
+
+  subroutine plot_phU(nmodes,nq,nsnap,phUsit)  
+    integer,intent(in) :: nmodes,nq,nsnap
+    real(kind=dp),intent(in) :: phUsit(nmodes,nq,0:nsnap)
+    
+    integer :: phU_unit
+
+		character(len=maxlen) :: phU_file_  
+		phU_file_ = trim(outdir)//trim(adjustl(phU_file))//".gnu"    
+    
+    phU_unit = io_file_unit()
+    call open_file(phU_file_,phU_unit)
+    
+		write(phU_unit,"(5X,A)") "Average of Normal mode potential energy for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
+		write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("phU(mode,q)",imode=1,nmodes),iq=1,nq)
+		write(phU_unit,"(*(1X,A12))") "  fs ","   eV  ",(("    eV     ",imode=1,nmodes),iq=1,nq)
+    do isnap=0,nsnap
+        write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap))*RYTOEV,&
+				((phUsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
+    enddo
+    
+    call close_file(phU_file_,phU_unit)
+   
+		write(stdout,"(A,A)") "Write average phU infortmation to the file: ",trim(phU_file_)
+	 
+  end subroutine plot_phU  
+
+
+
+	! save the first trajecotry active PES and first trajecotry PES
+	! save the average active PES and PES for all trajecotry.
   subroutine save_pes(nfre,nsnap,naver,pes,pes_file)
     implicit none
     integer , intent(in) :: nfre,nsnap,naver
@@ -183,18 +414,14 @@ module saveinf
 		character(len=maxlen) :: pes_file_
     
     integer :: pes_unit
-		character(len=maxlen) :: ctmp1,ctmp2
 		
-		write(ctmp1,*) nfre+2
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"
-		
-		pes_file_ = trim(outdir)//trim(adjustl(pes_file))//".gnu"
+		pes_file_ = trim(outdir)//trim(adjustl(pes_file))//"_f.gnu"
 
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
-		write(pes_unit,"(A)") "Plotting an example of potential Energy Surface(PES),and the electron(hole) hopping on the PES."
-    write(pes_unit,"(3(1X,A12))") "time ","active_pes","i_pes"
-		write(pes_unit,"(3(1X,A12))") " fs  ","   eV     ","  eV "
+		write(pes_unit,"(A)") "USing the first trajecotry as an example to Plotting potential Energy Surface(PES),and the active PES."
+    write(pes_unit,"(*(1X,A12))") "time ","active_fpes",("i_fpes",ifre=1,nfre)
+		write(pes_unit,"(*(1X,A12))") " fs  ","   eV     ",("  eV ",ifre=1,nfre)
 		do iaver =1 , 1
       do isnap=0,nsnap
 				write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(pes(ifre,isnap,iaver)*RYTOEV,ifre=0,nfre)
@@ -202,9 +429,118 @@ module saveinf
     enddo
 		
     call close_file(pes_file_,pes_unit)
+		
+		write(stdout,"(A,A)") "Write active PES and PES for the first trajecotry to the file:",trim(pes_file_)
+
+		pes_file_ = trim(outdir)//trim(adjustl(pes_file))//"_average.gnu"
+
+    pes_unit = io_file_unit()
+    call open_file(pes_file_,pes_unit)
+		write(pes_unit,"(A)") "Plotting averager of potential Energy Surface(PES),and the averager active PES."
+    write(pes_unit,"(*(1X,A12))") "time ","active_apes",("i_apes",ifre=1,nfre)
+		write(pes_unit,"(*(1X,A12))") " fs  ","   eV     ",("  eV ",ifre=1,nfre)
+		!do iaver =1 , 1
+    do isnap=0,nsnap
+				write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(SUM(pes(ifre,isnap,:))*RYTOEV/naver,ifre=0,nfre)
+    enddo
+    !enddo
+		
+    call close_file(pes_file_,pes_unit)
+		
+		write(stdout,"(A,A)") "Write average of active PES and PES for all trajecotry to the file:",trim(pes_file_)
     
   end subroutine plot_pes
 	
+
+	
+	! save the all active PES Energy for different trajecotry
+	! USed to get the active PES DOS at different time
+  subroutine save_apes(nsnap,naver,apes,apes_file)
+    implicit none
+    integer , intent(in) :: nsnap,naver
+    real(kind=dp),intent(in) :: apes(0:nsnap,1:naver)
+    character(len=*),intent(in) :: apes_file
+    character(len=maxlen) :: apes_file_
+		
+    integer :: apes_unit
+		apes_file_ = trim(outdir)//trim(adjustl(apes_file))
+		
+    apes_unit = io_file_unit()
+    call open_file(apes_file_,apes_unit)
+    write(apes_unit,"(A6,I8,A)") "naver=",naver, " apes(isnap,iaver)"
+    do isnap=0,nsnap
+      write(apes_unit,"(5X,A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)."
+      write(apes_unit,"(7(1X,E12.5))") (apes(isnap,iaver),iaver=1,naver)
+    enddo
+ 
+    call close_file(apes_file_,apes_unit)
+    
+  end subroutine save_apes
+
+  subroutine read_apes(inode,icore,nsnap,naver,apes,apes_file)
+    implicit none
+    integer , intent(in) :: nsnap,naver,inode,icore
+    real(kind=dp),intent(inout) :: apes(0:nsnap,1:naver)
+    character(len=*),intent(in) :: apes_file
+		character(len=maxlen) :: apes_file_
+    
+    integer :: apes_unit
+		character(len=maxlen) :: ctmp1,ctmp2
+		
+		real(kind=dp),allocatable :: apes_(:,:)
+		
+		if(.not. allocated(apes_)) allocate(apes_(0:nsnap,1:naver))
+		
+		write(ctmp1,*) inode
+		write(ctmp2,*) icore
+		apes_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(apes_file))
+
+    apes_unit = io_file_unit()
+    call open_file(apes_file_,apes_unit)
+    read(apes_unit,*)
+
+    do isnap=0,nsnap
+      read(apes_unit,*)
+		  read(apes_unit,"(7(1X,E12.5))") (apes_(isnap,iaver),iaver=1,naver)
+    enddo
+
+		
+		apes =  apes_
+		
+    call close_file(apes_file_,apes_unit)
+    
+  end subroutine read_apes
+
+  subroutine plot_apes(nnode,ncore,nsnap,naver,apes,apes_file)
+    implicit none
+    integer , intent(in) :: nsnap,naver,nnode,ncore
+    real(kind=dp),intent(in) :: apes(0:nsnap,1:naver*nnode*ncore)
+    character(len=*),intent(in) :: apes_file
+    character(len=maxlen) :: apes_file_
+		
+    integer :: apes_unit
+		
+		
+		apes_file_ = trim(outdir)//trim(adjustl(apes_file))//".gnu"
+    apes_unit = io_file_unit()
+    call open_file(apes_file_,apes_unit)
+		
+		write(apes_unit,"(A)") "Plot the DOS of active potential Energy Surface."
+    write(apes_unit,"(*(1X,A12))") "time ",("iaver_apes",ifre=1,naver*ncore*ncore)
+		write(apes_unit,"(*(1X,A12))") " fs  ",(" eV",       ifre=1,naver*ncore*ncore)
+    do isnap=0,nsnap
+      write(apes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(apes(isnap,ifre)*RYTOEV,ifre=1,naver*ncore*ncore)
+    enddo
+ 
+    call close_file(apes_file,apes_unit)
+		
+		write(stdout,"(A,A)") "Write the all avtive PES Energy for different trajecotry in all time to the file:",trim(apes_file_)
+    
+  end subroutine plot_apes
+
+ 
+ 
+
 	
 	
   subroutine save_csit(nfre,nsnap,naver,csit,csit_file)
@@ -457,323 +793,6 @@ module saveinf
   end subroutine plot_psit	
 
 
-  
-  subroutine save_phQ(nmodes,nq,nsnap,phQsit)  
-    integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(in) :: phQsit(nmodes,nq,0:nsnap)
-		character(len=maxlen) :: phQ_file_    
-    integer :: phq_unit
-
-    phQ_file_ = trim(outdir)//trim(adjustl(phQ_file))    
-    phq_unit = io_file_unit()
-    call open_file(phQ_file_,phq_unit)
-
-		
-		write(phq_unit,"(A40)")  "phQsit(imode,iq,isnap)"
-    do isnap=0,nsnap
-      write(phq_unit,"(A5,F11.2,A4)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
-      write(phq_unit,"(7(1X,E12.5))") ((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-    enddo
-    
-    call close_file(phQ_file_,phq_unit)
-   
-  end subroutine save_phQ
-	
-  subroutine read_phQ(inode,icore,nmodes,nq,nsnap,phQsit)  
-    integer,intent(in) :: inode,icore,nmodes,nq,nsnap
-    real(kind=dp),intent(inout) :: phQsit(nmodes,nq,0:nsnap)
-    
-    integer :: phq_unit
-		character(len=maxlen) :: phQ_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		real(kind=dp),allocatable :: phQsit_(:,:,:)
-		
-		if(.not. allocated(phQsit_)) allocate(phQsit_(nmodes,nq,0:nsnap))
-		
-		write(ctmp1,*) inode
-		write(ctmp2,*) icore
-		phQ_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(phQ_file))
-    
-    phq_unit = io_file_unit()
-    call open_file(phQ_file_,phq_unit)
-		
-		read(phq_unit,*)
-    do isnap=0,nsnap
-      read(phq_unit,"(A)") ctmp1
-      read(phq_unit,"(7(1X,E12.5))") ((phQsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-    enddo
-    
-		phQsit =phQsit + phQsit_
-		
-    call close_file(phQ_file_,phq_unit)
-   
-  end subroutine read_phQ	
-		
-  subroutine plot_phQ(nmodes,nq,nsnap,phQsit)  
-    integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(in) :: phQsit(nmodes,nq,0:nsnap)
-    
-    integer :: phq_unit
-		
-		character(len=maxlen) :: phQ_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		write(ctmp1,*) nmodes*nq+1
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"    
-		phQ_file_ = trim(outdir)//trim(adjustl(phQ_file))//".gnu"
-	
-    phq_unit = io_file_unit()
-    call open_file(phQ_file_,phq_unit)
-    
-		write(phq_unit,"(A)") "Average of Normal mode coordinate for all trajecotry."
-		write(phq_unit,"(2(1X,A12))") "time(fs) ","phQ(ifre)"
-    do isnap=0,nsnap
-      write(phq_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-    enddo
-    
-    call close_file(phQ_file_,phq_unit)
-   
-  end subroutine plot_phQ  
-
-	
-	
-  subroutine save_phP(nmodes,nq,nsnap,phPsit)  
-    integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(in) :: phPsit(nmodes,nq,0:nsnap)
-    
-    integer :: php_unit
-		character(len=maxlen) :: phP_file_    
-    php_unit = io_file_unit()
-		phP_file_ = trim(outdir)//trim(adjustl(phP_file))
-    call open_file(phP_file_,php_unit)
-    
-		write(php_unit,"(A40)") "phPsit(imode,iq,isnap)"
-    do isnap=0,nsnap
-			write(php_unit,"(A5,F11.2,A4)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
-      write(php_unit,"(7(1X,E12.5))") ((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-    enddo
-    
-    call close_file(phP_file_,php_unit)
-   
-  end subroutine save_phP  
-
-  subroutine read_phP(inode,icore,nmodes,nq,nsnap,phPsit)  
-    integer,intent(in) :: inode,icore,nmodes,nq,nsnap
-    real(kind=dp),intent(inout) :: phPsit(nmodes,nq,0:nsnap)
-    
-    integer :: php_unit
-		character(len=maxlen) :: phP_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		real(kind=dp),allocatable :: phPsit_(:,:,:)
-		
-		if(.not. allocated(phPsit_)) allocate(phPsit_(nmodes,nq,0:nsnap))
-		
-		write(ctmp1,*) inode
-		write(ctmp2,*) icore
-		phP_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(phP_file))
-    
-    php_unit = io_file_unit()
-    call open_file(phP_file_,php_unit)
-		
-		read(php_unit,*)
-    do isnap=0,nsnap
-      read(php_unit,"(A)") ctmp1
-      read(php_unit,"(7(1X,E12.5))") ((phPsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-    enddo
-    
-		phPsit =phPsit + phPsit_
-		
-    call close_file(phP_file_,php_unit)
-   
-  end subroutine read_phP	
-  
-  subroutine plot_phP(nmodes,nq,nsnap,phPsit)  
-    integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(in) :: phPsit(nmodes,nq,0:nsnap)
-    
-    integer :: php_unit
-
-		character(len=maxlen) :: phP_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		write(ctmp1,*) nmodes*nq+1
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"    
-		phP_file_ = trim(outdir)//trim(adjustl(phP_file))//".gnu"    
-		
-		
-    php_unit = io_file_unit()
-    call open_file(phP_file_,php_unit)
-    
-		write(php_unit,"(A)") "Average of Normal mode verlocity for all trajecotry."
-		write(php_unit,"(2(1X,A12))") "time(fs) ","phP(ifre)"
-    do isnap=0,nsnap
-      write(php_unit,ctmp2) dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-    enddo
-    
-    call close_file(phP_file_,php_unit)
-   
-  end subroutine plot_phP  	
-
-	
-	
-  subroutine save_phK(nmodes,nq,nsnap,phKsit)  
-    integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap)
-    
-    integer :: phK_unit
-
-		character(len=maxlen) :: phK_file_    
-    phK_unit = io_file_unit()
-		phK_file_ = trim(outdir)//trim(adjustl(phK_file))
-		
-    call open_file(phK_file_,phK_unit)
-    write(phK_unit,"(A40)")  "phKsit(imode,iq,isnap)"
-    do isnap=0,nsnap
-				write(phK_unit,"(A5,F11.2,A4)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
-        write(phK_unit,"(7(1X,E12.5))") ((phKsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-    enddo
-    
-    call close_file(phK_file_,phK_unit)
-   
-  end subroutine save_phK
-
-  subroutine read_phK(inode,icore,nmodes,nq,nsnap,phKsit)  
-    integer,intent(in) :: inode,icore,nmodes,nq,nsnap
-    real(kind=dp),intent(inout) :: phKsit(nmodes,nq,0:nsnap)
-    
-    integer :: phk_unit
-		character(len=maxlen) :: phK_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		real(kind=dp),allocatable :: phKsit_(:,:,:)
-		
-		if(.not. allocated(phKsit_)) allocate(phKsit_(nmodes,nq,0:nsnap))
-		
-		write(ctmp1,*) inode
-		write(ctmp2,*) icore
-		phK_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(phK_file))
-    
-    phk_unit = io_file_unit()
-    call open_file(phK_file_,phk_unit)
-		
-		read(phK_unit,*)
-    do isnap=0,nsnap
-      read(phk_unit,"(A)") ctmp1
-      read(phk_unit,"(7(1X,E12.5))") ((phKsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-    enddo
-    
-		phKsit =phKsit + phKsit_
-		
-    call close_file(phK_file_,phk_unit)
-   
-  end subroutine read_phK	
-
-  subroutine plot_phK(nmodes,nq,nsnap,phKsit)  
-    integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap)
-    
-    integer :: phK_unit
-
-		character(len=maxlen) :: phK_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		write(ctmp1,*) nmodes*nq+2
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"    
-		phK_file_ = trim(outdir)//trim(adjustl(phK_file))//".gnu"    
-    
-    phK_unit = io_file_unit()
-    call open_file(phK_file_,phK_unit)
-		
-		write(phK_unit,"(A)") "Average of Normal mode kinetic energy for all trajecotry."
-    write(phK_unit,"(3(1X,A12))") "time ","SUM_phK","phK(mode,q)"
-		write(phK_unit,"(3(1X,A12))") " fs  ","  eV   ","    eV     "
-    do isnap=0,nsnap
-        !write(phK_unit,ctmp2) dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap)),&
-				!((phKsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-        write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap))*RYTOEV,&
-				((phKsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
-    enddo
-    
-    call close_file(phK_file_,phK_unit)
-   
-  end subroutine plot_phK
-
-
-
-  subroutine save_phU(nmodes,nq,nsnap,phUsit)  
-    integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(in) :: phUsit(nmodes,nq,0:nsnap)
-    
-    integer :: phU_unit
-    
-		character(len=maxlen) :: phU_file_
-    phU_unit = io_file_unit()
-		phU_file_ = trim(outdir)//trim(adjustl(phU_file))
-    call open_file(phU_file_,phU_unit)
-
-		
-		write(phU_unit,"(A40)")  "phUsit(imode,iq,isnap)"
-    do isnap=0,nsnap
-				write(phU_unit,"(A5,F11.2,A4)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
-        write(phU_unit,"(7(1X,E12.5))") ((phUsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-    enddo
-    
-    call close_file(phU_file_,phU_unit)
-   
-  end subroutine save_phU  
-
-  subroutine read_phU(inode,icore,nmodes,nq,nsnap,phUsit)  
-    integer,intent(in) :: inode,icore,nmodes,nq,nsnap
-    real(kind=dp),intent(inout) :: phUsit(nmodes,nq,0:nsnap)
-    
-    integer :: phu_unit
-		character(len=maxlen) :: phU_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		real(kind=dp),allocatable :: phUsit_(:,:,:)
-		
-		if(.not. allocated(phUsit_)) allocate(phUsit_(nmodes,nq,0:nsnap))
-		
-		write(ctmp1,*) inode
-		write(ctmp2,*) icore
-		phU_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(phU_file))
-    
-    phu_unit = io_file_unit()
-    call open_file(phU_file_,phu_unit)
-		
-		read(phu_unit,*)
-    do isnap=0,nsnap
-      read(phu_unit,"(A)") ctmp1
-      read(phu_unit,"(7(1X,E12.5))") ((phUsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
-    enddo
-    
-		phUsit =phUsit + phUsit_
-		
-    call close_file(phU_file_,phu_unit)
-   
-  end subroutine read_phU	
-
-  subroutine plot_phU(nmodes,nq,nsnap,phUsit)  
-    integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(in) :: phUsit(nmodes,nq,0:nsnap)
-    
-    integer :: phU_unit
-
-		character(len=maxlen) :: phU_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		write(ctmp1,*) nmodes*nq+2
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"    
-		phU_file_ = trim(outdir)//trim(adjustl(phU_file))//".gnu"    
-    
-    phU_unit = io_file_unit()
-    call open_file(phU_file_,phU_unit)
-    
-		write(phU_unit,"(A)") "Average of Normal mode potential energy for all trajecotry."
-		write(phU_unit,"(3(1X,A12))") "time ","SUM_phU","phU(mode,q)"
-		write(phU_unit,"(3(1X,A12))") "  fs ","   eV  ","    eV     "
-    do isnap=0,nsnap
-        write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap))*RYTOEV,&
-				((phUsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
-    enddo
-    
-    call close_file(phU_file_,phU_unit)
-   
-  end subroutine plot_phU  
 
 
  

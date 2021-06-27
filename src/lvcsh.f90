@@ -475,7 +475,8 @@ program lvcsh
           H_e = reshape(H_e_nk,(/ nefre,nefre /))          
           ! update E_e,P_e to time t0+dt
           call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
-					call resort_eigen_energy_stat(nefre,E_e,P_e,E_e_eq,P_e_eq)
+					!call resort_eigen_energy_stat(nefre,E_e,P_e,E_e_eq,P_e_eq)
+					call resort_eigen_energy_stat(nefre,E_e,P_e,E0_e,P0_e)
           P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
@@ -533,7 +534,8 @@ program lvcsh
           H_h = reshape(H_h_nk,(/ nhfre,nhfre /))          
           ! update E_h,P_h in time t0+dt
           call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
-					call resort_eigen_energy_stat(nhfre,E_h,P_h,E_h_eq,P_h_eq)
+					!call resort_eigen_energy_stat(nhfre,E_h,P_h,E_h_eq,P_h_eq)
+					call resort_eigen_energy_stat(nhfre,E_h,P_h,E0_h,P0_h)
           P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
@@ -774,10 +776,10 @@ program lvcsh
   
 	elseif(trim(calculation)=="plot") then
 		naver_sum = naver*nnode*ncore
-		!phQsit = 0.0
-		!phPsit = 0.0
-		!phKsit = 0.0
-		!phUsit = 0.0
+		phQsit = 0.0
+		phPsit = 0.0
+		phKsit = 0.0
+		phUsit = 0.0
 		do inode=1,nnode
 			do icore=1,ncore
 				iaver_i = (((inode-1)*ncore+icore-1)*naver)+1
