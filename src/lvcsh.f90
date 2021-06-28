@@ -1,5 +1,5 @@
 !----------------------------------------------------------------------------!
-! Copyright (C) 2020 WeiZhuang's group                                       !
+! Copyright (C) 2021 WeiZhuang's group                                       !
 ! This file is distributed under the terms of the                            !
 ! GNU General Public License. See the file `License'                         !
 ! in the root directory of the present distribution,                         !
@@ -15,7 +15,7 @@ program lvcsh
   !=====================================================================================================!
   !=  system interaction with environment by system-bath interactions                                  =!     
   !=====================================================================================================!
-  != Last updata 2021-06.25 Version:0.1.5                                                              =!   
+  != Last updata 2021-06.28 Version:0.1.6                                                              =!   
   != Developed by XieHua at department of physic, USTC;xh125@mail.ustc.edu.cn                          =!
   !=====================================================================================================!
   !! Author: HuaXie
@@ -36,9 +36,9 @@ program lvcsh
 	use types,only          : gmnvkq_n0
   use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,inputfilename,&
                             llaser,init_ik,init_eband,init_hband,&
-														calculation,verbosity,nnode,ncore,naver_sum
-  use hamiltonian,only    : nefre,neband,H_e,H_e_nk,E_e,P_e,P_e_nk,P0_e_nk,gmnvkq_e,H0_e_nk,E0_e,P0_e,&
-                            nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,gmnvkq_h,H0_h_nk,E0_h,P0_h,&
+														calculation,verbosity,nnode,ncore,naver_sum,savedsnap
+  use hamiltonian,only    : nefre,neband,H_e,H_e_nk,E_e,P_e,P_e_nk,P0_e_nk,gmnvkq_e,Enk_e,H0_e_nk,E0_e,P0_e,&
+                            nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,gmnvkq_h,Enk_h,H0_h_nk,E0_h,P0_h,&
                             H_e_eq,E_e_eq,P_e_eq,H_h_eq,E_h_eq,P_h_eq,&
                             allocate_hamiltonian,set_H_nk,set_H0_nk,&
                             calculate_eigen_energy_state,resort_eigen_energy_stat,&
@@ -59,7 +59,7 @@ program lvcsh
                             dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
                             csit_e,wsit_e,pes_e,psit_e,mskds_e,mskds_sum_e,mskd_e,ipr_e,&
                             csit_h,wsit_h,pes_h,psit_h,mskds_h,mskds_sum_h,mskd_h,ipr_h,&
-														apes_e,apes_sum_e,apes_h,apes_sum_h,&
+														eapes_e,eapes_sum_e,eapes_h,eapes_sum_h,iapes_e,iapes_h,&
                             E_ph_CA_sum,E_ph_QA_sum,ld_fric,ld_gamma
   use fssh,only           : nonadiabatic_transition_fssh
   use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
@@ -81,16 +81,17 @@ program lvcsh
   use dynamics,only       : set_gamma,get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,&
                             ADD_BATH_EFFECT
   
-  use saveinf,only : pes_e_file,pes_h_file,apes_e_file,apes_h_file,&
-									   save_pes,save_apes,save_phQ,save_phP,save_phK,save_phU,&
-                     read_pes,read_apes,read_phQ,read_phP,read_phK,read_phU,&
-										 plot_pes,plot_apes,plot_phQ,plot_phP,plot_phK,plot_phU,&
+  use saveinf,only : pes_e_file,pes_h_file,eapes_e_file,eapes_h_file,iapes_e_file,iapes_h_file,&
+									   save_pes,save_apes,save_iapes,save_phQ,save_phP,save_phK,save_phU,&
+                     read_pes,read_apes,read_iapes,read_phQ,read_phP,read_phK,read_phU,&
+										 plot_pes,plot_apes,plot_iapes,plot_phQ,plot_phP,plot_phK,plot_phU,&
 										 csit_e_file,csit_h_file,save_csit,read_csit,plot_csit,&
                      wsit_e_file,wsit_h_file,save_wsit,read_wsit,plot_wsit,&
                      psit_e_file,psit_h_file,save_psit,read_psit,plot_psit,&
 										 mskd_e_file,mskd_h_file,save_mskd,read_mskd,plot_mskd,&
 										 mskds_e_file,mskds_h_file,save_mskds,read_mskds,plot_mskds,&
-										 ipr_e_file,ipr_h_file,save_ipr,read_ipr,plot_ipr
+										 ipr_e_file,ipr_h_file,save_ipr,read_ipr,plot_ipr,&
+										 band_e_file,band_h_file,plot_band_occupatin_withtime
   implicit none
   
   !===============!
@@ -113,7 +114,7 @@ program lvcsh
   !get ieband_min,ieband_max,ihband_min,ihband_max
   call allocate_hamiltonian(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
   if(lelecsh) then
-    call set_H0_nk(nktotf,neband,H0_e_nk,ieband_min,gmnvkq_e,lit_gmnvkq,ngfre_e)
+    call set_H0_nk(nktotf,neband,Enk_e,H0_e_nk,ieband_min,gmnvkq_e,lit_gmnvkq,ngfre_e)
     H_e_eq = reshape(H0_e_nk,(/ nefre,nefre /))		
 		call calculate_eigen_energy_state(nefre,H_e_eq,E_e_eq,P_e_eq)
 		allocate(gmnvkq_n0_e(ngfre_e))
@@ -123,7 +124,7 @@ program lvcsh
 		write(stdout,"(5X,I12,A)") ngfre_e, " gmnvkq_e be account in calculation."
 	endif
   if(lholesh) then
-    call set_H0_nk(nktotf,nhband,H0_h_nk,ihband_min,gmnvkq_h,lit_gmnvkq,ngfre_h)
+    call set_H0_nk(nktotf,nhband,Enk_h,H0_h_nk,ihband_min,gmnvkq_h,lit_gmnvkq,ngfre_h)
     H0_h_nk = -1.0 * H0_h_nk
     H_h_eq = reshape(H0_h_nk,(/ nhfre,nhfre /))		
 		call calculate_eigen_energy_state(nhfre,H_h_eq,E_h_eq,P_h_eq)		
@@ -378,8 +379,10 @@ program lvcsh
       enddo
       
       if(lelecsh) then
-			  apes_e(isnap,iaver)  = E_e(iesurface)
+			  eapes_e(isnap,iaver)  = E_e(iesurface)
         pes_e(0,isnap,iaver) = E_e(iesurface)
+				iapes_e(iesurface,isnap)= iapes_e(iesurface,isnap) + 1
+				iapes_e(0,isnap) = iapes_e(0,isnap) + 1
 				flagd = 0.0
         do ik=1,nktotf
 					xkg_ = xkf(:,ik)-xkf(:,init_ik)
@@ -400,8 +403,10 @@ program lvcsh
       endif
       
       if(lholesh) then
-			  apes_h(isnap,iaver)  = -E_h(ihsurface)
+			  eapes_h(isnap,iaver)  = -E_h(ihsurface)
         pes_h(0,isnap,iaver) = -E_h(ihsurface)
+				iapes_h(ihsurface,isnap)= iapes_h(ihsurface,isnap) + 1 
+				iapes_h(0,isnap) = iapes_h(0,isnap) + 1
 				flagd = 0.0
 				do ik=1,nktotf
 					xkg_ = xkf(:,ik)-xkf(:,init_ik)
@@ -673,8 +678,10 @@ program lvcsh
       
       if(lelecsh) then
         pes_e(0,isnap,iaver) = E_e(iesurface)
-				apes_e(isnap,iaver)  = E_e(iesurface)
-				flagd = 0.0
+				eapes_e(isnap,iaver)  = E_e(iesurface)
+				iapes_e(iesurface,isnap)= iapes_e(iesurface,isnap) + 1
+				iapes_e(0,isnap) = iapes_e(0,isnap) + 1
+				!flagd = 0.0
         do ik=1,nktotf
 					xkg_ = xkf(:,ik)-xkf(:,init_ik)
 					call gemv(bg,xkg_,xk_)
@@ -684,19 +691,21 @@ program lvcsh
 						wsit_e(ifre,isnap) = wsit_e(ifre,isnap)+REAL(w_e(ifre)*CONJG(w_e(ifre)))
 						psit_e(ifre,isnap) = psit_e(ifre,isnap)+P_e(ifre,iesurface)**2
 						pes_e( ifre,isnap,iaver) = E_e(ifre)
-						mskds_e(isnap,iaver) = mskds_e(isnap,iaver)+&
-						P_e(ifre,iesurface)**2*SUM((xk_)**2) !in unit of (2pi/a0)**2
-						flagd = flagd + P_e(ifre,iesurface)**4
+						!mskds_e(isnap,iaver) = mskds_e(isnap,iaver)+&
+						!P_e(ifre,iesurface)**2*SUM((xk_)**2) !in unit of (2pi/a0)**2
+						!flagd = flagd + P_e(ifre,iesurface)**4
 					enddo
 				enddo
-				ipr_e(isnap) = ipr_e(isnap) + 1/flagd
-				mskd_e(isnap) = mskd_e(isnap)+mskds_e(isnap,iaver)
+				!ipr_e(isnap) = ipr_e(isnap) + 1/flagd
+				!mskd_e(isnap) = mskd_e(isnap)+mskds_e(isnap,iaver)
       endif
       
       if(lholesh) then
         pes_h(0,isnap,iaver) = -E_h(ihsurface)
-				apes_h(isnap,iaver)  = -E_h(ihsurface)
-				flagd = 0.0
+				eapes_h(isnap,iaver)  = -E_h(ihsurface)
+				iapes_h(ihsurface,isnap)= iapes_h(ihsurface,isnap) + 1 
+				iapes_h(0,isnap) = iapes_h(0,isnap) + 1
+				!flagd = 0.0
 				do ik=1,nktotf
 					xkg_ = xkf(:,ik)-xkf(:,init_ik)
 					call gemv(bg,xkg_,xk_)
@@ -706,13 +715,13 @@ program lvcsh
 						wsit_h(ifre,isnap) = wsit_h(ifre,isnap)+REAL(w_h(ifre)*CONJG(w_h(ifre)))
 						psit_h(ifre,isnap) = psit_h(ifre,isnap)+P_h(ifre,iesurface)**2
 						pes_h( ifre,isnap,iaver) = -1.0*E_h(ifre)
-						mskds_h(isnap,iaver) = mskds_h(isnap,iaver)+&
-						P_h(ifre,ihsurface)**2*SUM((xk_)**2) !in unit of (2pi/a0)**2
-						flagd = flagd + P_h(ifre,iesurface)**4						
+						!mskds_h(isnap,iaver) = mskds_h(isnap,iaver)+&
+						!P_h(ifre,ihsurface)**2*SUM((xk_)**2) !in unit of (2pi/a0)**2
+						!flagd = flagd + P_h(ifre,iesurface)**4						
 					enddo
         enddo
-				ipr_h(isnap) = ipr_h(isnap) + 1/flagd
-				mskd_h(isnap) = mskd_h(isnap)+mskds_h(isnap,iaver)				
+				!ipr_h(isnap) = ipr_h(isnap) + 1/flagd
+				!mskd_h(isnap) = mskd_h(isnap)+mskds_h(isnap,iaver)				
       endif
       
     enddo
@@ -730,16 +739,16 @@ program lvcsh
     csit_e = csit_e /naver
     wsit_e = wsit_e /naver
     psit_e = psit_e /naver
-		mskd_e = mskd_e /naver
-		ipr_e  = ipr_e /naver
+		!mskd_e = mskd_e /naver
+		!ipr_e  = ipr_e /naver
   endif
   
   if(lholesh) then
     csit_h = csit_h /naver
     wsit_h = wsit_h /naver
     psit_h = psit_h /naver
-		mskd_h = mskd_h /naver
-		ipr_h  = ipr_h /naver
+		!mskd_h = mskd_h /naver
+		!ipr_h  = ipr_h /naver
   endif
 
 
@@ -753,24 +762,26 @@ program lvcsh
   
   if(lelecsh) then
     call save_pes(nefre,nsnap,naver,pes_e,pes_e_file)
-		call save_apes(nsnap,naver,apes_e,apes_e_file)
+		call save_apes(nsnap,naver,eapes_e,eapes_e_file)
+		call save_iapes(nefre,nsnap,iapes_e,iapes_e_file)
     call save_csit(nefre,nsnap,naver,csit_e,csit_e_file)
     call save_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
     call save_psit(nefre,nsnap,naver,psit_e,psit_e_file)
-		call save_mskds(nsnap,naver,mskds_e,mskds_e_file)
-		call save_mskd(nsnap,mskd_e,mskd_e_file)
-		call save_ipr(nsnap,ipr_e,ipr_e_file)
+		!call save_mskds(nsnap,naver,mskds_e,mskds_e_file)
+		!call save_mskd(nsnap,mskd_e,mskd_e_file)
+		!call save_ipr(nsnap,ipr_e,ipr_e_file)
   endif
   
   if(lholesh) then
     call save_pes(nhfre,nsnap,naver,pes_h,pes_h_file)
-		call save_apes(nsnap,naver,apes_h,apes_h_file)
+		call save_apes(nsnap,naver,eapes_h,eapes_h_file)
+		call save_iapes(nhfre,nsnap,iapes_h,iapes_h_file)
     call save_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
     call save_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
     call save_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
-		call save_mskds(nsnap,naver,mskds_h,mskds_h_file)
-		call save_mskd(nsnap,mskd_h,mskd_h_file)
-		call save_ipr(nsnap,ipr_h,ipr_h_file)
+		!call save_mskds(nsnap,naver,mskds_h,mskds_h_file)
+		!call save_mskd(nsnap,mskd_h,mskd_h_file)
+		!call save_ipr(nsnap,ipr_h,ipr_h_file)
   endif
   
   
@@ -789,30 +800,32 @@ program lvcsh
 				call read_phK(inode,icore,nmodes,nqtotf,nsnap,phKsit)
 				call read_phU(inode,icore,nmodes,nqtotf,nsnap,phUsit)
 				if(lelecsh) then
-					call read_apes(inode,icore,nsnap,naver,apes_e,apes_e_file)
-					apes_sum_e(0:nsnap,iaver_i:iaver_f) = apes_e
+					call read_apes(inode,icore,nsnap,naver,eapes_e,eapes_e_file)
+					eapes_sum_e(0:nsnap,iaver_i:iaver_f) = eapes_e
 					call read_pes( inode,icore,nefre,nsnap,naver,pes_e,pes_e_file)
+					call read_iapes(inode,icore,nefre,nsnap,iapes_e,iapes_e_file)
 					call read_csit(inode,icore,nefre,nsnap,naver,csit_e,csit_e_file)
 					call read_wsit(inode,icore,nefre,nsnap,naver,wsit_e,wsit_e_file)
 					call read_psit(inode,icore,nefre,nsnap,naver,psit_e,psit_e_file)
-					call read_mskds(inode,icore,nsnap,naver,mskds_e,mskds_e_file)
-					mskds_sum_e(0:nsnap,iaver_i:iaver_f) = mskds_e
-					
-					call read_mskd( inode,icore,nsnap,mskd_e,mskd_e_file)
-					call read_ipr(  inode,icore,nsnap,ipr_e,ipr_e_file)
+					!call read_mskds(inode,icore,nsnap,naver,mskds_e,mskds_e_file)
+					!mskds_sum_e(0:nsnap,iaver_i:iaver_f) = mskds_e
+					!
+					!call read_mskd( inode,icore,nsnap,mskd_e,mskd_e_file)
+					!call read_ipr(  inode,icore,nsnap,ipr_e,ipr_e_file)
 				endif
 				
 				if(lholesh) then
-					call read_apes(inode,icore,nsnap,naver,apes_h,apes_h_file)
-					apes_sum_h(0:nsnap,iaver_i:iaver_f) = apes_h
+					call read_apes(inode,icore,nsnap,naver,eapes_h,eapes_h_file)
+					eapes_sum_h(0:nsnap,iaver_i:iaver_f) = eapes_h
 					call read_pes( inode,icore,nhfre,nsnap,naver,pes_h,pes_h_file)
+					call read_iapes(inode,icore,nhfre,nsnap,iapes_h,iapes_h_file)
 					call read_csit(inode,icore,nhfre,nsnap,naver,csit_h,csit_h_file)
 					call read_wsit(inode,icore,nhfre,nsnap,naver,wsit_h,wsit_h_file)
 					call read_psit(inode,icore,nhfre,nsnap,naver,psit_h,psit_h_file)
-					call read_mskds(inode,icore,nsnap,naver,mskds_h,mskds_h_file)
-					mskds_sum_h(0:nsnap,iaver_i:iaver_f) = mskds_h
-					call read_mskd( inode,icore,nsnap,mskd_h,mskd_h_file)
-					call read_ipr(  inode,icore,nsnap,ipr_h,ipr_h_file)
+					!call read_mskds(inode,icore,nsnap,naver,mskds_h,mskds_h_file)
+					!mskds_sum_h(0:nsnap,iaver_i:iaver_f) = mskds_h
+					!call read_mskd( inode,icore,nsnap,mskd_h,mskd_h_file)
+					!call read_ipr(  inode,icore,nsnap,ipr_h,ipr_h_file)
 				endif
 
 				
@@ -827,16 +840,18 @@ program lvcsh
 			csit_e = csit_e /(nnode*ncore )
 			wsit_e = wsit_e /(nnode*ncore )
 			psit_e = psit_e /(nnode*ncore )
-			mskd_e = mskd_e /(nnode*ncore )
-			ipr_e  = ipr_e / (nnode*ncore )
+			pes_e(:,:,2) = pes_e(:,:,2)/(nnode*ncore )
+			!mskd_e = mskd_e /(nnode*ncore )
+			!ipr_e  = ipr_e / (nnode*ncore )
 		endif
 		
 		if(lholesh) then
 			csit_h = csit_h /(nnode*ncore  )
 			wsit_h = wsit_h /(nnode*ncore  )
 			psit_h = psit_h /(nnode*ncore  )
-			mskd_h = mskd_h /(nnode*ncore  )
-			ipr_h  = ipr_h / (nnode*ncore  )
+			pes_h(:,:,2) = pes_h(:,:,2)/(nnode*ncore)
+			!mskd_h = mskd_h /(nnode*ncore  )
+			!ipr_h  = ipr_h / (nnode*ncore  )
 		endif		
 	
 
@@ -847,25 +862,33 @@ program lvcsh
 		call plot_phU(nmodes,nqtotf,nsnap,phUsit)
 		
 		if(lelecsh) then
-			call plot_pes(nefre,nsnap,naver,pes_e,pes_e_file)
-			call plot_apes(nnode,ncore,nsnap,naver,apes_sum_e,apes_e_file)
+			write(stdout,"(A)") "Plotting electron non-adiabatic dynamica Information."
+			call plot_pes(nefre,nsnap,naver,pes_e,wsit_e,iapes_e,pes_e_file)
+			call plot_apes(nnode,ncore,nsnap,naver,eapes_sum_e,savedsnap,eapes_e_file)
+			!call plot_iapes(nefre,nsnap,iapes_e,iapes_e_file)
 			call plot_csit(nefre,nsnap,naver,csit_e,csit_e_file)
 			call plot_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
 			call plot_psit(nefre,nsnap,naver,psit_e,psit_e_file)
-			call plot_mskds(nnode,ncore,nsnap,naver,mskds_sum_e,mskds_e_file)
-			call plot_mskd(nsnap,mskd_e,mskd_e_file)
-			call plot_ipr(nsnap,ipr_e,ipr_e_file)
+			call plot_band_occupatin_withtime(neband,nktotf,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,band_e_file)
+			!call plot_mskds(nnode,ncore,nsnap,naver,mskds_sum_e,mskds_e_file)
+			!call plot_mskd(nsnap,mskd_e,mskd_e_file)
+			!call plot_ipr(nsnap,ipr_e,ipr_e_file)
+			write(stdout,*)
 		endif
 		
 		if(lholesh) then
-			call plot_pes(nhfre,nsnap,naver,pes_h,pes_h_file)
-			call plot_apes(nnode,ncore,nsnap,naver,apes_sum_h,apes_h_file)
+			write(stdout,"(A)") "Plotting hole non-adiabatic dynamica Information."
+			call plot_pes(nhfre,nsnap,naver,pes_h,wsit_h,iapes_h,pes_h_file)
+			call plot_apes(nnode,ncore,nsnap,naver,eapes_sum_h,savedsnap,eapes_h_file)
+			!call plot_iapes(nhfre,nsnap,iapes_h,iapes_h_file)
 			call plot_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
 			call plot_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
 			call plot_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
-			call plot_mskds(nnode,ncore,nsnap,naver,mskds_sum_h,mskds_h_file)
-			call plot_mskd(nsnap,mskd_h,mskd_h_file)
-			call plot_ipr(nsnap,ipr_h,ipr_h_file)
+			call plot_band_occupatin_withtime(nhband,nktotf,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,band_h_file)
+			!call plot_mskds(nnode,ncore,nsnap,naver,mskds_sum_h,mskds_h_file)
+			!call plot_mskd(nsnap,mskd_h,mskd_h_file)
+			!call plot_ipr(nsnap,ipr_h,ipr_h_file)
+			write(stdout,*)
 		endif
 		
 	endif

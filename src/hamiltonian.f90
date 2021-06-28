@@ -1,19 +1,3 @@
-!module types
-!	use kinds,only :dp
-!	implicit none
-!	!declare type of gmnvkq_n0 with gmnvkq>0.0
-!	type :: gmnvkq_n0
-!		integer :: m
-!		integer :: n
-!		integer :: v
-!		integer :: ik
-!		integer :: iq
-!		integer :: ikq
-!		real(kind=dp) :: g
-!	end type gmnvkq_n0	
-!	
-!end module types
-
 module hamiltonian
   use kinds,only : dp,dpc
 	use types
@@ -29,9 +13,9 @@ module hamiltonian
   implicit none
   
   integer :: neband,nhband,nefre,nhfre,nphfre
-  real(kind=dp),allocatable :: H0_e(:,:),H_e(:,:)
+  real(kind=dp),allocatable :: H0_e(:,:),H_e(:,:),Enk_e(:,:)
   real(kind=dp),allocatable :: H0_e_nk(:,:,:,:),H_e_nk(:,:,:,:)
-  real(kind=dp),allocatable :: H0_h(:,:),H_h(:,:)
+  real(kind=dp),allocatable :: H0_h(:,:),H_h(:,:),Enk_h(:,:)
   real(kind=dp),allocatable :: H0_h_nk(:,:,:,:),H_h_nk(:,:,:,:)
 
 	real(kind=dp),allocatable :: H_e_eq(:,:),E_e_eq(:),P_e_eq(:,:) !for position of equilibrium
@@ -61,6 +45,7 @@ module hamiltonian
     if(lelecsh) then
       neband = ieband_max - ieband_min + 1
       nefre   = neband * nk
+			allocate(Enk_e(neband,nk))
       allocate(gmnvkq_e(neband,neband,nmodes,nk,nq),stat=ierr)
       if(ierr /=0) call errore('hamiltonian','Error allocating gmnvkq_e',1)
       gmnvkq_e = 0.0
@@ -94,6 +79,7 @@ module hamiltonian
     if(lholesh) then
       nhband = ihband_max - ihband_min + 1
       nhfre   = nhband * nk
+			allocate(Enk_h(nhband,nk))
       allocate(gmnvkq_h(nhband,nhband,nmodes,nk,nq),stat=ierr)
       if(ierr /=0) call errore('hamiltonian','Error allocating gmnvkq_h',1)
       gmnvkq_h = 0.0
@@ -126,13 +112,13 @@ module hamiltonian
     
   end subroutine allocate_hamiltonian
   
-  subroutine set_H0_nk(nk,nband,H0_nk,iehband_min,gmnvkq_eh,lit,ngfre)
+  subroutine set_H0_nk(nk,nband,Enk,H0_nk,iehband_min,gmnvkq_eh,lit,ngfre)
     use elph2, only : etf,gmnvkq
     implicit none
     integer , intent(in) :: nk
     integer , intent(in) :: nband
     integer , intent(in) :: iehband_min
-    real(kind=dp), intent(out) :: H0_nk(nband,nk,nband,nk)
+    real(kind=dp), intent(out) :: Enk(nband,nk),H0_nk(nband,nk,nband,nk)
     real(kind=dp), intent(out) :: gmnvkq_eh(nband,nband,nmodes,nk,nq)
     real(kind=dp), intent(in) :: lit
 		integer, intent(out) :: ngfre
@@ -145,6 +131,7 @@ module hamiltonian
     H0_nk = 0.0
     do ik=1,nk
       do iband=1,nband
+				Enk(iband,ik) = etf(iband+iehband_min-1,ik)
         H0_nk(iband,ik,iband,ik)=etf(iband+iehband_min-1,ik)
       enddo
     enddo  

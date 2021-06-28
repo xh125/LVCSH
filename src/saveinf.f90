@@ -9,8 +9,12 @@ module saveinf
   
   character(len=maxlen) :: pes_e_file   ="pes_e.dat"
   character(len=maxlen) :: pes_h_file   ="pes_h.dat"
-  character(len=maxlen) :: apes_e_file  ="apes_e.dat"
-  character(len=maxlen) :: apes_h_file  ="apes_h.dat"	
+  character(len=maxlen) :: band_e_file  ="band_e.dat"
+  character(len=maxlen) :: band_h_file  ="band_h.dat"	
+  character(len=maxlen) :: eapes_e_file  ="eapes_e.dat"
+  character(len=maxlen) :: eapes_h_file  ="eapes_h.dat"	
+  character(len=maxlen) :: iapes_e_file  ="iapes_e.dat"
+  character(len=maxlen) :: iapes_h_file  ="iapes_h.dat"		
   character(len=maxlen) :: csit_e_file  ="csit_e.dat"
   character(len=maxlen) :: csit_h_file  ="csit_h.dat"
   character(len=maxlen) :: wsit_e_file  ="wsit_e.dat"
@@ -26,10 +30,12 @@ module saveinf
   character(len=maxlen) :: phQ_file     = "phQsit.dat"  
   character(len=maxlen) :: phP_file     = "phPsit.dat"  
   character(len=maxlen) :: phU_file     = "phUsit.dat"  
-  character(len=maxlen) :: phK_file     = "phKsit.dat"  	
+  character(len=maxlen) :: phK_file     = "phKsit.dat"
+	
   contains 
 
   
+	!Write average phQ infortmation to the file: 	phQsit.dat.gnu	
   subroutine save_phQ(nmodes,nq,nsnap,phQsit)  
     integer,intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(in) :: phQsit(nmodes,nq,0:nsnap)
@@ -80,7 +86,7 @@ module saveinf
     call close_file(phQ_file_,phq_unit)
    
   end subroutine read_phQ	
-		
+	
   subroutine plot_phQ(nmodes,nq,nsnap,phQsit)  
     integer,intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(in) :: phQsit(nmodes,nq,0:nsnap)
@@ -108,7 +114,7 @@ module saveinf
 
 	
 
-	
+	!Write average phP infortmation to the file: 	phPsit.dat.gnu	
   subroutine save_phP(nmodes,nq,nsnap,phPsit)  
     integer,intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(in) :: phPsit(nmodes,nq,0:nsnap)
@@ -185,7 +191,7 @@ module saveinf
   end subroutine plot_phP  	
 
 	
-	
+	!Write average phK infortmation to the file: phKsit.dat.gnu	
   subroutine save_phK(nmodes,nq,nsnap,phKsit)  
     integer,intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap)
@@ -236,7 +242,7 @@ module saveinf
     call close_file(phK_file_,phk_unit)
    
   end subroutine read_phK	
-
+	
   subroutine plot_phK(nmodes,nq,nsnap,phKsit)  
     integer,intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap)
@@ -264,7 +270,7 @@ module saveinf
   end subroutine plot_phK
 
 
-
+	!Write average phU infortmation to the file: phUsit.dat.gnu
   subroutine save_phU(nmodes,nq,nsnap,phUsit)  
     integer,intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(in) :: phUsit(nmodes,nq,0:nsnap)
@@ -345,8 +351,93 @@ module saveinf
 
 
 
-	! save the first trajecotry active PES and first trajecotry PES
-	! save the average active PES and PES for all trajecotry.
+	!The electron(hole) population on different adiabatic wave function.
+  subroutine save_wsit(nfre,nsnap,naver,wsit,wsit_file)
+    implicit none
+    integer,intent(in) :: nfre,nsnap,naver
+    real(kind=dp),intent(in) :: wsit(nfre,0:nsnap)
+    character(len=*),intent(in) :: wsit_file
+    character(len=maxlen) :: wsit_file_
+    
+		integer :: wsit_unit
+    
+    wsit_unit = io_file_unit()
+		wsit_file_ = trim(outdir)//trim(adjustl(wsit_file))
+		
+    call open_file(wsit_file_,wsit_unit)
+    write(wsit_unit,"(A6,I8,A40)") "naver=",naver, " wsit(ifre)=REAL(w(ifre)*CONJG(w(ifre)))"
+    do isnap=0,nsnap
+      write(wsit_unit,"(A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)."
+      write(wsit_unit,"(7(1X,E12.5))") (wsit(ifre,isnap),ifre=1,nfre)  
+    enddo
+    
+    call close_file(wsit_file_,wsit_unit)
+  
+  end subroutine save_wsit
+
+  subroutine read_wsit(inode,icore,nfre,nsnap,naver,wsit,wsit_file)
+    implicit none
+    integer,intent(in) :: nfre,nsnap,naver,inode,icore
+    real(kind=dp),intent(inout) :: wsit(nfre,0:nsnap)
+    character(len=*),intent(in) :: wsit_file
+    
+    integer :: wsit_unit
+		character(len=maxlen) :: wsit_file_
+		character(len=maxlen) :: ctmp1,ctmp2
+		
+		real(kind=dp),allocatable :: wsit_(:,:)
+		
+		if(.not. allocated(wsit_)) allocate(wsit_(nfre,0:nsnap))
+
+		write(ctmp1,*) inode
+		write(ctmp2,*) icore
+		wsit_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(wsit_file))				
+		
+    wsit_unit = io_file_unit()
+    call open_file(wsit_file_,wsit_unit)
+    !write(csit_unit,"(A6,I8,A40)") "naver=",naver, " csit(ifre)=REAL(c(ifre)*CONJG(c(ifre)))"
+    read(wsit_unit,*)
+		do isnap=0,nsnap
+      !write(csit_unit,"(A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
+      read(wsit_unit,*)
+			read(wsit_unit,"(7(1X,E12.5))") (wsit_(ifre,isnap),ifre=1,nfre)   
+    enddo
+    
+		wsit = wsit + wsit_
+		
+    call close_file(wsit_file,wsit_unit)
+  
+  end subroutine read_wsit	
+
+  subroutine plot_wsit(nfre,nsnap,naver,wsit,wsit_file)
+    implicit none
+    integer,intent(in) :: nfre,nsnap,naver
+    real(kind=dp),intent(in) :: wsit(nfre,0:nsnap)
+    character(len=*),intent(in) :: wsit_file
+    
+    integer :: wsit_unit
+		character(len=maxlen) :: wsit_file_	
+		wsit_file_ = trim(outdir)//trim(adjustl(wsit_file))//".gnu"    
+    wsit_unit = io_file_unit()
+    call open_file(wsit_file_,wsit_unit)
+
+		write(wsit_unit,"(A)") "The electron(hole) population on different adiabatic wave function. "    
+		write(wsit_unit,"(*(1X,A12))")          "time ",("wsit(ifre)",ifre=1,nfre)
+    write(wsit_unit,"((1X,A12),*(1X,I12))") " fs  ",(ifre,ifre=1,nfre)
+		do isnap=0,nsnap
+      write(wsit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(wsit(ifre,isnap),ifre=1,nfre)  
+    enddo
+    
+    call close_file(wsit_file_,wsit_unit)
+		write(stdout,"(A,A)")"Write the average electron(hole) wavefction population on &
+		          &different adiabatic wave function to file:",trim(wsit_file_)
+  
+  end subroutine plot_wsit
+
+
+
+	! save the first trajecotry active PES and first trajecotry PES : pes_e.dat_f.gnu
+	! save the average active PES and PES for all trajecotry. : pes_e.dat_average.gnu
   subroutine save_pes(nfre,nsnap,naver,pes,pes_file)
     implicit none
     integer , intent(in) :: nfre,nsnap,naver
@@ -359,7 +450,7 @@ module saveinf
 
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
-    write(pes_unit,"(A6,I8,A)") "naver=",naver, " (pes(ifre,isnap,iaver=1),ifre=0,nfre)"
+    write(pes_unit,"(A6,I8,A)") "iaver=",1, " (pes(ifre,isnap,iaver=1),ifre=0,nfre)"
     do iaver =1 , 1
       do isnap=0,nsnap
         write(pes_unit,"(5X,A5,F11.2,A5,A26,E12.5,A4)") "time=",dt*nstep*isnap*ry_to_fs,"(fs).",&
@@ -367,6 +458,14 @@ module saveinf
         write(pes_unit,"(7(1X,E12.5))") (pes(ifre,isnap,iaver),ifre=0,nfre)
       enddo
     enddo
+
+    write(pes_unit,"(A,I8,A)") "Averager of naver=",naver, " SUM(pes(ifre,isnap,:))/naver,ifre=0,nfre)"
+    do isnap=0,nsnap
+      write(pes_unit,"(5X,A5,F11.2,A5,A26,E12.5,A4)") "time=",dt*nstep*isnap*ry_to_fs,"(fs).",&
+      " Averager Energy of PES."
+      write(pes_unit,"(7(1X,E12.5))") (SUM(pes(ifre,isnap,:))/naver,ifre=0,nfre)
+    enddo
+
  
     call close_file(pes_file_,pes_unit)
     
@@ -399,17 +498,25 @@ module saveinf
 				read(pes_unit,"(7(1X,E12.5))") (pes_(ifre,isnap,iaver),ifre=0,nfre)
       enddo
     enddo
+
+		read(pes_unit,*)
+    do isnap=0,nsnap
+      read(pes_unit,*)
+			read(pes_unit,"(7(1X,E12.5))") (pes_(ifre,isnap,2),ifre=0,nfre)
+    enddo		
 		
-		pes =  pes_
 		
+		pes(:,:,1) = pes_(:,:,1)
+		pes(:,:,2) = pes(:,:,2) + pes_(:,:,2)
     call close_file(pes_file_,pes_unit)
     
   end subroutine read_pes
 	
-  subroutine plot_pes(nfre,nsnap,naver,pes,pes_file)
+  subroutine plot_pes(nfre,nsnap,naver,pes,wsit,iapes,pes_file)
     implicit none
     integer , intent(in) :: nfre,nsnap,naver
-    real(kind=dp),intent(in) :: pes(0:nfre,0:nsnap,1:naver)
+    real(kind=dp),intent(in) :: pes(0:nfre,0:nsnap,1:naver),wsit(1:nfre,0:nsnap)
+		integer,intent(in) :: iapes(0:nfre,0:nsnap)
     character(len=*),intent(in) :: pes_file
 		character(len=maxlen) :: pes_file_
     
@@ -430,20 +537,29 @@ module saveinf
 		
     call close_file(pes_file_,pes_unit)
 		
-		write(stdout,"(A,A)") "Write active PES and PES for the first trajecotry to the file:",trim(pes_file_)
+		write(stdout,"(A,A)") "Write the first trajecotry active PES and PES to the file:",trim(pes_file_)
 
 		pes_file_ = trim(outdir)//trim(adjustl(pes_file))//"_average.gnu"
 
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
-		write(pes_unit,"(A)") "Plotting averager of potential Energy Surface(PES),and the averager active PES."
-    write(pes_unit,"(*(1X,A12))") "time ","active_apes",("i_apes",ifre=1,nfre)
-		write(pes_unit,"(*(1X,A12))") " fs  ","   eV     ",("  eV ",ifre=1,nfre)
-		!do iaver =1 , 1
-    do isnap=0,nsnap
-				write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(SUM(pes(ifre,isnap,:))*RYTOEV/naver,ifre=0,nfre)
+		write(pes_unit,"(A)") "Plotting averager of potential Energy Surface(PES),and the averager active PES and their weight."
+    write(pes_unit,"(*(1X,A12))") "time ","average_PES","wsit      ","active"   ,"AVE_actPES"
+		write(pes_unit,"(*(1X,A12))") " fs  ","   eV     " ,"w(ifre)**2" ," account "," eV "
+
+		do ifre =1 , nfre
+			write(pes_unit,"(A,I12,2(1X,A12))") "#isurface=",ifre,"wsit","weight"
+			do isnap=0,nsnap
+				if(ifre ==1 ) then
+					write(pes_unit,"(3(1X,E12.5),1X,I12,1X,E12.5,1X,I12)") dt*nstep*isnap*ry_to_fs,pes(ifre,isnap,2)*RYTOEV,&
+					wsit(ifre,isnap),iapes(ifre,isnap),pes(0,isnap,2)*RYTOEV,iapes(0,isnap)
+				else
+					write(pes_unit,"(3(1X,E12.5),1X,I12)") dt*nstep*isnap*ry_to_fs,pes(ifre,isnap,2)*RYTOEV,wsit(ifre,isnap),iapes(ifre,isnap)
+				endif
+				
+			enddo
+			write(pes_unit,*)
     enddo
-    !enddo
 		
     call close_file(pes_file_,pes_unit)
 		
@@ -452,8 +568,92 @@ module saveinf
   end subroutine plot_pes
 	
 
+	!save the number of active surface on evey PES for different time.
+  subroutine save_iapes(nfre,nsnap,iapes,pes_file)
+    implicit none
+    integer , intent(in) :: nfre,nsnap
+    integer,intent(in) :: iapes(0:nfre,0:nsnap)
+    character(len=*),intent(in) :: pes_file
+    character(len=maxlen) :: pes_file_
+    
+		integer :: pes_unit
+		pes_file_= trim(outdir)//trim(adjustl(pes_file))
+
+    pes_unit = io_file_unit()
+    call open_file(pes_file_,pes_unit)
+    write(pes_unit,"(A)")  "(iapes(ifre,isnap),ifre=1,nfre)"
+    do isnap=0,nsnap
+      write(pes_unit,"(5X,A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)."
+      write(pes_unit,"(7(1X,I12))") (iapes(ifre,isnap),ifre=0,nfre)
+    enddo
+ 
+    call close_file(pes_file_,pes_unit)
+    
+  end subroutine save_iapes
+  
+  subroutine read_iapes(inode,icore,nfre,nsnap,iapes,pes_file)
+    implicit none
+    integer , intent(in) :: nfre,nsnap,inode,icore
+    integer,intent(inout) :: iapes(0:nfre,0:nsnap)
+    character(len=*),intent(in) :: pes_file
+		character(len=maxlen) :: pes_file_
+    
+    integer :: pes_unit
+		character(len=maxlen) :: ctmp1,ctmp2
+		
+		integer,allocatable :: iapes_(:,:)
+		
+		if(.not. allocated(iapes_)) allocate(iapes_(0:nfre,0:nsnap))
+		
+		write(ctmp1,*) inode
+		write(ctmp2,*) icore
+		pes_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(pes_file))		
+
+    pes_unit = io_file_unit()
+    call open_file(pes_file_,pes_unit)
+    read(pes_unit,*)
+
+      do isnap=0,nsnap
+        read(pes_unit,*)
+				read(pes_unit,"(7(1X,I12))") (iapes_(ifre,isnap),ifre=0,nfre)
+      enddo
+
+		iapes = iapes +  iapes_
+		
+    call close_file(pes_file_,pes_unit)
+    
+  end subroutine read_iapes
 	
-	! save the all active PES Energy for different trajecotry
+  subroutine plot_iapes(nfre,nsnap,iapes,pes_file)
+    implicit none
+    integer , intent(in) :: nfre,nsnap
+    integer , intent(in) :: iapes(0:nfre,0:nsnap)
+    character(len=*),intent(in) :: pes_file
+		character(len=maxlen) :: pes_file_
+    
+    integer :: pes_unit
+		
+
+		pes_file_ = trim(outdir)//trim(adjustl(pes_file))//"_.gnu"
+
+    pes_unit = io_file_unit()
+    call open_file(pes_file_,pes_unit)
+		write(pes_unit,"(A)") "Plotting the number of potential Energy Surface(PES)as active PES."
+    write(pes_unit,"(*(1X,A12))") "time ",("num_apes",ifre=1,nfre)
+		write(pes_unit,"(*(1X,A12))") " fs  ",(" times ",ifre=1,nfre)
+    do isnap=0,nsnap
+				write(pes_unit,"(*(1X,I12))") dt*nstep*isnap*ry_to_fs,(iapes(ifre,isnap),ifre=0,nfre)
+    enddo
+		
+    call close_file(pes_file_,pes_unit)
+		
+		write(stdout,"(A,A)") "Write the number of potential Energy Surface(PES)as active PES to the file:",trim(pes_file_)
+    
+  end subroutine plot_iapes
+	
+
+	
+	! save the all active PES Energy and isurface for different trajecotry
 	! USed to get the active PES DOS at different time
   subroutine save_apes(nsnap,naver,apes,apes_file)
     implicit none
@@ -511,9 +711,9 @@ module saveinf
     
   end subroutine read_apes
 
-  subroutine plot_apes(nnode,ncore,nsnap,naver,apes,apes_file)
+  subroutine plot_apes(nnode,ncore,nsnap,naver,apes,dsnap,apes_file)
     implicit none
-    integer , intent(in) :: nsnap,naver,nnode,ncore
+    integer , intent(in) :: nsnap,naver,nnode,ncore,dsnap
     real(kind=dp),intent(in) :: apes(0:nsnap,1:naver*nnode*ncore)
     character(len=*),intent(in) :: apes_file
     character(len=maxlen) :: apes_file_
@@ -526,23 +726,24 @@ module saveinf
     call open_file(apes_file_,apes_unit)
 		
 		write(apes_unit,"(A)") "Plot the DOS of active potential Energy Surface."
-    write(apes_unit,"(*(1X,A12))") "time ",("iaver_apes",ifre=1,naver*ncore*ncore)
-		write(apes_unit,"(*(1X,A12))") " fs  ",(" eV",       ifre=1,naver*ncore*ncore)
-    do isnap=0,nsnap
-      write(apes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(apes(isnap,ifre)*RYTOEV,ifre=1,naver*ncore*ncore)
-    enddo
- 
+    write(apes_unit,"(*(1X,A12))") "trajecotry ",("time(fs)",isnap=0,nsnap,dsnap)
+		write(apes_unit,"((1X,A12),*(1X,F12.2))") " iaver  "   ,(dt*nstep*isnap*ry_to_fs,isnap=0,nsnap,dsnap)
+    do ifre=1,naver*ncore*ncore
+			write(apes_unit,"(I12,*(1X,E12.5))") ifre,(apes(isnap,ifre)*RYTOEV,isnap=0,nsnap,dsnap)
+		enddo
+		!do isnap=0,nsnap
+    !  write(apes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(apes(isnap,ifre)*RYTOEV,ifre=1,naver*ncore*ncore)
+    !enddo
+	
     call close_file(apes_file,apes_unit)
 		
 		write(stdout,"(A,A)") "Write the all avtive PES Energy for different trajecotry in all time to the file:",trim(apes_file_)
     
   end subroutine plot_apes
 
- 
- 
 
-	
-	
+
+	!The electron(hole) population on different diabatic wave function.
   subroutine save_csit(nfre,nsnap,naver,csit,csit_file)
     implicit none
     integer,intent(in) :: nfre,nsnap,naver
@@ -591,9 +792,11 @@ module saveinf
 		do isnap=0,nsnap
       !write(csit_unit,"(A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
       read(csit_unit,*)
-			read(csit_unit,"(7(1X,E12.5))") (csit(ifre,isnap),ifre=1,nfre)   
+			read(csit_unit,"(7(1X,E12.5))") (csit_(ifre,isnap),ifre=1,nfre)   
     enddo
     
+		csit = csit + csit_
+		
     call close_file(csit_file,csit_unit)
   
   end subroutine read_csit	
@@ -606,110 +809,26 @@ module saveinf
     
     integer :: csit_unit
 		character(len=maxlen) :: csit_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		
-		write(ctmp1,*) nfre+1
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"
-		
 		csit_file_ = trim(outdir)//trim(adjustl(csit_file))//".gnu"
-    
     csit_unit = io_file_unit()
     call open_file(csit_file_,csit_unit)
     
-		write(csit_unit,"(2(1X,A12))") "time(fs) ","csit(ifre)"
-    do isnap=0,nsnap
-      write(csit_unit,ctmp2) dt*nstep*isnap*ry_to_fs,(csit(ifre,isnap),ifre=1,nfre)   
+		write(csit_unit,"(A)") "The electron(hole) population on different diabatic wave function. "
+		write(csit_unit,"(*(1X,A12))") "time",("csit(ifre)",ifre=1,nfre)
+    write(csit_unit,"((1X,A12),*(1X,I12))") " fs ",(ifre,ifre=1,nfre)
+		do isnap=0,nsnap
+      write(csit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(csit(ifre,isnap),ifre=1,nfre)   
     enddo
     
     call close_file(csit_file_,csit_unit)
-  
+		
+		write(stdout,"(A,A)")"Write the average electron(hole) wavefction population on &
+		          &different diabatic wave function to file:",trim(csit_file_)
+		
   end subroutine plot_csit
 
 
-
-  subroutine save_wsit(nfre,nsnap,naver,wsit,wsit_file)
-    implicit none
-    integer,intent(in) :: nfre,nsnap,naver
-    real(kind=dp),intent(in) :: wsit(nfre,0:nsnap)
-    character(len=*),intent(in) :: wsit_file
-    character(len=maxlen) :: wsit_file_
-    
-		integer :: wsit_unit
-    
-    wsit_unit = io_file_unit()
-		wsit_file_ = trim(outdir)//trim(adjustl(wsit_file))
-		
-    call open_file(wsit_file_,wsit_unit)
-    write(wsit_unit,"(A6,I8,A40)") "naver=",naver, " wsit(ifre)=REAL(w(ifre)*CONJG(w(ifre)))"
-    do isnap=0,nsnap
-      write(wsit_unit,"(A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)."
-      write(wsit_unit,"(7(1X,E12.5))") (wsit(ifre,isnap),ifre=1,nfre)  
-    enddo
-    
-    call close_file(wsit_file_,wsit_unit)
-  
-  end subroutine save_wsit
-
-  subroutine read_wsit(inode,icore,nfre,nsnap,naver,wsit,wsit_file)
-    implicit none
-    integer,intent(in) :: nfre,nsnap,naver,inode,icore
-    real(kind=dp),intent(inout) :: wsit(nfre,0:nsnap)
-    character(len=*),intent(in) :: wsit_file
-    
-    integer :: wsit_unit
-		character(len=maxlen) :: wsit_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		
-		real(kind=dp),allocatable :: wsit_(:,:)
-		
-		if(.not. allocated(wsit_)) allocate(wsit_(nfre,0:nsnap))
-
-		write(ctmp1,*) inode
-		write(ctmp2,*) icore
-		wsit_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(wsit_file))				
-		
-    wsit_unit = io_file_unit()
-    call open_file(wsit_file_,wsit_unit)
-    !write(csit_unit,"(A6,I8,A40)") "naver=",naver, " csit(ifre)=REAL(c(ifre)*CONJG(c(ifre)))"
-    read(wsit_unit,*)
-		do isnap=0,nsnap
-      !write(csit_unit,"(A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
-      read(wsit_unit,*)
-			read(wsit_unit,"(7(1X,E12.5))") (wsit(ifre,isnap),ifre=1,nfre)   
-    enddo
-    
-    call close_file(wsit_file,wsit_unit)
-  
-  end subroutine read_wsit	
-
-  subroutine plot_wsit(nfre,nsnap,naver,wsit,wsit_file)
-    implicit none
-    integer,intent(in) :: nfre,nsnap,naver
-    real(kind=dp),intent(in) :: wsit(nfre,0:nsnap)
-    character(len=*),intent(in) :: wsit_file
-    
-    integer :: wsit_unit
-		character(len=maxlen) :: wsit_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		
-		write(ctmp1,*) nfre+1
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"
-		
-		wsit_file_ = trim(outdir)//trim(adjustl(wsit_file))//".gnu"    
-    wsit_unit = io_file_unit()
-    call open_file(wsit_file_,wsit_unit)
-    
-		write(wsit_unit,"(2(1X,A12))") "time(fs) ","wsit(ifre)"
-    do isnap=0,nsnap
-      write(wsit_unit,ctmp2) dt*nstep*isnap*ry_to_fs,(wsit(ifre,isnap),ifre=1,nfre)  
-    enddo
-    
-    call close_file(wsit_file_,wsit_unit)
-  
-  end subroutine plot_wsit
-
-
-
+	!The active adiabatic PES project to diabatic states. psit(ifre)=P(ifre,isurface)**2
   subroutine save_psit(nfre,nsnap,naver,psit,psit_file)
     implicit none
     integer,intent(in) :: nfre,nsnap,naver
@@ -758,9 +877,11 @@ module saveinf
 		do isnap=0,nsnap
       !write(csit_unit,"(A5,F11.2,A5)") "time=",dt*nstep*isnap*ry_to_fs,"(fs)"
       read(psit_unit,*)
-			read(psit_unit,"(7(1X,E12.5))") (psit(ifre,isnap),ifre=1,nfre)   
+			read(psit_unit,"(7(1X,E12.5))") (psit_(ifre,isnap),ifre=1,nfre)   
     enddo
     
+		psit = psit + psit_
+		
     call close_file(psit_file,psit_unit)
   
   end subroutine read_psit		
@@ -772,28 +893,59 @@ module saveinf
     character(len=*),intent(in) :: psit_file
     
     integer :: psit_unit
-		character(len=maxlen) :: psit_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		
-		write(ctmp1,*) nfre+1
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"
-		
-		psit_file_ = trim(outdir)//trim(adjustl(psit_file))//".gnu"    
-    
+		character(len=maxlen) :: psit_file_		
+		psit_file_ = trim(outdir)//trim(adjustl(psit_file))//".gnu"        
     psit_unit = io_file_unit()
     call open_file(psit_file_,psit_unit)
 		
 		write(psit_unit,"(2(1X,A12))") "time(fs) ","wsit(ifre)"
     do isnap=0,nsnap
-      write(psit_unit,ctmp2) dt*nstep*isnap*ry_to_fs,(psit(ifre,isnap),ifre=1,nfre)  
+      write(psit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(psit(ifre,isnap),ifre=1,nfre)  
     enddo
     
     call close_file(psit_file_,psit_unit)
   
+	  write(stdout,"(A,A)")"Write the average electron(hole) active PES project to &
+		          &different diabatic wave function to file:",trim(psit_file_)
+	
   end subroutine plot_psit	
 
 
+  subroutine plot_band_occupatin_withtime(nband,nk,Enk,xk,nsnap,psit,csit,dsnap,band_file)
+		implicit none
+		integer , intent(in) :: nband,nk,dsnap
+		real(kind=dp),intent(in) :: Enk(nband,nk)
+		real(kind=dp),intent(in) :: xk(3,nk)
+		integer , intent(in) :: nsnap
+		real(kind=dp),intent(in) :: psit(1:nband*nk,0:nsnap),csit(1:nband*nk,0:nsnap)
+		character(len=*),intent(in) :: band_file
+		
+		character(len=maxlen) :: band_file_,ctmp1
+		integer :: band_unit
+		integer :: ipol,iband,ik,ifre
+		
+		
 
+			!write(ctmp1,*)iband
+			band_file_=trim(band_file)//".gnu"
+			band_unit = io_file_unit()
+			call open_file(band_file_,band_unit)
+			write(band_unit,"(A,I12)") "Carrier occupation on the band structure at different time on band:",iband
+			write(band_unit,"(*(1X,A12))")    "iband","ik","kx","ky","kz","E_nk",("psit","wsit",isnap=0,nsnap,dsnap)
+			write(band_unit,"(6(1X,A12),*(1X,F12.2))") "index_band"," index_k","2pi/a0","2pi/a0", "2pi/a0", " eV" ,&
+																						(dt*nstep*isnap*ry_to_fs,dt*nstep*isnap*ry_to_fs,isnap=0,nsnap,dsnap)
+		do iband=1,nband
+			write(band_unit,"(A,I12)") "#band=",iband
+			do ik=1,nk
+				ifre = (ik-1)*nband+iband
+				write(band_unit,"(2(1X,I12),*(1X,F12.5))") iband,ik,(xk(ipol,ik),ipol=1,3),Enk(iband,ik)*RYTOEV,(psit(ifre,isnap),csit(ifre,isnap),isnap=0,nsnap,dsnap)
+			enddo
+			write(band_unit,*)
+		enddo
+		call close_file(band_file_,band_unit)
+		write(stdout,"(A,A)") "Write Carrier occupation on the band structure at different time to file:",trim(band_file_)
+	
+	end subroutine plot_band_occupatin_withtime
 
  
 	subroutine save_mskd(nsnap,mskd,mskd_file)
@@ -862,9 +1014,6 @@ module saveinf
 		integer :: mskd_unit
 
 		character(len=maxlen) :: mskd_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		write(ctmp1,*) 1+1
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"    
 		mskd_file_ = trim(outdir)//trim(adjustl(mskd_file))//".gnu"    
 		
 		mskd_unit = io_file_unit()
@@ -872,7 +1021,7 @@ module saveinf
 		
 		write(mskd_unit,"(2(1X,A12))") "time(fs) ","mskd"
 		do isnap=0,nsnap
-      write(mskd_unit,ctmp2) dt*nstep*isnap*ry_to_fs,mskd(isnap)
+      write(mskd_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,mskd(isnap)
     enddo  			
 		
 		call close_file(mskd_file,mskd_unit)
@@ -946,10 +1095,7 @@ module saveinf
 		
 		integer :: mskds_unit
 		
-		character(len=maxlen) :: mskds_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		write(ctmp1,*) 1+naver*nnode*ncore
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"    
+		character(len=maxlen) :: mskds_file_ 
 		mskds_file_ = trim(outdir)//trim(adjustl(mskds_file))//".gnu"    
 		
 		mskds_unit = io_file_unit()
@@ -957,7 +1103,7 @@ module saveinf
 		
 		write(mskds_unit,"(2(1X,A12))") "time(fs) ","mskds"
 		do isnap=0,nsnap
-			write(mskds_unit,ctmp2) dt*nstep*isnap*ry_to_fs,(mskds(isnap,iaver),iaver=1,naver*ncore*nnode)
+			write(mskds_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(mskds(isnap,iaver),iaver=1,naver*ncore*nnode)
     enddo  			
 		
 		call close_file(mskds_file,mskds_unit)		
@@ -1029,10 +1175,7 @@ module saveinf
 		
 		integer :: ipr_unit
 
-		character(len=maxlen) :: ipr_file_
-		character(len=maxlen) :: ctmp1,ctmp2
-		write(ctmp1,*) 1+1
-		ctmp2 = "("//trim(adjustl(ctmp1))//"(1X,E12.5))"    
+		character(len=maxlen) :: ipr_file_   
 		ipr_file_ = trim(outdir)//trim(adjustl(ipr_file))//".gnu"    
 		
 		ipr_unit = io_file_unit()
@@ -1040,7 +1183,7 @@ module saveinf
 		
 		write(ipr_unit,"(2(1X,A12))") "time(fs) ","ipr"
 		do isnap=0,nsnap
-      write(ipr_unit,ctmp2) dt*nstep*isnap*ry_to_fs,ipr(isnap)
+      write(ipr_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,ipr(isnap)
     enddo  			
 		
 		call close_file(ipr_file_,ipr_unit)	

@@ -9,7 +9,7 @@ module readinput
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
                         llaser,efield,efield_cart,w_laser,fwhm,nelec,&
                         lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
-                        ieband_min,ieband_max,ihband_min,ihband_max,nnode,ncore
+                        ieband_min,ieband_max,ihband_min,ihband_max,nnode,ncore,savedsnap
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
   implicit none
@@ -211,6 +211,7 @@ module readinput
     fwhm          = 10     ! fs
 		nnode         = 1
 		ncore         = 1
+		savedsnap     = 100
     
     lsetthreads   = .FALSE.
     mkl_threads   = 4    

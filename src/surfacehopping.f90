@@ -16,7 +16,7 @@ module surfacehopping
                          d0_h,&
                          pes_e,csit_e,wsit_e,psit_e,mskds_e,mskds_sum_e,mskd_e,ipr_e,&
                          pes_h,csit_h,wsit_h,psit_h,mskds_h,mskds_sum_h,mskd_h,ipr_h,&
-												 apes_e,apes_sum_e,apes_h,apes_sum_h
+												 eapes_e,eapes_sum_e,eapes_h,eapes_sum_h,iapes_e,iapes_h
                          
   use cc_fssh,only : S_ai_e,S_ai_h,S_bi_e,S_bi_h
                   
@@ -84,12 +84,14 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)
       
       allocate(pes_e(0:nefre,0:nsnap,1:naver))
-			allocate(apes_e(0:nsnap,1:naver),apes_sum_e(0:nsnap,1:naver*ncore*nnode))
+			allocate(eapes_e(0:nsnap,1:naver),eapes_sum_e(0:nsnap,1:naver*ncore*nnode))
+			allocate(iapes_e(0:nefre,0:nsnap))
       allocate(csit_e(nefre,0:nsnap))
       allocate(wsit_e(nefre,0:nsnap))
       allocate(psit_e(nefre,0:nsnap))
 			allocate(mskds_e(0:nsnap,naver),mskds_sum_e(0:nsnap,naver*ncore*nnode),mskd_e(0:nsnap),ipr_e(0:nsnap))
       pes_e  = 0.0d0
+			iapes_e = 0
       csit_e = 0.0d0
       wsit_e = 0.0d0
       psit_e = 0.0d0
@@ -155,12 +157,14 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h_nk',1)  
       
       allocate(pes_h(0:nefre,0:nsnap,1:naver))
-			allocate(apes_h(0:nsnap,1:naver),apes_sum_h(0:nsnap,1:naver*ncore*nnode))
+			allocate(eapes_h(0:nsnap,1:naver),eapes_sum_h(0:nsnap,1:naver*ncore*nnode))
+			allocate(iapes_h(0:nhfre,0:nsnap))
       allocate(csit_h(nhfre,0:nsnap))
       allocate(wsit_h(nhfre,0:nsnap))
       allocate(psit_h(nhfre,0:nsnap))
 		  allocate(mskds_h(0:nsnap,naver),mskds_sum_h(0:nsnap,naver*ncore*nnode),mskd_h(0:nsnap),ipr_h(0:nsnap))
       pes_h  = 0.0
+			iapes_h = 0
       csit_h = 0.0
       wsit_h = 0.0
       psit_h = 0.0

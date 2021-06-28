@@ -77,7 +77,8 @@ module surfacecom
                                psit_e(:,:),mskds_e(:,:),mskds_sum_e(:,:),mskd_e(:),ipr_e(:),& 
                                pes_h(:,:,:),csit_h(:,:),wsit_h(:,:),&
                                psit_h(:,:),mskds_h(:,:),mskds_sum_h(:,:),mskd_h(:),ipr_h(:),&
-															 apes_e(:,:),apes_sum_e(:,:),apes_h(:,:),apes_sum_h(:,:)
+															 eapes_e(:,:),eapes_sum_e(:,:),eapes_h(:,:),eapes_sum_h(:,:)
+	integer,allocatable ::			 iapes_e(:,:),iapes_h(:,:)
                                
   real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
   

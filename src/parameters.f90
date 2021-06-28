@@ -24,7 +24,7 @@ module parameters
 	character(len=maxlen) :: calculation
 	character(len=maxlen) :: verbosity
 	character(len=maxlen) :: outdir
-	integer :: nnode,ncore,naver_sum
+	integer :: nnode,ncore,naver_sum,savedsnap
   logical :: lreadscfout,lreadphout,lreadfildyn
   
   !REAL(DP) :: nelec
@@ -40,7 +40,7 @@ module parameters
            llaser,efield,efield_cart,w_laser,fwhm,&
            lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
            nelec,ieband_min,ieband_max,ihband_min,ihband_max,&
-					 nnode,ncore
+					 nnode,ncore,savedsnap
 
   contains
   
