@@ -62,7 +62,7 @@ module surfacecom
   real(kind=dp),allocatable :: dEa_dQ(:,:),dEa_dQ_e(:,:),dEa_dQ_h(:,:)
   real(kind=dp),allocatable :: dEa2_dQ2(:,:),dEa2_dQ2_e(:,:),dEa2_dQ2_h(:,:)
   
-  real(kind=dp),allocatable :: phQsit(:,:,:),phPsit(:,:,:),phKsit(:,:,:),phUsit(:,:,:)
+
   ! phonons normal mode 
   ! ref : <固体物理> (3-44) (3-45)
   real(kind=dp),allocatable :: phU(:,:),phK(:,:)
@@ -73,20 +73,17 @@ module surfacecom
   
   real(kind=dp),allocatable :: d_e(:,:,:,:) ,d_h(:,:,:,:) ,g_e(:) ,g_h(:)
   real(kind=dp),allocatable :: d0_e(:,:,:,:),d0_h(:,:,:,:),g1_e(:),g1_h(:)  
-  real(kind=dp),allocatable :: pes_e(:,:,:),csit_e(:,:),wsit_e(:,:),&
-                               psit_e(:,:),mskds_e(:,:),mskds_sum_e(:,:),mskd_e(:),ipr_e(:),& 
-                               pes_h(:,:,:),csit_h(:,:),wsit_h(:,:),&
-                               psit_h(:,:),mskds_h(:,:),mskds_sum_h(:,:),mskd_h(:),ipr_h(:),&
-															 eapes_e(:,:),eapes_sum_e(:,:),eapes_h(:,:),eapes_sum_h(:,:)
-	integer,allocatable ::			 iapes_e(:,:),iapes_h(:,:)
                                
-  real(kind=dp),allocatable :: msd(:),ipr(:),msds(:,:)
   
   complex(kind=dpc),allocatable :: c_e(:),c_e_nk(:,:),w_e(:),w0_e(:)
   complex(kind=dpc),allocatable :: c_h(:),c_h_nk(:,:),w_h(:),w0_h(:)
   
   real(kind=dp) :: sumg0_e,sumg0_h,sumg1_e,sumg1_h
   
-  
+	!Store information
+	real(kind=dp),allocatable :: phQsit(:,:,:),phPsit(:,:,:),phKsit(:,:,:),phUsit(:,:,:)
+	real(kind=dp),allocatable :: pes_one_e(:,:),pes_e(:,:),csit_e(:,:),wsit_e(:,:),psit_e(:,:),& 
+                               pes_one_h(:,:),pes_h(:,:),csit_h(:,:),wsit_h(:,:),psit_h(:,:)
+															   
   
 end module surfacecom

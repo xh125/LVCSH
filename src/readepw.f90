@@ -1,7 +1,7 @@
 module readepw
   use kinds ,only :dp
   use constants,only : maxlen,amu_ry,rytoev,ryd2mev,ryd2eV
-  use io, only : io_file_unit,open_file,close_file,findkword,findkline,stdout,io_error
+  use io, only : io_file_unit,open_file,close_file,findkword,findkline,stdout,io_error,msg
 	use parameters,only : verbosity
   use klist, only : nelec,lgauss, degauss, ngauss, nkstot, wk
   use klist_epw, only : xk_all,xkg_all
@@ -199,19 +199,28 @@ module readepw
     ! Description of the atoms inside the unit cell
     !    
     if(.not. allocated(iatm)) then 
-      allocate(iatm(nat),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating iatm',1)    
-      iatm = ' '
+      allocate(iatm(nat),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('readepw','Error allocating iatm',1)    
+				call io_error(msg)
+			endif
+			iatm = ' '
     endif
     if(.not. allocated(iamass)) then 
-      allocate(iamass(nat),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating iamass',1)    
-      iamass = 0.0
+      allocate(iamass(nat),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('readepw','Error allocating iamass',1)    
+				call io_error(msg)
+			endif
+			iamass = 0.0
     endif  
     if(.not. allocated(tau)) then 
-      allocate(tau(3,nat),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating tau',1)    
-      tau = 0.0
+      allocate(tau(3,nat),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('readepw','Error allocating tau',1)    
+				call io_error(msg)
+			endif
+			tau = 0.0
     endif    
     do iat =1 ,nat
       read(unitepwout,"(7X,2x,5x,A3,3X,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
@@ -296,7 +305,8 @@ module readepw
     endif
     
     if(.not. allocated(xk_all)) then 
-      allocate(xk_all(3,nkstot),stat=ierr)
+      allocate(xk_all(3,nkstot),stat=ierr,errmsg=msg)
+			if(ierr /= 0) call io_error(msg)
       !! List of all kpoints in cartesian coordinates
       !! cart. coord. in units 2pi/a_0
       if(ierr /=0) call errore('readepw','Error allocating xk_all',1)    
@@ -304,7 +314,8 @@ module readepw
     endif
     
     if( allocated(wk)) deallocate(wk) 
-    allocate(wk(nkstot),stat=ierr)
+    allocate(wk(nkstot),stat=ierr,errmsg=msg)
+		if(ierr /= 0) call io_error(msg)
     !! weight of k points of nkstot
     if(ierr /=0) call errore('readepw','Error allocating wk',1)    
     wk = 0.0
@@ -329,7 +340,8 @@ module readepw
     !if(ctmp == "cryst. coord.") then
       read(unitepwout,"(/23X,A)") ctmp
       if(.not. allocated(xkg_all)) then 
-        allocate(xkg_all(3,nkstot),stat=ierr)
+        allocate(xkg_all(3,nkstot),stat=ierr,errmsg=msg)
+				if(ierr /= 0) call io_error(msg)
         !xkg_all are the components of xk in the reciprocal lattice basis
         if(ierr /=0) call errore('readepw','Error allocating xkg_all',1)
         xkg_all = 0.0
@@ -420,15 +432,24 @@ module readepw
       
       n_wannier = n_proj
       
-      allocate(center_w(3,n_wannier),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating center_w',1) 
-      center_w = 0.0
-      allocate(l_w(n_wannier),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating l_w',1) 
-      l_w = 0
-      allocate(mr_w(n_wannier),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating mr_w',1)       
-      mr_w = 0
+      allocate(center_w(3,n_wannier),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('readepw','Error allocating center_w',1) 
+				call io_error(msg)
+			endif
+			center_w = 0.0
+      allocate(l_w(n_wannier),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('readepw','Error allocating l_w',1) 
+				call io_error(msg)
+			endif
+			l_w = 0
+      allocate(mr_w(n_wannier),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('readepw','Error allocating mr_w',1)       
+				call io_error(msg)
+			endif
+			mr_w = 0
       do iw=1,n_proj
         read(unitepwout,"(6x,3f10.5,9x,i3,6x,i3)") &
                       (center_w(ipol,iw),ipol=1,3),l_w(iw),mr_w(iw)
@@ -588,14 +609,20 @@ module readepw
     !WRITE(stdout, *)  
 
     !if( allocated(wann_centers) == .flase. ) then
-      allocate(wann_centers(3,n_wannier),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating wann_centers',1) 
-      wann_centers = 0.0
+      allocate(wann_centers(3,n_wannier),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('readepw','Error allocating wann_centers',1) 
+				call io_error(msg)
+			endif
+			wann_centers = 0.0
     !endif
     !if(allocated(wann_spreads)==.flase.) then
-      allocate(wann_spreads(n_wannier),stat=ierr)
-      if(ierr /=0) call errore('readepw','Error allocating wann_spreads',1) 
-      wann_spreads = 0.0
+      allocate(wann_spreads(n_wannier),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('readepw','Error allocating wann_spreads',1) 
+				call io_error(msg)
+			endif
+			wann_spreads = 0.0
     !endif    
     read(unitepwout,"(/,A,/)") ctmp
     do iw=1,n_wannier
@@ -630,7 +657,8 @@ module readepw
 				backspace(unitepwout)
 			endif
 			read(unitepwout,"(6X,I5,8X,I5,8X,I5)") ngx,ngy,ngz
-			allocate(ratmax(n_wannier))
+			allocate(ratmax(n_wannier),stat=ierr,errmsg=msg)
+			if(ierr /= 0) call io_error(msg)
 			read(unitepwout,"(36X,3I5)") (wannier_plot_supercell(i), i = 1, 3)
 			do iw=1,n_wannier
 				read(unitepwout,"(60X,f12.6)") ratmax(iw)
@@ -701,16 +729,22 @@ module readepw
     
     !  total number of q points (fine grid)
     if(.not. allocated(xqf)) then 
-      allocate(xqf(3,nqtotf),stat=ierr)
+      allocate(xqf(3,nqtotf),stat=ierr,errmsg=msg)
       !  fine q point grid
-      if(ierr /=0) call errore('readepw','Error allocating xqf',1)
-      xqf = 0.0
+      if(ierr /=0) then
+				call errore('readepw','Error allocating xqf',1)
+				call io_error(msg)
+			endif
+			xqf = 0.0
     endif        
     if(.not. allocated(wqf)) then 
-      allocate(wqf(nqtotf),stat=ierr)
+      allocate(wqf(nqtotf),stat=ierr,errmsg=msg)
       !  weights on the fine q grid
-      if(ierr /=0) call errore('readepw','Error allocating wqf',1)    
-      wqf = 0.0
+      if(ierr /=0) then
+				call errore('readepw','Error allocating wqf',1)    
+				call io_error(msg)
+			endif
+			wqf = 0.0
     endif
     wqf = 1.0d0/(dble(nqtotf))
     
@@ -749,14 +783,20 @@ module readepw
     
     
     if(allocated(xkf)) deallocate(xkf) 
-    allocate(xkf(3,nktotf),stat=ierr)
-    if(ierr /=0) call errore('readepw','Error allocating xkf',1)            
+    allocate(xkf(3,nktotf),stat=ierr,errmsg=msg)
+    if(ierr /=0) then
+			call errore('readepw','Error allocating xkf',1)            
+			call io_error(msg)
+		endif
 		xkf = 0.0
 		
     if(allocated(wkf)) deallocate(wkf) 
-    allocate(wkf(nktotf),stat=ierr)
-    if(ierr /=0) call errore('readepw','Error allocating wkf',1)    
-    wkf = 0.0d0
+    allocate(wkf(nktotf),stat=ierr,errmsg=msg)
+    if(ierr /=0) then
+			call errore('readepw','Error allocating wkf',1)    
+			call io_error(msg)
+		endif
+		wkf = 0.0d0
     wkf = 1.0d0/dble(nktotf) !
 		
     DO i = 1, nkf1
@@ -941,15 +981,20 @@ module readepw
     WRITE(stdout,'(/14x,a,i5,2x,a,f9.3,a)') 'ibndmin = ', ibndmin, 'ebndmin = ', ebndmin * ryd2ev, ' eV'
     WRITE(stdout,'(14x,a,i5,2x,a,f9.3,a/)') 'ibndmax = ', ibndmax, 'ebndmax = ', ebndmax * ryd2ev, ' eV'    
     
-    allocate(etf(ibndmin:ibndmax,1:nktotf),stat=ierr)
-    if(ierr /=0) call errore('readepw','Error allocating etf',1)
-    etf = 0.0d0
+    allocate(etf(ibndmin:ibndmax,1:nktotf),stat=ierr,errmsg=msg)
+    if(ierr /=0) then
+			call errore('readepw','Error allocating etf',1)
+			call io_error(msg)
+		endif
+		etf = 0.0d0
     
     !! Fine mesh set of g-matrices.  It is large for memory storage
     !ALLOCATE(epf17(nbndfst, nbndfst, nmodes, nkf), STAT = ierr)
-    allocate(gmnvkq(ibndmin:ibndmax,ibndmin:ibndmax,1:nmodes,1:nktotf,1:nqtotf),stat=ierr)
-    if(ierr /=0) call errore('readepw','Error allocating gmnvkq',1)
-
+    allocate(gmnvkq(ibndmin:ibndmax,ibndmin:ibndmax,1:nmodes,1:nktotf,1:nqtotf),stat=ierr,errmsg=msg)
+    if(ierr /=0) then
+			call errore('readepw','Error allocating gmnvkq',1)
+			call io_error(msg)
+		endif
 
     !!
     !! wf are the interpolated eigenfrequencies
@@ -961,14 +1006,20 @@ module readepw
     !  wf(nu, iq) = -DSQRT(ABS(w2(nu)))
     !ENDIF    
     if(allocated(wf)) deallocate(wf) 
-    allocate(wf(nmodes,nqtotf),stat=ierr)
-    if(ierr /=0) call errore('readepw','Error allocating wf',1)                
+    allocate(wf(nmodes,nqtotf),stat=ierr,errmsg=msg)
+    if(ierr /=0) then
+			call errore('readepw','Error allocating wf',1)                
+			call io_error(msg)
+		endif
 		wf = 0.0
 
     if(allocated(kqmap)) deallocate(kqmap) 
-    allocate(kqmap(nktotf,nqtotf),stat=ierr)
-    if(ierr /=0) call errore('readepw','Error allocating kqmap',1)                  
-    kqmap = 1
+    allocate(kqmap(nktotf,nqtotf),stat=ierr,errmsg=msg)
+    if(ierr /=0) then
+			call errore('readepw','Error allocating kqmap',1)                  
+			call io_error(msg)
+		endif
+		kqmap = 1
   
     call findkline(unitepwout,"We only need to compute",6,28)
     read(unitepwout,"(29X,i8)") totq  ! totq = nqf
@@ -1086,7 +1137,8 @@ module readepw
     else
       vme= .false.
     endif
-    allocate(vmef(3,nbndsub,nbndsub,nkf))
+    allocate(vmef(3,nbndsub,nbndsub,nkf),stat=ierr,errmsg=msg)
+		if(ierr /= 0) call io_error(msg)
     do ik=1,nkf
       read(unitepwout,"(//)")
       do ibnd=1,nbndsub

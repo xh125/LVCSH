@@ -1,5 +1,6 @@
 module hamiltonian
   use kinds,only : dp,dpc
+	 use io, only : msg,io_error
 	use types
   use parameters
   use elph2, only  : nbndfst,nk=>nktotf,gmnvkq,nq => nqtotf,wf,&
@@ -45,68 +46,124 @@ module hamiltonian
     if(lelecsh) then
       neband = ieband_max - ieband_min + 1
       nefre   = neband * nk
-			allocate(Enk_e(neband,nk))
-      allocate(gmnvkq_e(neband,neband,nmodes,nk,nq),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating gmnvkq_e',1)
-      gmnvkq_e = 0.0
-      allocate(lgmnvkq_e(neband,neband,nmodes,nk,nq),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating lgmnvkq_e',1)
-      lgmnvkq_e = .false.			
-      allocate(H0_e(nefre,nefre),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating H0_e',1)    
-      H0_e = 0.0
-      allocate(H0_e_nk(neband,nk,neband,nk),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating H0_e_nk',1)
-      H0_e_nk = 0.0
-      allocate(H_e(nefre,nefre),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating H_e',1)
-      H_e = 0.0
-      allocate(H_e_nk(neband,nk,neband,nk),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating H_e_nk',1)
-      H_e_nk = 0.0
-      allocate(E_e_eq(nefre),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating E_e_eq',1)
-      E_e_eq = 0.0
-      allocate(P_e_eq(nefre,nefre),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating P_e_eq',1)
-      P_e_eq = 0.0      
-      allocate(H_e_eq(nefre,nefre),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating H_e_eq',1)
-      H_e_eq = 0.0      			
+			allocate(Enk_e(neband,nk),stat=ierr,errmsg=msg)
+			if(ierr /= 0) call io_error(msg)
+      allocate(gmnvkq_e(neband,neband,nmodes,nk,nq),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating gmnvkq_e',1)
+				call io_error(msg)
+			endif
+			gmnvkq_e = 0.0
+      allocate(lgmnvkq_e(neband,neband,nmodes,nk,nq),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating lgmnvkq_e',1)
+				call io_error(msg)
+			endif
+			lgmnvkq_e = .false.			
+      allocate(H0_e(nefre,nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating H0_e',1)    
+				call io_error(msg)
+			endif
+			H0_e = 0.0
+      allocate(H0_e_nk(neband,nk,neband,nk),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating H0_e_nk',1)
+				call io_error(msg)
+			endif
+			H0_e_nk = 0.0
+      allocate(H_e(nefre,nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating H_e',1)
+				call io_error(msg)
+			endif
+			H_e = 0.0
+      allocate(H_e_nk(neband,nk,neband,nk),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating H_e_nk',1)
+				call io_error(msg)
+			endif
+			H_e_nk = 0.0
+      allocate(E_e_eq(nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating E_e_eq',1)
+				call io_error(msg)
+			endif
+			E_e_eq = 0.0
+      allocate(P_e_eq(nefre,nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating P_e_eq',1)
+				call io_error(msg)
+			endif
+			P_e_eq = 0.0      
+      allocate(H_e_eq(nefre,nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating H_e_eq',1)
+				call io_error(msg)
+			endif
+			H_e_eq = 0.0      			
 			
     endif
     
     if(lholesh) then
       nhband = ihband_max - ihband_min + 1
       nhfre   = nhband * nk
-			allocate(Enk_h(nhband,nk))
-      allocate(gmnvkq_h(nhband,nhband,nmodes,nk,nq),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating gmnvkq_h',1)
-      gmnvkq_h = 0.0
-      allocate(lgmnvkq_h(nhband,nhband,nmodes,nk,nq),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating lgmnvkq_h',1)
-      lgmnvkq_h = .false.            
-      allocate(H0_h(nhfre,nhfre),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating H0_h',1)    
-      H0_h = 0.0
-      allocate(H0_h_nk(nhband,nk,nhband,nk),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating H0_h_nk',1)
-      H0_h_nk = 0.0
-      allocate(H_h(nhfre,nhfre),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating H_h',1)
-      H_h = 0.0
-      allocate(H_h_nk(nhband,nk,nhband,nk),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating H_h_nk',1)
-      H_h_nk = 0.0   
-      allocate(E_h_eq(nhfre),stat=ierr)
-      if(ierr /=0) call errore('Energy of hamiltonian for position of equilibrium ','Error allocating E_h_eq',1)
-      E_h_eq = 0.0
-      allocate(P_h_eq(nhfre,nhfre),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian','Error allocating P_h_eq',1)
-      P_h_eq = 0.0      
-      allocate(H_h_eq(nhfre,nhfre),stat=ierr)
-      if(ierr /=0) call errore('hamiltonian for position of equilibrium ','Error allocating E_h_eq',1)
-      H_h_eq = 0.0
+			allocate(Enk_h(nhband,nk),stat=ierr,errmsg=msg)
+			if(ierr /= 0) call io_error(msg)
+      allocate(gmnvkq_h(nhband,nhband,nmodes,nk,nq),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating gmnvkq_h',1)
+				call io_error(msg)
+		  endif
+			gmnvkq_h = 0.0
+      allocate(lgmnvkq_h(nhband,nhband,nmodes,nk,nq),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating lgmnvkq_h',1)
+				call io_error(msg)
+			endif
+			lgmnvkq_h = .false.            
+      allocate(H0_h(nhfre,nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating H0_h',1)    
+				call io_error(msg)
+			endif
+			H0_h = 0.0
+      allocate(H0_h_nk(nhband,nk,nhband,nk),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating H0_h_nk',1)
+				call io_error(msg)
+			endif
+			H0_h_nk = 0.0
+      allocate(H_h(nhfre,nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating H_h',1)
+				call io_error(msg)
+			endif
+			H_h = 0.0
+      allocate(H_h_nk(nhband,nk,nhband,nk),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating H_h_nk',1)
+				call io_error(msg)
+			endif
+			H_h_nk = 0.0   
+      allocate(E_h_eq(nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('Energy of hamiltonian for position of equilibrium ','Error allocating E_h_eq',1)
+				call io_error(msg)
+			endif
+			E_h_eq = 0.0
+      allocate(P_h_eq(nhfre,nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian','Error allocating P_h_eq',1)
+				call io_error(msg)
+			endif
+			P_h_eq = 0.0      
+      allocate(H_h_eq(nhfre,nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) then
+				call errore('hamiltonian for position of equilibrium ','Error allocating E_h_eq',1)
+				call io_error(msg)
+			endif
+			H_h_eq = 0.0
 			
     endif
     
@@ -146,7 +203,7 @@ module hamiltonian
 				do nu=1,nmodes
 					do n=iband,jband
 						do m=iband,jband
-							if(ABS(gmnvkq(m,n,nu,ik,iq))>lit) ngfre = ngfre+1
+							if(ABS(gmnvkq(m,n,nu,ik,iq))>lit .and. wf(nu,iq) > 0.0 ) ngfre = ngfre+1
 						enddo
 					enddo
 				enddo
