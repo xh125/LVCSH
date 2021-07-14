@@ -43,8 +43,8 @@ module environments
     call get_date_and_time(cdate,ctime)
     
     write(stdout,"(1X,A77)") repeat("=",77)
-    write(stdout,"(A)") "LVCSH complied with using Intel Fortran and MKL:"
-    write(stdout,"(A)") trim(adjustl(mkl_version))
+    write(stdout,"(1X,A)") "LVCSH complied with using Intel Fortran and MKL:"
+    write(stdout,"(1X,A)") trim(adjustl(mkl_version))
     write(stdout,"(1X,A77)") repeat("=",77)
     
     write(stdout,"(/,1X,A77)") repeat("=",77)
@@ -89,7 +89,7 @@ module environments
       write(stdout,"(5x,A)") "The mkl_threads is setting wrong!!"
       write(stdout,"(5x,A,I,A,I)"),"The max_threads is:",max_threads,"mkl_threads need <",max_threads
     endif
-    write(stdout,*) repeat("=",57)
+    write(stdout,*) repeat("=",77)
     write(stdout,"(5X,A,i3,A)") "Reset Intel MKL uses ",mkl_threads," threads." 
     write(stdout,*) 
   end subroutine set_mkl_threads

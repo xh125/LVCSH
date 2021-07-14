@@ -57,7 +57,6 @@ module saveinf
 		character(len=maxlen) :: phQ_file_
 		character(len=maxlen) :: ctmp1,ctmp2
 		real(kind=dp),allocatable :: phQsit_(:,:,:)
-		real(kind=dp) :: rtmp
 		
 		if(.not. allocated(phQsit_)) allocate(phQsit_(nmodes,nq,0:nsnap))
 		
@@ -72,7 +71,7 @@ module saveinf
 		read(phq_unit,*)
 		read(phq_unit,*)
     do isnap=0,nsnap
-      read(phq_unit,"(*(1X,E12.5))") rtmp,((phQsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      read(phq_unit,"(13X,*(1X,E12.5))") ((phQsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
 		phQsit =phQsit + phQsit_
@@ -87,7 +86,7 @@ module saveinf
     
     integer :: phq_unit
 		character(len=maxlen) :: phQ_file_
-		phQ_file_ = trim(outdir)//trim(adjustl(phQ_file))//".gnu"
+		phQ_file_ = trim(outdir)//trim(adjustl(phQ_file)) 
     phq_unit = io_file_unit()
     call open_file(phQ_file_,phq_unit)
     
@@ -138,7 +137,6 @@ module saveinf
 		character(len=maxlen) :: phP_file_
 		character(len=maxlen) :: ctmp1,ctmp2
 		real(kind=dp),allocatable :: phPsit_(:,:,:)
-		real(kind=dp) :: rtmp
 		
 		if(.not. allocated(phPsit_)) allocate(phPsit_(nmodes,nq,0:nsnap))
 		
@@ -153,7 +151,7 @@ module saveinf
 		read(php_unit,*)
 	  read(php_unit,*)
     do isnap=0,nsnap
-      read(php_unit,"(*(1X,E12.5))") rtmp,((phPsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      read(php_unit,"(13X,*(1X,E12.5))") ((phPsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
 		phPsit =phPsit + phPsit_
@@ -168,7 +166,7 @@ module saveinf
     
     integer :: php_unit
 		character(len=maxlen) :: phP_file_  
-		phP_file_ = trim(outdir)//trim(adjustl(phP_file))//".gnu"    
+		phP_file_ = trim(outdir)//trim(adjustl(phP_file))     
     php_unit = io_file_unit()
     call open_file(phP_file_,php_unit)
     
@@ -219,7 +217,6 @@ module saveinf
 		character(len=maxlen) :: phK_file_
 		character(len=maxlen) :: ctmp1,ctmp2
 		real(kind=dp),allocatable :: phKsit_(:,:,:)
-		real(kind=dp) :: rtmp
 		
 		if(.not. allocated(phKsit_)) allocate(phKsit_(nmodes,nq,0:nsnap))
 		
@@ -234,7 +231,7 @@ module saveinf
 		read(phK_unit,*)
 		read(phK_unit,*)		
     do isnap=0,nsnap
-      read(phk_unit,"(*(1X,E12.5))") rtmp,((phKsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      read(phk_unit,"(26X,*(1X,E12.5))") ((phKsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
 		phKsit =phKsit + phKsit_
@@ -249,7 +246,7 @@ module saveinf
     
     integer :: phK_unit
 		character(len=maxlen) :: phK_file_   
-		phK_file_ = trim(outdir)//trim(adjustl(phK_file))//".gnu"    
+		phK_file_ = trim(outdir)//trim(adjustl(phK_file))     
     phK_unit = io_file_unit()
     call open_file(phK_file_,phK_unit)
 		
@@ -257,8 +254,8 @@ module saveinf
     write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
 		write(phK_unit,"(*(1X,A12))") "fs  ","  eV   ",(("    eV     ",imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
-        write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap))*RYTOEV,&
-				((phKsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
+        write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap)),&
+				((phKsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phK_file_,phK_unit)
@@ -302,7 +299,6 @@ module saveinf
 		character(len=maxlen) :: phU_file_
 		character(len=maxlen) :: ctmp1,ctmp2
 		real(kind=dp),allocatable :: phUsit_(:,:,:)
-		real(kind=dp) :: rtmp
 		
 		if(.not. allocated(phUsit_)) allocate(phUsit_(nmodes,nq,0:nsnap))
 		
@@ -316,7 +312,7 @@ module saveinf
 		read(phu_unit,*)
 		read(phu_unit,*)		
     do isnap=0,nsnap
-      read(phu_unit,"(*(1X,E12.5))") rtmp,((phUsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      read(phu_unit,"(26X,*(1X,E12.5))") ((phUsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
 		phUsit =phUsit + phUsit_
@@ -331,7 +327,7 @@ module saveinf
     
     integer :: phU_unit
 		character(len=maxlen) :: phU_file_  
-		phU_file_ = trim(outdir)//trim(adjustl(phU_file))//".gnu"    
+		phU_file_ = trim(outdir)//trim(adjustl(phU_file))     
     phU_unit = io_file_unit()
     call open_file(phU_file_,phU_unit)
     
@@ -339,8 +335,8 @@ module saveinf
 		write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("phU(mode,q)",imode=1,nmodes),iq=1,nq)
 		write(phU_unit,"(*(1X,A12))") "fs ","   eV  ",(("    eV     ",imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
-        write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap))*RYTOEV,&
-				((phUsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
+        write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap)),&
+				((phUsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phU_file_,phU_unit)
@@ -389,7 +385,6 @@ module saveinf
     integer :: wsit_unit
 		character(len=maxlen) :: wsit_file_
 		character(len=maxlen) :: ctmp1,ctmp2
-		real(kind=dp) :: rtmp
 		
 		real(kind=dp),allocatable :: wsit_(:,:)
 		if(.not. allocated(wsit_)) allocate(wsit_(nfre,0:nsnap))
@@ -404,7 +399,7 @@ module saveinf
     read(wsit_unit,*)
     read(wsit_unit,*)		
 		do isnap=0,nsnap
-			read(wsit_unit,"(*(1X,E12.5))") rtmp,(wsit_(ifre,isnap),ifre=1,nfre)   
+			read(wsit_unit,"(13X,*(1X,E12.5))") (wsit_(ifre,isnap),ifre=1,nfre)   
     enddo
     
 		wsit = wsit + wsit_
@@ -421,7 +416,7 @@ module saveinf
     
     integer :: wsit_unit
 		character(len=maxlen) :: wsit_file_	
-		wsit_file_ = trim(outdir)//trim(adjustl(wsit_file))//".gnu"    
+		wsit_file_ = trim(outdir)//trim(adjustl(wsit_file))     
     wsit_unit = io_file_unit()
     call open_file(wsit_file_,wsit_unit)
 
@@ -466,12 +461,12 @@ module saveinf
     
 		call close_file(pes_file_,pes_unit)
 
-		pes_file_= trim(outdir)//trim(adjustl(pes_file))//".first"
+		pes_file_= trim(outdir)//trim(adjustl(pes_file))//".first.dat"
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
 
     write(pes_unit,"(A,I8,A)") "One trajecotry PES of iaver=",1, " pes_one(ifre,isnap),ifre=0,nfre)"
-		write(pes_unit,"(*(1X,A12))")          "time ","active_pes",("pesone(ifre)",ifre=1,nfre)
+		write(pes_unit,"(*(1X,A12))") "time ","active_pes",("pesone(ifre)",ifre=1,nfre)
     write(pes_unit,"(*(1X,A12))") "fs",("eV",ifre=0,nfre)    
 		do isnap=0,nsnap
       write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(pes_one(ifre,isnap)*RYTOEV,ifre=0,nfre)
@@ -492,7 +487,6 @@ module saveinf
     integer :: pes_unit
 		character(len=maxlen) :: pes_file_
 		character(len=maxlen) :: ctmp1,ctmp2
-		real(kind=dp) :: rtmp
 		
 		real(kind=dp),allocatable :: pes_(:,:)
 		if(.not. allocated(pes_)) allocate(pes_(0:nfre,0:nsnap))
@@ -507,14 +501,14 @@ module saveinf
 		read(pes_unit,*)
 		read(pes_unit,*)
     do isnap=0,nsnap
-			read(pes_unit,"(*(1X,E12.5))") rtmp,(pes_(ifre,isnap),ifre=0,nfre)
+			read(pes_unit,"(13X,*(1X,E12.5))") (pes_(ifre,isnap),ifre=0,nfre)
     enddo
 		
 		pes = pes + pes_
 		
     call close_file(pes_file_,pes_unit)		
 		
-		pes_file_ = trim(adjustl(pes_file_))//".first"
+		pes_file_ = trim(adjustl(pes_file_))//".first.dat"
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
 		
@@ -522,7 +516,7 @@ module saveinf
 		read(pes_unit,*)
 		read(pes_unit,*)
     do isnap=0,nsnap
-			read(pes_unit,"(*(1X,E12.5))") rtmp,(pes_(ifre,isnap),ifre=0,nfre)
+			read(pes_unit,"(13X,*(1X,E12.5))") (pes_(ifre,isnap),ifre=0,nfre)
     enddo
 		
 		pes_one = pes_
@@ -540,7 +534,7 @@ module saveinf
 		
 		character(len=maxlen) :: pes_file_
     integer :: pes_unit
-		pes_file_ = trim(outdir)//trim(adjustl(pes_file))//"_f.gnu"
+		pes_file_ = trim(outdir)//trim(adjustl(pes_file))//"_f.dat"
 
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
@@ -548,14 +542,14 @@ module saveinf
     write(pes_unit,"(*(1X,A12))") "time ","active_fpes",("i_fpes",ifre=1,nfre)
 		write(pes_unit,"(*(1X,A12))") "fs  ","   eV     "  ,("  eV  ",ifre=1,nfre)
     do isnap=0,nsnap
-			write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(pes_one(ifre,isnap)*RYTOEV,ifre=0,nfre)
+			write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(pes_one(ifre,isnap),ifre=0,nfre)
     enddo
 		
     call close_file(pes_file_,pes_unit)
 		
 		write(stdout,"(A,A)") "Write the first trajecotry active PES and PES to the file:",trim(pes_file_)
 
-		pes_file_ = trim(outdir)//trim(adjustl(pes_file))//"_average.gnu"
+		pes_file_ = trim(outdir)//trim(adjustl(pes_file))//"_average.dat"
 
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
@@ -564,15 +558,14 @@ module saveinf
 		write(pes_unit,"(*(1X,A12))") "fs  ","   eV     " ,"w(ifre)**2" ," eV "
 
 		do ifre =1 , nfre
-			write(pes_unit,"(A,I12,1X,A12)") "#isurface=",ifre,"wsit"
+			!write(pes_unit,"(A,I12,1X,A12)") "#isurface=",ifre,"wsit"
 			do isnap=0,nsnap
 				if(ifre ==1 ) then
-					write(pes_unit,"(4(1X,E12.5))") dt*nstep*isnap*ry_to_fs,pes(ifre,isnap),&
-					wsit(ifre,isnap),pes(0,isnap)*RYTOEV
+					write(pes_unit,"(4(1X,E12.5))") dt*nstep*isnap*ry_to_fs,pes(ifre,isnap),wsit(ifre,isnap),&
+					pes(0,isnap)
 				else
 					write(pes_unit,"(3(1X,E12.5))") dt*nstep*isnap*ry_to_fs,pes(ifre,isnap),wsit(ifre,isnap)
 				endif
-				
 			enddo
 			write(pes_unit,*)
     enddo
@@ -619,7 +612,6 @@ module saveinf
     integer :: csit_unit
 		character(len=maxlen) :: csit_file_
 		character(len=maxlen) :: ctmp1,ctmp2
-		real(kind=dp) :: rtmp
 		
 		real(kind=dp),allocatable :: csit_(:,:)
 		if(.not. allocated(csit_)) allocate(csit_(nfre,0:nsnap))
@@ -634,7 +626,7 @@ module saveinf
     read(csit_unit,*)
     read(csit_unit,*)		
 		do isnap=0,nsnap
-			read(csit_unit,"(*(1X,E12.5))") rtmp,(csit_(ifre,isnap),ifre=1,nfre)   
+			read(csit_unit,"(13X,*(1X,E12.5))") (csit_(ifre,isnap),ifre=1,nfre)   
     enddo
     
 		csit = csit + csit_
@@ -651,7 +643,7 @@ module saveinf
     
     integer :: csit_unit
 		character(len=maxlen) :: csit_file_
-		csit_file_ = trim(outdir)//trim(adjustl(csit_file))//".gnu"
+		csit_file_ = trim(outdir)//trim(adjustl(csit_file)) 
     csit_unit = io_file_unit()
     call open_file(csit_file_,csit_unit)
     
@@ -706,7 +698,6 @@ module saveinf
     integer :: psit_unit
 		character(len=maxlen) :: psit_file_
 		character(len=maxlen) :: ctmp1,ctmp2
-		real(kind=dp) :: rtmp
 		
 		real(kind=dp),allocatable :: psit_(:,:)
 		if(.not. allocated(psit_)) allocate(psit_(nfre,0:nsnap))
@@ -722,7 +713,7 @@ module saveinf
 		read(psit_unit,*)
 		read(psit_unit,*)
 		do isnap=0,nsnap
-			read(psit_unit,"(*(1X,E12.5))") rtmp,(psit_(ifre,isnap),ifre=1,nfre)   
+			read(psit_unit,"(13X,*(1X,E12.5))") (psit_(ifre,isnap),ifre=1,nfre)   
     enddo
     
 		psit = psit + psit_
@@ -739,7 +730,7 @@ module saveinf
     
     integer :: psit_unit
 		character(len=maxlen) :: psit_file_		
-		psit_file_ = trim(outdir)//trim(adjustl(psit_file))//".gnu"        
+		psit_file_ = trim(outdir)//trim(adjustl(psit_file))         
     psit_unit = io_file_unit()
     call open_file(psit_file_,psit_unit)
 		
@@ -771,7 +762,7 @@ module saveinf
 		integer :: band_unit
 		integer :: ipol,iband,ik,ifre
 		
-		band_file_=trim(band_file)//".gnu"
+		band_file_=trim(outdir)//trim(adjustl(band_file))  
 		band_unit = io_file_unit()
 		call open_file(band_file_,band_unit)
 		write(band_unit,"(A)") "Carrier occupation on the band structure at different time"

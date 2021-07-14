@@ -3,6 +3,7 @@ module readepw
   use constants,only : maxlen,amu_ry,rytoev,ryd2mev,ryd2eV
   use io, only : io_file_unit,open_file,close_file,findkword,findkline,stdout,io_error,msg
 	use parameters,only : verbosity
+	use memory_report,only : MB,GB,complex_size, real_size,int_size,ram,print_memory
   use klist, only : nelec,lgauss, degauss, ngauss, nkstot, wk
   use klist_epw, only : xk_all,xkg_all
   use epwcom, only : nkc1,nkc2,nkc3,nqf1,nqf2,nqf3,nkf1,nkf2,nkf3,nbndsub,kqmap,scdm_proj,vme
@@ -60,14 +61,28 @@ module readepw
   !real(kind=dp),allocatable :: epmatq(:,:,:,:,:)
   real(kind=dp) :: ebndmax,ebndmin
   real(kind=dp),allocatable :: E_nk(:,:),E_mkq(:,:)
-  
+	
+	real(kind=dp),allocatable :: max_g(:,:)
+  integer,allocatable :: calgmnvkq_q(:)
+	
 
   real(kind=dp) :: wannier_plot_radius,wannier_plot_scale
 	logical :: reduce_unk,wannier_plot
 	real(kind=dp),allocatable :: ratmax(:)
 	integer :: ngx,ngy,ngz
 	integer :: wannier_plot_supercell(3) 
-
+  INTEGER :: nrr_k
+  !! Number of WS points for electrons
+  INTEGER :: nrr_q
+  !! Number of WS points for phonons
+  INTEGER :: nrr_g
+  !! Number of WS points for electron-phonons
+	character(len=maxlen) :: filqf,filkf
+	logical :: lscreen
+  INTEGER :: rand_nq
+  !! use random points for the fine q-mesh
+  INTEGER :: rand_nk
+  !! use random points for the fine k-mesh	
   contains
 	
   subroutine readepwout(fepwout)
@@ -107,9 +122,13 @@ module readepw
     LOGICAL :: already_skipped
     !! Skipping band during the Wannierization
     integer :: nbndskip
-    
+    logical :: wannierize
+		
     integer :: itmp,count_piv_spin
     
+		INTEGER :: valueRSS(2)
+    !! Return virtual and resisdent memory from system
+		
     inquire(file=trim(adjustl(fepwout)),exist=alive)
     if(.NOT. alive) then
       call io_error("Error:EPW output file "//trim(adjustl(fepwout))//" doesn't exist.")
@@ -184,7 +203,7 @@ module readepw
     read(unitepwout,"(/,3(23X,3F8.4,/))") ((bg(ipol,apol),ipol=1,3),apol=1,3)
     read(unitepwout,"(/////)")
 
-		WRITE(stdout, '(2(3x,3(2x,"celldm(",i1,")=",f11.5),/))') &
+		WRITE(stdout, '(/,2(3x,3(2x,"celldm(",i1,")=",f11.5),/))') &
 				(i, celldm(i), i = 1, 6)
 		WRITE(stdout, '(5x, &
 				& "crystal axes: (cart. coord. in units of a_0)",/, &
@@ -223,7 +242,7 @@ module readepw
 			tau = 0.0
     endif    
     do iat =1 ,nat
-      read(unitepwout,"(7X,2x,5x,A3,3X,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
+      read(unitepwout,"(7X,2x,5x,1X,A3,2X,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
     enddo
     ! atoms mass in "Rydberg" atomic units
     iamass = iamass * amu_ry
@@ -311,6 +330,8 @@ module readepw
       !! cart. coord. in units 2pi/a_0
       if(ierr /=0) call errore('readepw','Error allocating xk_all',1)    
       xk_all = 0.0
+			!ram = real_size*3*nkstot
+			!if(verbosity == "high") call print_memory("kpoints",ram)
     endif
     
     if( allocated(wk)) deallocate(wk) 
@@ -363,321 +384,326 @@ module readepw
     !WRITE(stdout, '(5x, a)') REPEAT("-",67)
     !
     call findkline(unitepwout,"-------------------------------------------------------------------",6,72)
-    read(unitepwout,*)
-    !call findkline(unitepwout,"Wannierization on ",6,23) 
-    read(unitepwout,"(23X,3(i2,3X),/)") nkc1,nkc2,nkc3
-    !! kx,ky,kz sizes of the uniform electron coarse mesh to be used
-    
-    !call write_winfil()
-    !WRITE(iuwinfil, '("num_wann = ", i3)') nbndsub
-
-    !
-    ! run the wannier90 code to create MLWFs
-    !
-    !CALL pw2wan90epw()
-    read(unitepwout,*)
-    read(unitepwout,"(A)") ctmp
-    !select case(trim(adjustl(ctmp)))
-    if(trim(adjustl(ctmp))=='Spin CASE ( up )') then
-      spin_component = 'up'
-      ispinw  = 1
-      ikstart = 1
-      ikstop  = nkstot / 2
-      iknum   = nkstot / 2     
-    elseif(trim(adjustl(ctmp))=='Spin CASE ( down )') then
-      spin_component = 'down'
-      ispinw  = 2
-      ikstart = nkstot/2+1
-      ikstop  = nkstot
-      iknum   = nkstot / 2     
-    elseif(trim(adjustl(ctmp))=='Spin CASE ( non-collinear )') then
-      spin_component = 'none'
-      noncolin = .true.
-      ispinw  = 0
-      ikstart = 1
-      ikstop  = nkstot
-      iknum   = nkstot      
-    elseif(trim(adjustl(ctmp))=='Spin CASE ( default = unpolarized )') then
-      spin_component = 'none'
-      noncolin = .false.
-      ispinw  = 0
-      ikstart = 1
-      ikstop  = nkstot
-      iknum   = nkstot      
-    end if 
-
-    !!
-    !WRITE(stdout, *)
-    !WRITE(stdout, *) '    Initializing Wannier90'
-    !WRITE(stdout, *)
-    !!
-    read(unitepwout,"(//,A)")
-    
-    ! CALL setup_nnkp()
-    ! line 452 of pw2wan2epw.f90
-    read(unitepwout,"(/,A,/)") ctmp    
-    if(trim(adjustl(ctmp))=="Initial Wannier auto_projections") then
-      scdm_proj = .true.
-    else
-      scdm_proj = .false.
-      n_proj = 0
-      do
-        read(unitepwout,"(5x,A1)") ctmp
-        if(ctmp/="(") exit
-        n_proj = n_proj+1
-      enddo
-      do i=1,n_proj+1
-        backspace(unitepwout)
-      enddo
-      
-      n_wannier = n_proj
-      
-      allocate(center_w(3,n_wannier),stat=ierr,errmsg=msg)
-      if(ierr /=0) then
-				call errore('readepw','Error allocating center_w',1) 
-				call io_error(msg)
+    read(unitepwout,"(/,A)") ctmp
+		if(ctmp(6:19)=="Wannierization") then
+			wannierize = .true.
+			backspace(unitepwout)
+			!call findkline(unitepwout,"Wannierization on ",6,23) 
+			!read(unitepwout,"(23X,3(i2,3X),/)") nkc1,nkc2,nkc3
+			read(unitepwout,*)
+			read(unitepwout,*)
+			!! kx,ky,kz sizes of the uniform electron coarse mesh to be used
+			
+			!call write_winfil()
+			!WRITE(iuwinfil, '("num_wann = ", i3)') nbndsub
+	
+			!
+			! run the wannier90 code to create MLWFs
+			!
+			!CALL pw2wan90epw()
+			read(unitepwout,*)
+			read(unitepwout,"(A)") ctmp
+			!select case(trim(adjustl(ctmp)))
+			if(trim(adjustl(ctmp))=='Spin CASE ( up )') then
+				spin_component = 'up'
+				ispinw  = 1
+				ikstart = 1
+				ikstop  = nkstot / 2
+				iknum   = nkstot / 2     
+			elseif(trim(adjustl(ctmp))=='Spin CASE ( down )') then
+				spin_component = 'down'
+				ispinw  = 2
+				ikstart = nkstot/2+1
+				ikstop  = nkstot
+				iknum   = nkstot / 2     
+			elseif(trim(adjustl(ctmp))=='Spin CASE ( non-collinear )') then
+				spin_component = 'none'
+				noncolin = .true.
+				ispinw  = 0
+				ikstart = 1
+				ikstop  = nkstot
+				iknum   = nkstot      
+			elseif(trim(adjustl(ctmp))=='Spin CASE ( default = unpolarized )') then
+				spin_component = 'none'
+				noncolin = .false.
+				ispinw  = 0
+				ikstart = 1
+				ikstop  = nkstot
+				iknum   = nkstot      
+			end if 
+	
+			!!
+			!WRITE(stdout, *)
+			!WRITE(stdout, *) '    Initializing Wannier90'
+			!WRITE(stdout, *)
+			!!
+			read(unitepwout,"(//,A)")
+			
+			! CALL setup_nnkp()
+			! line 452 of pw2wan2epw.f90
+			read(unitepwout,"(/,A,/)") ctmp    
+			if(trim(adjustl(ctmp))=="Initial Wannier auto_projections") then
+				scdm_proj = .true.
+			else
+				scdm_proj = .false.
+				n_proj = 0
+				do
+					read(unitepwout,"(5x,A1)") ctmp
+					if(ctmp/="(") exit
+					n_proj = n_proj+1
+				enddo
+				do i=1,n_proj+1
+					backspace(unitepwout)
+				enddo
+				
+				n_wannier = n_proj
+				
+				allocate(center_w(3,n_wannier),stat=ierr,errmsg=msg)
+				if(ierr /=0) then
+					call errore('readepw','Error allocating center_w',1) 
+					call io_error(msg)
+				endif
+				center_w = 0.0
+				allocate(l_w(n_wannier),stat=ierr,errmsg=msg)
+				if(ierr /=0) then
+					call errore('readepw','Error allocating l_w',1) 
+					call io_error(msg)
+				endif
+				l_w = 0
+				allocate(mr_w(n_wannier),stat=ierr,errmsg=msg)
+				if(ierr /=0) then
+					call errore('readepw','Error allocating mr_w',1)       
+					call io_error(msg)
+				endif
+				mr_w = 0
+				do iw=1,n_proj
+					read(unitepwout,"(6x,3f10.5,9x,i3,6x,i3)") &
+												(center_w(ipol,iw),ipol=1,3),l_w(iw),mr_w(iw)
+				enddo
 			endif
-			center_w = 0.0
-      allocate(l_w(n_wannier),stat=ierr,errmsg=msg)
-      if(ierr /=0) then
-				call errore('readepw','Error allocating l_w',1) 
-				call io_error(msg)
-			endif
-			l_w = 0
-      allocate(mr_w(n_wannier),stat=ierr,errmsg=msg)
-      if(ierr /=0) then
-				call errore('readepw','Error allocating mr_w',1)       
-				call io_error(msg)
-			endif
-			mr_w = 0
-      do iw=1,n_proj
-        read(unitepwout,"(6x,3f10.5,9x,i3,6x,i3)") &
-                      (center_w(ipol,iw),ipol=1,3),l_w(iw),mr_w(iw)
-      enddo
-    endif
-      
-
-    !WRITE(stdout, '(/, "      - Number of bands is (", i3, ")")') num_bands
-    !call findkline(unitepwout,"      - Number of bands is (",1,28)
-    read(unitepwout,"(/,28X,i3)") num_bands      ! the num_bands from DFT pass to Wanner90,defined in wannierEPW
-    read(unitepwout,"(34X,i3)")   nbnd           ! the total bands of DFT,is define in pwcom.f90 wvfct
-    read(unitepwout,"(37X,i3)")   nexband        ! number of excluded bands,defined in wannierEPW
-                                                 ! ref: exclude_bands in wannier90:User Guide
-    read(unitepwout,"(40X,i3)")   n_wannier      ! number of wannier functions,as Wanner90 num_wann,defined in wannierEPW
-    nbndsub = n_wannier
-    nbndskip = nexband
-    
-    if((nbnd-nexband)/=num_bands) &
-    call errore('setup_nnkp', ' something wrong with num_bands', 1)
-    
-    !!
-    !IF (.NOT. scdm_proj) WRITE(stdout, *) '     - All guiding functions are given '
-    !!
-    read(unitepwout,*)
-    !!
-    !! Read data about neighbours
-    !WRITE(stdout, *)
-    !WRITE(stdout, *) ' Reading data about k-point neighbours '
-    !WRITE(stdout, *)    
-    read(unitepwout,*)
-    read(unitepwout,*)
-    read(unitepwout,*)
-    !!
-    !WRITE(stdout, *) '     - All neighbours are found '
-    !WRITE(stdout, *)
-    !!
-    read(unitepwout,*)
-    read(unitepwout,*)
-    
-    !END subroutine setup_nnkp
-    
-    !IF (scdm_proj) THEN
-    !  CALL compute_amn_with_scdm()
-    !ELSE
-    !  CALL compute_amn_para()
-    !ENDIF
-    if(scdm_proj) then
-      !CALL compute_amn_with_scdm()
-      read(unitepwout,"(9x,a/)") scdm_entanglement
-      if((TRIM(scdm_entanglement) == 'erfc') .OR. &
-              (TRIM(scdm_entanglement) == 'gaussian')) THEN
-        read(unitepwout, '(9x, f10.3,/, 8x, f10.3,/)')  scdm_mu, scdm_sigma     
-      endif
-      !
-      !WRITE(stdout, '(5x, a)') 'AMN with SCDM'
-      !
-      read(unitepwout,*)
-      
-      if(noncolin) then
-        read(unitepwout,"(40x,i5)") count_piv_spin
-        read(unitepwout,"(40x,i5)") itmp !n_wannier - count_piv_spin
-      endif
-      
+				
+	
+			!WRITE(stdout, '(/, "      - Number of bands is (", i3, ")")') num_bands
+			!call findkline(unitepwout,"      - Number of bands is (",1,28)
+			read(unitepwout,"(/,28X,i3)") num_bands      ! the num_bands from DFT pass to Wanner90,defined in wannierEPW
+			read(unitepwout,"(34X,i3)")   nbnd           ! the total bands of DFT,is define in pwcom.f90 wvfct
+			read(unitepwout,"(37X,i3)")   nexband        ! number of excluded bands,defined in wannierEPW
+																									! ref: exclude_bands in wannier90:User Guide
+			read(unitepwout,"(40X,i3)")   n_wannier      ! number of wannier functions,as Wanner90 num_wann,defined in wannierEPW
+			nbndsub = n_wannier
+			nbndskip = nexband
+			
+			if((nbnd-nexband)/=num_bands) &
+			call errore('setup_nnkp', ' something wrong with num_bands', 1)
+			
+			!!
+			!IF (.NOT. scdm_proj) WRITE(stdout, *) '     - All guiding functions are given '
+			!!
+			read(unitepwout,*)
+			!!
+			!! Read data about neighbours
+			!WRITE(stdout, *)
+			!WRITE(stdout, *) ' Reading data about k-point neighbours '
+			!WRITE(stdout, *)    
+			read(unitepwout,*)
+			read(unitepwout,*)
+			read(unitepwout,*)
+			!!
+			!WRITE(stdout, *) '     - All neighbours are found '
+			!WRITE(stdout, *)
+			!!
+			read(unitepwout,*)
+			read(unitepwout,*)
+			
+			!END subroutine setup_nnkp
+			
+			!IF (scdm_proj) THEN
+			!  CALL compute_amn_with_scdm()
+			!ELSE
+			!  CALL compute_amn_para()
+			!ENDIF
+			if(scdm_proj) then
+				!CALL compute_amn_with_scdm()
+				read(unitepwout,"(9x,a/)") scdm_entanglement
+				if((TRIM(scdm_entanglement) == 'erfc') .OR. &
+								(TRIM(scdm_entanglement) == 'gaussian')) THEN
+					read(unitepwout, '(9x, f10.3,/, 8x, f10.3,/)')  scdm_mu, scdm_sigma     
+				endif
+				!
+				!WRITE(stdout, '(5x, a)') 'AMN with SCDM'
+				!
+				read(unitepwout,*)
+				
+				if(noncolin) then
+					read(unitepwout,"(40x,i5)") count_piv_spin
+					read(unitepwout,"(40x,i5)") itmp !n_wannier - count_piv_spin
+				endif
+				
 !#if defined(__MPI)
 !    WRITE(stdout, '(6x, a, i5, a, i4, a)') 'k points = ', iknum, ' in ', npool, ' pools'
 !#endif      
-      read(unitepwout,'(17x, i5, 4x, i4)') iknum, npool
-      
-      read(unitepwout,'(17x,i4)') nks
-      backspace(unitepwout)
-      do ik=1,nks
-        !read(unitepwout, '(5x, i8,4x, i4)') ik , nks
-        read(unitepwout,*)
-      enddo
-      
-      !WRITE(stdout, *)
-      !WRITE(stdout, '(5x, a)') 'AMN calculated with SCDM'
-      read(unitepwout,*)
-      read(unitepwout,*)
-      
-      !end subroutine compute_amn_with_scdm
-      
-    else
-      !CALL compute_amn_para()
-      !!
-      !WRITE(stdout, '(5x, a)') 'AMN'
-      !! 
-      call findkline(unitepwout,"AMN",6,8)
-      read(unitepwout,*)
+				read(unitepwout,'(17x, i5, 4x, i4)') iknum, npool
+				
+				read(unitepwout,'(17x,i4)') nks
+				backspace(unitepwout)
+				do ik=1,nks
+					!read(unitepwout, '(5x, i8,4x, i4)') ik , nks
+					read(unitepwout,*)
+				enddo
+				
+				!WRITE(stdout, *)
+				!WRITE(stdout, '(5x, a)') 'AMN calculated with SCDM'
+				read(unitepwout,*)
+				read(unitepwout,*)
+				
+				!end subroutine compute_amn_with_scdm
+				
+			else
+				!CALL compute_amn_para()
+				!!
+				!WRITE(stdout, '(5x, a)') 'AMN'
+				!! 
+				call findkline(unitepwout,"AMN",6,8)
+				read(unitepwout,*)
 !#if defined(__MPI)
 !    WRITE(stdout, '(6x, a, i5, a, i4, a)') 'k points = ', iknum, ' in ', npool, ' pools'
 !#endif      
-      read(unitepwout, '(17x,  i5, 4x, i4)')  iknum,  npool
-      
-      read(unitepwout,"(17X,i4)") nks
-      backspace(unitepwout)
-      do ik=1,nks
-        !read(unitepwout, '(5x, i8, " of ", i4, a)') ik , nks, ' on ionode'
-        read(unitepwout,*)
-      enddo
-      
-      !WRITE(stdout, *)
-      !WRITE(stdout, '(5x, a)') 'AMN calculated'
-      read(unitepwout,*)
-      read(unitepwout,*)
-        
-      !end subroutine compute_amn_para
-    endif
-    
-    !CALL compute_mmn_para()
-    !!
-    !WRITE(stdout, *)
-    !WRITE(stdout, '(5x, a)') 'MMN'
-    !!
-    read(unitepwout,*)
-    read(unitepwout,"(A)") ctmp
+				read(unitepwout, '(17x,  i5, 4x, i4)')  iknum,  npool
+				
+				read(unitepwout,"(17X,i4)") nks
+				backspace(unitepwout)
+				do ik=1,nks
+					!read(unitepwout, '(5x, i8, " of ", i4, a)') ik , nks, ' on ionode'
+					read(unitepwout,*)
+				enddo
+				
+				!WRITE(stdout, *)
+				!WRITE(stdout, '(5x, a)') 'AMN calculated'
+				read(unitepwout,*)
+				read(unitepwout,*)
+					
+				!end subroutine compute_amn_para
+			endif
+			
+			!CALL compute_mmn_para()
+			!!
+			!WRITE(stdout, *)
+			!WRITE(stdout, '(5x, a)') 'MMN'
+			!!
+			read(unitepwout,*)
+			read(unitepwout,"(A)") ctmp
 !#if defined(__MPI)
 !    WRITE(stdout, '(6x, a, i5, a, i4, a)') 'k points = ', iknum, ' in ', npool, ' pools'
 !#endif
-    read(unitepwout, '(17x,  i5, 4x, i4)')  iknum,  npool
-    do ik=1,nks
-      !read(unitepwout, '(5x, i8, " of ", i4, a)') ik , nks, ' on ionode'
-      read(unitepwout,*)
-    enddo
-    !
-    !WRITE(stdout, '(5x, a)') 'MMN calculated'
-    !    
-    read(unitepwout,"(A)") ctmp
-    !end subroutine compute_mmn_para
-    
-    !CALL write_band()
-    !!
-    !WRITE(stdout, *)
-    !WRITE(stdout, *) '    Running Wannier90'
-    read(unitepwout,*)
-    read(unitepwout,"(A)") ctmp
-    
-    !!
-    !CALL run_wannier()    
-    read(unitepwout,"(A)") ctmp
-    backspace(unitepwout)
-    if(ctmp(6:46)=="Reading external electronic eigenvalues (") then
-      eig_read = .true.
-      read(unitepwout,'(46x, i5, 1x, i5)')  nbnd,  nkstot
-    endif
-    
-    !
-    ! output the results of the wannierization
-    !
-    !WRITE(stdout, *)
-    !WRITE(stdout, *) '    Wannier Function centers (cartesian, alat) and spreads (ang):'
-    !WRITE(stdout, *)
-    !DO iw = 1, n_wannier
-    !  WRITE(stdout, '(5x, "(", 3f10.5, ") :  ",f8.5)') &
-    !       wann_centers(:, iw) / alat / bohr, wann_spreads(iw)
-    !ENDDO
-    !WRITE(stdout, *)  
-
-    !if( allocated(wann_centers) == .flase. ) then
-      allocate(wann_centers(3,n_wannier),stat=ierr,errmsg=msg)
-      if(ierr /=0) then
-				call errore('readepw','Error allocating wann_centers',1) 
-				call io_error(msg)
-			endif
-			wann_centers = 0.0
-    !endif
-    !if(allocated(wann_spreads)==.flase.) then
-      allocate(wann_spreads(n_wannier),stat=ierr,errmsg=msg)
-      if(ierr /=0) then
-				call errore('readepw','Error allocating wann_spreads',1) 
-				call io_error(msg)
-			endif
-			wann_spreads = 0.0
-    !endif    
-    read(unitepwout,"(/,A,/)") ctmp
-    do iw=1,n_wannier
-      read(unitepwout,'(6x,3f10.5,5x,f8.5)') (wann_centers(ipol,iw),ipol=1,3),wann_spreads(iw)
-    enddo
-    read(unitepwout,*)
-    !end subroutine run_wannier
-    
-		!IF (wannier_plot) CALL write_plot()
-		read(unitepwout,"(A)") ctmp
-		backspace(unitepwout)
-		if(trim(adjustl(ctmp))=='Writing out Wannier function cube files')then
-			wannier_plot = .true.
-			!WRITE(stdout,'(a,/)') '    Writing out Wannier function cube files'
+			read(unitepwout, '(17x,  i5, 4x, i4)')  iknum,  npool
+			do ik=1,nks
+				!read(unitepwout, '(5x, i8, " of ", i4, a)') ik , nks, ' on ionode'
+				read(unitepwout,*)
+			enddo
+			!
+			!WRITE(stdout, '(5x, a)') 'MMN calculated'
+			!    
+			read(unitepwout,"(A)") ctmp
+			!end subroutine compute_mmn_para
+			
+			!CALL write_band()
 			!!
-			!IF (iverbosity == 1) THEN
-				!WRITE(stdout,'(a,f6.3)') 'write_plot: wannier_plot_radius =', &
-																!wannier_plot_radius
-				!WRITE(stdout,'(a,f6.3)') 'write_plot: wannier_plot_scale =', &
-																!wannier_plot_scale
-			!ENDIF
-			!!			
-			read(unitepwout,"(A,/)") ctmp
-			if(iverbosity == 1) then
-				read(unitepwout,"(33X,f6.3)") wannier_plot_radius
-				read(unitepwout,"(32X,f6.3)") wannier_plot_scale
-			endif
+			!WRITE(stdout, *)
+			!WRITE(stdout, *) '    Running Wannier90'
+			read(unitepwout,*)
 			read(unitepwout,"(A)") ctmp
-			if(trim(ctmp)=="write_plot: Real-space grids for plotting Wannier functions are reduced") then
-				reduce_unk = .true.
-		  else
-				backspace(unitepwout)
+			
+			!!
+			!CALL run_wannier()    
+			read(unitepwout,"(A)") ctmp
+			backspace(unitepwout)
+			if(ctmp(6:46)=="Reading external electronic eigenvalues (") then
+				eig_read = .true.
+				read(unitepwout,'(46x, i5, 1x, i5)')  nbnd,  nkstot
 			endif
-			read(unitepwout,"(6X,I5,8X,I5,8X,I5)") ngx,ngy,ngz
-			allocate(ratmax(n_wannier),stat=ierr,errmsg=msg)
-			if(ierr /= 0) call io_error(msg)
-			read(unitepwout,"(36X,3I5)") (wannier_plot_supercell(i), i = 1, 3)
+			
+			!
+			! output the results of the wannierization
+			!
+			!WRITE(stdout, *)
+			!WRITE(stdout, *) '    Wannier Function centers (cartesian, alat) and spreads (ang):'
+			!WRITE(stdout, *)
+			!DO iw = 1, n_wannier
+			!  WRITE(stdout, '(5x, "(", 3f10.5, ") :  ",f8.5)') &
+			!       wann_centers(:, iw) / alat / bohr, wann_spreads(iw)
+			!ENDDO
+			!WRITE(stdout, *)  
+	
+			!if( allocated(wann_centers) == .flase. ) then
+				allocate(wann_centers(3,n_wannier),stat=ierr,errmsg=msg)
+				if(ierr /=0) then
+					call errore('readepw','Error allocating wann_centers',1) 
+					call io_error(msg)
+				endif
+				wann_centers = 0.0
+			!endif
+			!if(allocated(wann_spreads)==.flase.) then
+				allocate(wann_spreads(n_wannier),stat=ierr,errmsg=msg)
+				if(ierr /=0) then
+					call errore('readepw','Error allocating wann_spreads',1) 
+					call io_error(msg)
+				endif
+				wann_spreads = 0.0
+			!endif    
+			read(unitepwout,"(/,A,/)") ctmp
 			do iw=1,n_wannier
-				read(unitepwout,"(60X,f12.6)") ratmax(iw)
-		  enddo
-			!WRITE(stdout, '(/)')
-			!WRITE(stdout, *) ' cube files written'			
-			read(unitepwout,"(/)") 
+				read(unitepwout,'(6x,3f10.5,5x,f8.5)') (wann_centers(ipol,iw),ipol=1,3),wann_spreads(iw)
+			enddo
+			read(unitepwout,*)
+			!end subroutine run_wannier
+			
+			!IF (wannier_plot) CALL write_plot()
 			read(unitepwout,"(A)") ctmp
-		endif
-		
-    !
-    !WRITE(stdout, '(5x, a)') REPEAT("-", 67)
-    !CALL print_clock('WANNIER')
-    !WRITE(stdout, '(5x, a)') REPEAT("-", 67)
-    !!
-    !!------------------------------------------------------------
-    !END SUBROUTINE wann_run
-    !------------------------------------------------------------    
-    
+			backspace(unitepwout)
+			if(trim(adjustl(ctmp))=='Writing out Wannier function cube files')then
+				wannier_plot = .true.
+				!WRITE(stdout,'(a,/)') '    Writing out Wannier function cube files'
+				!!
+				!IF (iverbosity == 1) THEN
+					!WRITE(stdout,'(a,f6.3)') 'write_plot: wannier_plot_radius =', &
+																	!wannier_plot_radius
+					!WRITE(stdout,'(a,f6.3)') 'write_plot: wannier_plot_scale =', &
+																	!wannier_plot_scale
+				!ENDIF
+				!!			
+				read(unitepwout,"(A,/)") ctmp
+				if(iverbosity == 1) then
+					read(unitepwout,"(33X,f6.3)") wannier_plot_radius
+					read(unitepwout,"(32X,f6.3)") wannier_plot_scale
+				endif
+				read(unitepwout,"(A)") ctmp
+				if(trim(ctmp)=="write_plot: Real-space grids for plotting Wannier functions are reduced") then
+					reduce_unk = .true.
+				else
+					backspace(unitepwout)
+				endif
+				read(unitepwout,"(6X,I5,8X,I5,8X,I5)") ngx,ngy,ngz
+				allocate(ratmax(n_wannier),stat=ierr,errmsg=msg)
+				if(ierr /= 0) call io_error(msg)
+				read(unitepwout,"(36X,3I5)") (wannier_plot_supercell(i), i = 1, 3)
+				do iw=1,n_wannier
+					read(unitepwout,"(60X,f12.6)") ratmax(iw)
+				enddo
+				!WRITE(stdout, '(/)')
+				!WRITE(stdout, *) ' cube files written'			
+				read(unitepwout,"(/)") 
+				read(unitepwout,"(A)") ctmp
+			endif
+			
+			!
+			!WRITE(stdout, '(5x, a)') REPEAT("-", 67)
+			!CALL print_clock('WANNIER')
+			!WRITE(stdout, '(5x, a)') REPEAT("-", 67)
+			!!
+			!!------------------------------------------------------------
+			!END SUBROUTINE wann_run
+			!------------------------------------------------------------    
+    endif
 
     !! Setup Bravais lattice symmetry
     !WRITE(stdout,'(5x,a,i3)') "Symmetries of Bravais lattice: ", nrot
@@ -712,18 +738,66 @@ module readepw
       read(unitepwout,'(/5x,A,/)') ctmp
     endif
     
+		!call findkline(unitepwout,"Band disentanglement is used: nbndsub = ",6,45)
+		!read(unitepwout,"(45X,i4)") nbndsub
     
-    write(stdout,"(5x,A,I12)") "Number of phonon modes (nmodes) =",nmodes
+		call findkline(unitepwout,"Number of WS vectors for electrons ",6,40)
+		read(unitepwout,"(40X,I8)") nrr_k
+		read(unitepwout,"(38X,I8)") nrr_q
+		read(unitepwout,"(46X,I8)") nrr_g
+		
+    write(stdout,"(/5x,A,I12)") "Number of phonon modes (nmodes) =",nmodes
     
+		!! Check Memory usage
+		!CALL system_mem_usage(valueRSS)
+		!!
+		!WRITE(stdout, '(a)' )             '     ==================================================================='
+		!WRITE(stdout, '(a,i10,a)' ) '     Memory usage:  VmHWM =',valueRSS(2)/1024,'Mb'
+		!WRITE(stdout, '(a,i10,a)' ) '                   VmPeak =',valueRSS(1)/1024,'Mb'
+		!WRITE(stdout, '(a)' )             '     ==================================================================='
+		!WRITE(stdout, '(a)' )             '     '
+		!!		
+		call findkline(unitepwout,"Memory usage:  VmHWM =",6,27)
+		read(unitepwout,"(27X,I10)") valueRSS(2)
+		read(unitepwout,"(27X,I10)") valueRSS(1)
+		valueRSS = valueRSS * 1024
+		read(unitepwout,*)
+		read(unitepwout,*)
+		
     !! Load the fine-grid q and k grids.
     !! nkqtotf is computed inside
     !CALL loadqmesh_serial
     !CALL loadkmesh_para
     !------------------------------------------------------------
-    call findkline(unitepwout,"     Using uniform q-mesh: ",1,27)
-    read(unitepwout,"(27X,3i4)") nqf1,nqf2,nqf3
+		read(unitepwout,"(A)") ctmp
+		if(ctmp(1:23)=="    Using q-mesh file: ") then ! load from file
+			backspace(unitepwout)
+			read(unitepwout,"(23X,A)") filqf
+			read(unitepwout,"(A)") ctmp
+			if(ctmp(1:72)=="     WARNING: if lscreen=.TRUE., q-mesh needs to be [-0.5:0.5] (crystal)") then
+				lscreen = .true.
+			else
+				backspace(unitepwout)
+			endif
+		elseif(ctmp(1:27)=="     Using uniform q-mesh: ") then ! generate grid
+			backspace(unitepwout)
+			read(unitepwout,"(27X,3i4)") nqf1,nqf2,nqf3
+			read(unitepwout,"(A)") ctmp
+			if( ctmp(1:34)/="     Shifting q mesh to [-0.5:0.5[" ) backspace(unitepwout)
+			nqtotf = nqf1*nqf2*nqf3
+		elseif(ctmp(1:25)=="    Using random q-mesh: ") then ! random points
+			backspace(unitepwout)
+			read(unitepwout,"(25X,I12)") rand_nq
+			read(unitepwout,"(A)") ctmp
+			if(ctmp(1:33)/="    Shifting q mesh to [-0.5:0.5[") backspace(unitepwout)
+			nqtotf = rand_nq
+			nqf = nqtotf
+		endif
+		
+    !call findkline(unitepwout,"     Using uniform q-mesh: ",1,27)
+    !read(unitepwout,"(27X,3i4)") nqf1,nqf2,nqf3
     !!! qx,qy,qz sizes of the uniform phonon fine mesh to be used
-    nqtotf = nqf1 * nqf2 * nqf3
+    !nqtotf = nqf1 * nqf2 * nqf3
     write(stdout,"(5X,A,I12)") "Total number of the uniform phonon fine mesh to be used(nqtotf) = ",&
                                nqtotf
     
@@ -771,13 +845,30 @@ module readepw
     !!-----------------------------------------------------------------------
     !END SUBROUTINE loadqmesh_serial
     read(unitepwout,"(A)") ctmp
-    if(ctmp(6:13)/= "WARNING:") backspace(unitepwout)   
+    if(ctmp(6:67)/= "WARNING: q-point weigths do not add up to 1 [loadqmesh_serial]") backspace(unitepwout)   
     read(unitepwout,"(45X,i10)") nqtotf
+
+
+		!  CALL loadkmesh_para
+    read(unitepwout,"(A)") ctmp
+		if(ctmp(1:23)=="    Using k-mesh file: ") then !! load from file
+			backspace(unitepwout)
+			read(unitepwout,"(23X,A)") filkf
+		elseif(ctmp(1:30)=="     Using uniform MP k-mesh: ") then !generate grid
+			backspace(unitepwout)
+			read(unitepwout,"(30X,3i4)") nkf1,nkf2,nkf3
+		elseif(ctmp(1:27)=="     Using uniform k-mesh: ") then
+			backspace(unitepwout)
+			read(unitepwout,"(27X,3i4)") nkf1,nkf2,nkf3
+			nktotf = nkf1 * nkf2 * nkf3
+			nkqtotf = 2 * nktotf
+		elseif(ctmp(1:26)=="     Using random k-mesh: ") then
+			backspace(unitepwout)
+			read(unitepwout,"(26X,I12)") rand_nk
+			nkqtotf = rand_nk
+		endif
     
-    
-    read(unitepwout,"(27X,3i4)") nkf1,nkf2,nkf3
-    nktotf = nkf1 * nkf2 * nkf3
-    nkqtotf = 2 * nktotf
+    !read(unitepwout,"(27X,3i4)") nkf1,nkf2,nkf3
     write(stdout,"(5X,A,I12)") "Total number of K-point in fine mesh to be used(nktotf)         = ",&
                                nktotf    
     
@@ -856,7 +947,8 @@ module readepw
     !!        
     read(unitepwout,"(/32X,f10.6)") ef
     ef = ef /ryd2ev
-    
+		WRITE(stdout,'(/5x,a,f10.6,a)') 'Fermi energy coarse grid = ', ef * ryd2ev, ' eV'    
+		
     if(nelec == 0.0 .and. ieband_max==0 .and. ihband_min==0) then
       write(stdout,"(5X,A,F8.4,A)") "WARNING! The nelec =",nelec,"and ieband_max=0 ihband_min=0"
       write(stdout,"(5X,A)") "Need to set nelec right in LVCSH.in .OR. set lreadscfout= .true."
@@ -898,6 +990,15 @@ module readepw
       backspace(unitepwout)
       backspace(unitepwout)
       backspace(unitepwout)
+			read(unitepwout,"(/5X,A)") ctmp
+			backspace(unitepwout)
+			backspace(unitepwout)			
+			if(ctmp(1:19)=="Skipping the first ") then
+				read(unitepwout,"(/5X,19X,i4)") nbndskip
+				backspace(unitepwout)
+				backspace(unitepwout)				
+			endif
+			
       ! here we take into account that we may skip bands when we wannierize
       ! (spin-unpolarized)
       ! RM - add the noncolin case
@@ -958,7 +1059,7 @@ module readepw
       ENDIF      
     endif
     
-    WRITE(stdout, '(5x," icbm(conductor band max) = ",i6)' ) icbm
+    WRITE(stdout, '(/5x," icbm(conductor band max) = ",i6)' ) icbm
     WRITE(stdout, '(5x," ivbm(valence   band min) = ",i6)' ) icbm-1
     
     
@@ -995,7 +1096,9 @@ module readepw
 			call errore('readepw','Error allocating gmnvkq',1)
 			call io_error(msg)
 		endif
-
+		ram = real_size*(ibndmax-ibndmin+1)**2*nmodes*nktotf*nqtotf
+		call print_memory("gmnvkq",ram)
+		
     !!
     !! wf are the interpolated eigenfrequencies
     !! (omega on fine grid)
@@ -1022,17 +1125,20 @@ module readepw
 		kqmap = 1
   
     call findkline(unitepwout,"We only need to compute",6,28)
-    read(unitepwout,"(29X,i8)") totq  ! totq = nqf
-    !nqf=totq
-      
+    read(unitepwout,"(29X,i8)") totq
+		write(stdout,"(5X,A5,I8,A)") "Only ",totq," q-points falls within the fsthick windows."
+		write(stdout,"(5X,A,I8,A)")  'We only need to compute ', totq, ' q-points'
+    
+		allocate(calgmnvkq_q(totq))
 
     ! 1160 DO iqq = iq_restart, totq
-    do iq=1,nqtotf
+    do iq=1,totq
       !call print_gkk(iq)
       !WRITE(stdout, '(5x, a)') ' Electron-phonon vertex |g| (meV)'   printing.f90
       call findkline(unitepwout," Electron-phonon vertex |g| (meV)",6,38)  
       read(unitepwout,"(//,10x,i7,9x, 3f12.7)") iq_,(xiq(ipol),ipol=1,3) !(xqf(ipol,iq),ipol=1,3)
-      if((xiq(1) /= xqf(1,iq)) .or. (xiq(2) /= xqf(2,iq)) .or. (xiq(3) /= xqf(3,iq)) ) then
+			calgmnvkq_q(iq) = iq_
+      if(ABS(xiq(1) - xqf(1,iq_))>1.0d-7 .or. ABS(xiq(2) - xqf(2,iq_))>1.0d-7 .or. ABS(xiq(3) - xqf(3,iq_))>1.0d-7 ) then
         write(stdout,*) "Warning: xqf set is wrong"
       endif
       !xqf(:,iq) = xiq
@@ -1044,10 +1150,10 @@ module readepw
         ! xkf is assumed to be in crys coord
         !
         read(unitepwout,'(5x,5x,i7, 9x, 3f12.7)') ik_, (xik(ipol),ipol=1,3)
-        if((xik(1) /= xkf(1,ik)) .or. (xik(2) /= xkf(2,ik)) .or. (xik(3) /= xkf(3,ik)) ) then
+        if(ABS(xik(1)-xkf(1,ik_))>1.0d-7 .or. ABS(xik(2) - xkf(2,ik_))>1.0d-7 .or. ABS(xik(3) - xkf(3,ik_))>1.0d-7 ) then
           write(stdout,*) "Warning: xkf set is wrong"
         endif
-        kqmap(ik,iq) = get_ikq(xik,xiq)
+        kqmap(ik_,iq_) = get_ikq(xik,xiq)
         
         read(unitepwout,*)
         read(unitepwout,*)
@@ -1059,11 +1165,11 @@ module readepw
               !ekk = etf_all(ibndmin - 1 + ibnd, ikk)
               !WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 1e20.10)') ibndmin - 1 + ibnd, ibndmin - 1 + jbnd, &
               !nu, ryd2ev * ekk, ryd2ev * ekq, ryd2mev * wf(nu, iq), ryd2mev * epc(ibnd, jbnd, nu, ik)
-              read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,ekk,ekq,wf(nu,iq),gmnvkq(ibnd,jbnd,nu,ik,iq)
+              read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,ekk,ekq,wf(nu,iq_),gmnvkq(ibnd,jbnd,nu,ik_,iq_)
               !ekk = ekk /ryd2eV
               !ekq = ekq /ryd2eV
               
-              etf(ibnd,ik) = ekk
+              etf(ibnd,ik_) = ekk
               !read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,&
                    !E_nk,E_mkq,wf(nu,iq),gmnvkq(ibnd,jbnd,ik,nu,iq)
             enddo
@@ -1073,13 +1179,15 @@ module readepw
       enddo
       
     enddo
-    
+    write(stdout,"(5X,A)") "Read Electron-phonon vertex |g| (meV) Success."
+		
+		
 		!for testing
 		if(verbosity == "high" .and. .false. ) then
 			write(stdout,"(5X,A,I8,1X,A)") "We only need to compute",totq,"q-points"
-			do iq=1,nqtotf
+			do iq=1,totq
 				write(stdout,"(/,5X,A)") " Electron-phonon vertex |g| (meV)"
-				WRITE(stdout, '(/5x, "iq = ", i7, " coord.: ", 3f12.7)') iq, xqf(:, iq)
+				WRITE(stdout, '(/5x, "iq = ", i7, " coord.: ", 3f12.7)') calgmnvkq_q(iq), xqf(:, calgmnvkq_q(iq))
 				do ik=1,nktotf
 					WRITE(stdout, '(5x, "ik = ", i7, " coord.: ", 3f12.7)') ik, xkf(:, ik)
 					WRITE(stdout, '(5x, a)') ' ibnd     jbnd     imode   enk[eV]    enk+q[eV]  omega(q)[meV]   |g|[meV]'
@@ -1088,7 +1196,7 @@ module readepw
 						do jbnd = ibndmin,ibndmax !jbnd= 1,nbndfst
 							do nu = 1, nmodes		
 								WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd, jbnd, &
-                   nu, etf(ibnd,ik), etf(ibnd,kqmap(ik,iq)), wf(nu, iq),gmnvkq(ibnd, jbnd, nu, ik,iq)								
+                   nu, etf(ibnd,ik), etf(ibnd,kqmap(ik,calgmnvkq_q(iq))), wf(nu, calgmnvkq_q(iq)),gmnvkq(ibnd, jbnd, nu, ik,calgmnvkq_q(iq))								
 							enddo
 					  enddo
 					enddo
@@ -1098,9 +1206,7 @@ module readepw
 		endif
 		
 		
-		etf = etf/ryd2eV
-    etf = etf - ef
-    wf = wf/ryd2mev
+
     !gamma 3 branch A phonon must be set to 0.
     do nu=1,3
 			wf(nu,1) = 0.0
@@ -1118,17 +1224,26 @@ module readepw
 		
 		do iq=1,nqtotf
 		  do nu=1,nmodes
+				if(wf(nu,iq)<1.0) then !for the phonon with energy little than 1.0 meV, set the g-matrices to 0.
+					gmnvkq(:,:,nu,:,iq) = 0.0
+				endif
+				
         if(wf(nu,iq)<0.0) then
           write(stdout,"(A,I5,1X,A,3(F12.6,1X),A8,I5,A1,F12.6,A3)") &
-					"Carefully!!! the energy of phonon in iq=",iq,"(coord.:",(xqf(ipol,iq),ipol=1,3),") modes=",nu,"=",wf(nu,iq)*ryd2mev,"meV"
+					"Carefully!!! the energy of phonon in iq=",iq,"(coord.:",(xqf(ipol,iq),ipol=1,3),") modes=",nu,"=",wf(nu,iq),"meV"
 					write(stdout,"(A)") "Setting asr_type='simple' in epw.in could solve gamma point problem."
 					write(stdout,"(A)") "Take a callfully check for the ph.x calculation."
 					wf(nu,iq)=0.0
 				endif
       enddo
 		enddo
-		
+
+		etf = etf/ryd2eV
+    etf = etf - ef
+    wf = wf/ryd2mev		
 		gmnvkq = gmnvkq/ryd2mev
+		
+		
        
     call findkline(unitepwout,"matrix elements",15,29)
     read(unitepwout,"(A)") ctmp
@@ -1137,12 +1252,15 @@ module readepw
     else
       vme= .false.
     endif
-    allocate(vmef(3,nbndsub,nbndsub,nkf),stat=ierr,errmsg=msg)
+    allocate(vmef(1:3,ibndmin:ibndmax,ibndmin:ibndmax,1:nktotf),stat=ierr,errmsg=msg)
 		if(ierr /= 0) call io_error(msg)
+		ram = real_size*3*(ibndmax-ibndmin+1)**2*nktotf
+		call print_memory("vmef",ram)
+		
     do ik=1,nkf
       read(unitepwout,"(//)")
-      do ibnd=1,nbndsub
-        do jbnd=1,nbndsub
+      do ibnd=ibndmin,ibndmax
+        do jbnd=ibndmin,ibndmax
           read(unitepwout,"(31X,3(2E16.6))") (vmef(ipol,ibnd,jbnd,ik),ipol=1,3)
         enddo
       enddo

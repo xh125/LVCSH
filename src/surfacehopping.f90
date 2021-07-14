@@ -11,14 +11,15 @@ module surfacehopping
                          phQsit,phPsit,phKsit,phUsit,ld_gamma,&
                          dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
                          d_e,g_e,g1_e,c_e_nk,w_e,w0_e,&
-                         d0_e,&
+                         d0_e,nefre_sh,&
                          d_h,g_h,g1_h,c_h_nk,w_h,w0_h,&
-                         d0_h,&
+                         d0_h,nhfre_sh,&
                          pes_one_e,pes_e,csit_e,wsit_e,psit_e,&
                          pes_one_h,pes_h,csit_h,wsit_h,psit_h
 											                         
   use cc_fssh,only : S_ai_e,S_ai_h,S_bi_e,S_bi_h
-                  
+	use memory_report,only : MB,GB,complex_size, real_size,int_size,ram,print_memory   
+	
   implicit none
   
   complex(kind=dpc),allocatable :: cc0_e(:),dc1_e(:),dc2_e(:),dc3_e(:),dc4_e(:)
@@ -57,7 +58,13 @@ module surfacehopping
     phPsit = 0.0d0
     phKsit = 0.0d0
     phUsit = 0.0d0
-    
+    ram = real_size*nmodes*nq*(1+nsnap)
+		call print_memory("phQsit",ram)
+		call print_memory("phPsit",ram)
+		call print_memory("phKsit",ram)
+		call print_memory("phUsit",ram)
+		
+		
     allocate(phP(nmodes,nq),stat=ierr,errmsg=msg)  ! v(1:nphfre)
     if(ierr /=0) call errore('surfacehopping','Error allocating phP',1)    
     phP = 0.0
@@ -84,8 +91,10 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e_nk',1)
       allocate(P0_e_nk(neband,nktotf,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_e_nk',1)			
-      allocate(d_e(nefre,nefre,nmodes,nq),stat=ierr,errmsg=msg) !d_ijk
+      allocate(d_e(nefre_sh,nefre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ijk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_e',1)
+			ram=real_size*nmodes*nq*nefre_sh**2
+			call print_memory("d_e",ram)
       allocate(dEa_dQ_e(nmodes,nq))
       allocate(dEa2_dQ2_e(nmodes,nq))
       
@@ -93,9 +102,16 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)
       
       allocate(pes_one_e(0:nefre,0:nsnap),pes_e(0:nefre,0:nsnap))
+			ram = real_size*(1+nefre)*(1+nsnap)
+			call print_memory("pes_one_e",ram)
+			call print_memory("pes_e",ram)
       allocate(csit_e(nefre,0:nsnap))
       allocate(wsit_e(nefre,0:nsnap))
       allocate(psit_e(nefre,0:nsnap))
+			ram = real_size*nefre*(1+nsnap)
+			call print_memory("csit_e",ram)
+			call print_memory("wsit_e",ram)
+			call print_memory("psit_e",ram)
       pes_one_e = 0.0d0
 			pes_e  = 0.0d0
       csit_e = 0.0d0
@@ -122,21 +138,21 @@ module surfacehopping
       allocate(w0_e(nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating w0_e',1)
       
-      allocate(g_e(1:nefre),stat=ierr,errmsg=msg)  !g_ij
+      allocate(g_e(1:nefre_sh),stat=ierr,errmsg=msg)  !g_ij
       if(ierr /=0) call errore('surfacehopping','Error allocating g_e',1)
-      allocate(g1_e(1:nefre),stat=ierr,errmsg=msg)
+      allocate(g1_e(1:nefre_sh),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating g1_e',1) 
       
       allocate(E0_e(1:nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating E0_e',1)
       allocate(P0_e(nefre,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_e',1)
-      allocate(d0_e(nefre,nefre,nmodes,nq),stat=ierr,errmsg=msg)
+      allocate(d0_e(nefre_sh,nefre_sh,nmodes,nq),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating d0_e',1)
       
       if(methodsh == "CC-FSSH") then
-        allocate(S_ai_e(nefre))
-        allocate(S_bi_e(nefre))
+        allocate(S_ai_e(nefre_sh))
+        allocate(S_bi_e(nefre_sh))
       endif
       
     endif
@@ -150,18 +166,27 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h_nk',1)
       allocate(P0_h_nk(nhband,nktotf,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h_nk',1)			
-      allocate(d_h(nhfre,nhfre,nmodes,nq),stat=ierr,errmsg=msg) !d_ijk
+      allocate(d_h(nhfre_sh,nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ijk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_h',1)
+			ram=real_size*nmodes*nq*nhfre_sh**2
+			call print_memory("d_h",ram)
       allocate(dEa_dQ_h(nmodes,nq))
       allocate(dEa2_dQ2_h(nmodes,nq))
 
       allocate(c_h_nk(nhband,nktotf),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h_nk',1)  
       
-      allocate(pes_one_h(0:nefre,0:nsnap),pes_h(0:nefre,0:nsnap))
+      allocate(pes_one_h(0:nhfre,0:nsnap),pes_h(0:nhfre,0:nsnap))
+			ram = real_size*(1+nhfre)*(1+nsnap)
+			call print_memory("pes_one_h",ram)
+			call print_memory("pes_h",ram)			
       allocate(csit_h(nhfre,0:nsnap))
       allocate(wsit_h(nhfre,0:nsnap))
       allocate(psit_h(nhfre,0:nsnap))
+			ram = real_size*nhfre*(1+nsnap)
+			call print_memory("csit_h",ram)
+			call print_memory("wsit_h",ram)
+			call print_memory("psit_h",ram)			
 			pes_one_h=0.0d0
       pes_h  = 0.0
       csit_h = 0.0
@@ -188,9 +213,9 @@ module surfacehopping
       allocate(w0_h(nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating w0_h',1)
       
-      allocate(g_h(1:nhfre),stat=ierr,errmsg=msg)  !g_ij
+      allocate(g_h(1:nhfre_sh),stat=ierr,errmsg=msg)  !g_ij
       if(ierr /=0) call errore('surfacehopping','Error allocating g_h',1)
-      allocate(g1_h(1:nhfre),stat=ierr,errmsg=msg)
+      allocate(g1_h(1:nhfre_sh),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating g1_h',1) 
       
       allocate(E0_h(1:nhfre),stat=ierr,errmsg=msg)
@@ -200,12 +225,12 @@ module surfacehopping
       
       allocate(P0_h(nhfre,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h',1)
-      allocate(d0_h(nhfre,nhfre,nmodes,nq),stat=ierr,errmsg=msg)
+      allocate(d0_h(nhfre_sh,nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating d0_h',1)
       
       if(methodsh == "CC-FSSH") then
-        allocate(S_ai_h(nhfre))
-        allocate(S_bi_h(nhfre))
+        allocate(S_ai_h(nhfre_sh))
+        allocate(S_bi_h(nhfre_sh))
       endif
     endif
     
@@ -354,24 +379,26 @@ module surfacehopping
   !% calculate nonadiabatic coupling %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   ! ref : PPT-91
-  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,wf,ee,p_nk,gmnvkq,lgmnvkq,ngfre,g_n0,dd)
+  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,wf,ee,p_nk,gmnvkq,lgmnvkq,ngfre,g_n0,nfre_sh,dd)
     use kinds,only :  dp
 		use types
     implicit none
-    integer, intent(in) :: nmodes,nq,nband,nk,ngfre
+    integer, intent(in) :: nmodes,nq,nband,nk,ngfre,nfre_sh
     real(kind=dp),intent(in) :: wf(nmodes,nq),ee(nband*nk)
     real(kind=dp),intent(in) :: gmnvkq(nband,nband,nmodes,nk,nq)
 		logical,intent(in) :: lgmnvkq(nband,nband,nmodes,nk,nq)
     real(kind=dp),intent(in) :: p_nk(nband,nk,nband*nk)
 		type(gmnvkq_n0),intent(in) :: g_n0(ngfre)
-    real(kind=dp),intent(out):: dd(nband*nk,nband*nk,nmodes,nq)
-    integer :: nfre,ifre,jfre,iq,imode ,igfre
+    real(kind=dp),intent(out):: dd(nfre_sh,nfre_sh,nmodes,nq)
+    
+		integer :: nfre,ifre,jfre,iq,imode ,igfre
     integer :: ik,ikq,iband1,iband2
 		real(kind=dp) :: epc
 		logical :: larglit
     
-    nfre = nband*nk
-    
+    !nfre = nband*nk
+    nfre = nfre_sh
+		
 		!version 1 原始版本时间长
     !dd=0.0d0
     !do ifre=1,nfre-1
@@ -507,15 +534,15 @@ module surfacehopping
   !ref : eq(2)
   ! 其中gg1为原始跃迁几率，gg为采用FSSH方法，令跃迁几率小于0的部分等于0
   ! if(gg(iefre) < 0.0) gg(iefre) = 0.0
-  subroutine calculate_hopping_probability(isurface,nfre,nmodes,nq,WW,VV,dd,tt,gg,gg1)
+  subroutine calculate_hopping_probability(isurface,nfre,nfre_sh,nmodes,nq,WW,VV,dd,tt,gg,gg1)
     implicit none
-    integer,intent(in)           :: isurface,nfre,nmodes,nq
+    integer,intent(in)           :: isurface,nfre,nfre_sh,nmodes,nq
     complex(kind=dpc),intent(in) :: WW(nfre)
     real(kind=dp),intent(in)     :: VV(nmodes,nq)
-    real(kind=dp),intent(in)     :: dd(nfre,nfre,nmodes,nq)
+    real(kind=dp),intent(in)     :: dd(nfre_sh,nfre_sh,nmodes,nq)
     real(kind=dp),intent(in)     :: tt
-    real(kind=dp),intent(out)    :: gg(nfre)
-    real(kind=dp),intent(out)    :: gg1(nfre)
+    real(kind=dp),intent(out)    :: gg(nfre_sh)
+    real(kind=dp),intent(out)    :: gg1(nfre_sh)
     
     real(kind=dp) :: sumvd
     integer :: ifre,iq,imode
@@ -524,7 +551,7 @@ module surfacehopping
     gg1= 0.0d0
     ! FSSH
     ! ref: 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
-    do ifre=1,nfre
+    do ifre=1,nfre_sh
       if(ifre /= isurface) then
         sumvd = 0.0
         do iq=1,nq

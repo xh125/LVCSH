@@ -51,7 +51,7 @@ program lvcsh
   use surfacecom,only     : methodsh,lfeedback,lit_gmnvkq,naver,nsnap,nstep,dt,pre_nstep,pre_dt,l_ph_quantum,&
                             gamma,temp,iaver,isnap,istep,ldecoherence,Cdecoherence,&
                             l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&
-                            lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,&
+                            lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh,&
                             iesurface,ihsurface,iesurface_j,ihsurface_j,&
                             iesurface_,ihsurface_,&
                             c_e,c_e_nk,d_e,d0_e,&
@@ -72,7 +72,7 @@ program lvcsh
                             calculate_nonadiabatic_coupling,convert_diabatic_adiabatic,&
                             calculate_hopping_probability,convert_adiabatic_diabatic,&
 														add_decoherence
-  use elph2,only          : wf,xkf,nqtotf,nktotf,nbndfst
+  use elph2,only          : wf,xkf,nqtotf,nktotf,nbndfst,gmnvkq,etf
   use modes,only          : nmodes
 	use cell_base,only      : bg
   use date_and_times,only : get_date_and_time
@@ -113,6 +113,7 @@ program lvcsh
     call set_H0_nk(nktotf,neband,Enk_e,H0_e_nk,ieband_min,gmnvkq_e,lit_gmnvkq,ngfre_e)
     H_e_eq = reshape(H0_e_nk,(/ nefre,nefre /))		
 		call calculate_eigen_energy_state(nefre,H_e_eq,E_e_eq,P_e_eq)
+		if(nefre_sh == 0) nefre_sh = nefre
 		allocate(gmnvkq_n0_e(ngfre_e))
 		call get_gmnvkq_n0(lit_gmnvkq,nktotf,neband,nqtotf,nmodes,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e)
 		write(stdout,"(5X,A,/,5x,A,F12.5,A)")"For electron non-adiabatic coupling calculation,",&
@@ -125,6 +126,7 @@ program lvcsh
     H_h_eq = reshape(H0_h_nk,(/ nhfre,nhfre /))		
 		call calculate_eigen_energy_state(nhfre,H_h_eq,E_h_eq,P_h_eq)		
     gmnvkq_h  = -1.0 * gmnvkq_h
+		if(nhfre_sh == 0) nhfre_sh = nhfre
 		allocate(gmnvkq_n0_h(ngfre_h))
 		call get_gmnvkq_n0(lit_gmnvkq,nktotf,nhband,nqtotf,nmodes,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h)
 		write(stdout,"(5X,A,/,5x,A,F12.5,A)")"For hole non-adiabatic coupling calculation,",&
@@ -132,6 +134,7 @@ program lvcsh
 		write(stdout,"(5X,I12,A)") ngfre_h, " gmnvkq_e be account in calculation."		
 		
   endif
+	deallocate(gmnvkq)
   !get H0_e_nk(neband,nktotf,neband,nktotf),gmnvkq_e(neband,neband,nktotf,nmodes,nqtotf)
   !get H0_h_nk(nhband,nktotf,nhband,nktotf),gmnvkq_h(nhband,nhband,nktotf,nmodes,nqtotf)
   
@@ -272,8 +275,14 @@ program lvcsh
 			call resort_eigen_energy_stat(nefre,E_e,P_e,E_e_eq,P_e_eq)
       P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
       call convert_diabatic_adiabatic(nefre,P_e,c_e,w_e)
-      call init_surface(nefre,w_e,iesurface)
-      call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,P_e_nk,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e,d_e)
+      call init_surface(nefre,nefre_sh,w_e,iesurface)
+			if(iesurface > nefre_sh) then
+				write(stdout,"(A,I8,A,I8)") "Initial electron iPES=",iesurface," large than the nefre_sh=",nefre_sh
+				write(stdout,"(A)") "Setting iesurface = nefre_sh"
+				write(stdout,"(A)") "Need to set a larger nefre_sh in the inputfile."
+				iesurface = nefre_sh
+			endif
+      call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,P_e_nk,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e,nefre_sh,d_e)
       E0_e = E_e;P0_e=P_e;P0_e_nk=P_e_nk;d0_e=d_e;w0_e=w_e
     endif
     
@@ -286,8 +295,14 @@ program lvcsh
 			call resort_eigen_energy_stat(nhfre,E_h,P_h,E_h_eq,P_h_eq)
       P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
       call convert_diabatic_adiabatic(nhfre,P_h,c_h,w_h)
-      call init_surface(nhfre,w_h,ihsurface)                
-      call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h,d_h)
+      call init_surface(nhfre,nhfre_sh,w_h,ihsurface)
+			if(ihsurface > nhfre_sh) then
+				write(stdout,"(A,I8,A,I8)") "Initial hole iPES=",ihsurface," large than the nefre_sh=",nhfre_sh
+				write(stdout,"(A)") "Setting ihsurface = nhfre_sh"
+				write(stdout,"(A)") "Need to set a larger nhfre_sh in the inputfile."
+				ihsurface = nhfre_sh
+			endif			
+      call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h,nhfre_sh,d_h)
       E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
     endif
 
@@ -302,13 +317,13 @@ program lvcsh
     if(lholesh) then
       ihsurface_ = 1-ihsurface + ihband_max*nktotf
       write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
-      "Init_hsurface=",ihsurface_,"Initial hole Energy:",-E_h(ihsurface)*ryd2eV," eV" 
+      "Init_hsurface=",ihsurface,"Initial hole Energy:",-E_h(ihsurface)*ryd2eV," eV" 
       !write(stdout)
     endif
     if(lelecsh) then
       iesurface_ = iesurface+(ieband_min-1)*nktotf
       write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
-      "Init_esurface=",iesurface_,"Initial elec Energy:",E_e(iesurface)*ryd2eV," eV"       
+      "Init_esurface=",iesurface,"Initial elec Energy:",E_e(iesurface)*ryd2eV," eV"       
     endif
     if(lelecsh .and. lholesh) then
       write(stdout,"(5X,A17,F12.7,A3)")  "elec-hole energy=",(E_e(iesurface)+E_h(ihsurface))*ryd2eV," eV"  
@@ -336,14 +351,14 @@ program lvcsh
         write(stdout,"(/,A)") "   time(fs) rt(s) hsur esur&
         &  E_h(eV)  E_e(eV) E_eh(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)"         
         write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") 0.00,0.00,&
-        ihsurface_,iesurface_,&
+        ihsurface,iesurface,&
         -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
         SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV       
       else 
         write(stdout,"(/,A)") "   time(fs) rt(s) hsur&
         &  E_h(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)"       
         write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") 0.00,0.00,&
-        ihsurface_,-e_h(ihsurface)*ryd2eV,&
+        ihsurface,-e_h(ihsurface)*ryd2eV,&
         SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV     
       endif
     else
@@ -352,7 +367,7 @@ program lvcsh
         write(stdout,"(/,A)") "   time(fs) rt(s) esur&
         &  E_e(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)" 
         write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") 0.00,0.00,&
-        iesurface_,e_e(iesurface)*ryd2eV,&
+        iesurface,e_e(iesurface)*ryd2eV,&
         SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV     
       else
         write(stdout,"(/,A)") "Error!! lelecsh and lholesh must have one need to be set TRUE."
@@ -460,7 +475,7 @@ program lvcsh
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
           ! update d_e in time t0+dt
-          call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,p_e,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e,d_e)
+          call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,p_e,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e,nefre_sh,d_e)
           
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_e in time t0+dt, to convert c_e(t0+dt) to w_e(t0+dt) 
@@ -473,15 +488,15 @@ program lvcsh
           endif          
           
           ! use FSSH calculation hopping probability in adiabatic representation,get g_e,g1_e
-          call calculate_hopping_probability(iesurface,nefre,nmodes,nqtotf,w0_e,phP0,d0_e,dt,g_e,g1_e)          
+          call calculate_hopping_probability(iesurface,nefre,nefre_sh,nmodes,nqtotf,w0_e,phP0,d0_e,dt,g_e,g1_e)          
           
           !dealwith trilvial crossing,fixed ge
           if(methodsh == "SC-FSSH") then
             !use SC-FSSH method to fixed ge
-            call get_G_SC_FSSH(iesurface,nefre,E0_e,w0_e,w_e,g1_e,g_e)
+            call get_G_SC_FSSH(iesurface,nefre,nefre_sh,E0_e,w0_e,w_e,g1_e,g_e)
           elseif(methodsh == "CC-FSSH") then
             !use CC-FSSH method to fixed ge
-            call get_G_CC_FSSH(nefre,iesurface,iesurface_j,p0_e,p_e,w0_e,w_e,S_ai_e,g1_e,g_e)
+            call get_G_CC_FSSH(nefre,nefre_sh,iesurface,iesurface_j,p0_e,p_e,w0_e,w_e,S_ai_e,g1_e,g_e)
           endif
           
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
@@ -492,7 +507,7 @@ program lvcsh
           elseif( methodsh == "SC-FSSH") then
             call nonadiabatic_transition_scfssh(lfeedback,nefre,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)              
           elseif(methodsh == "CC-FSSH") then
-            call nonadiabatic_transition_ccfssh(lfeedback,nefre,nqtotf,nmodes,iesurface,iesurface_j,&
+            call nonadiabatic_transition_ccfssh(lfeedback,nefre,nefre_sh,nqtotf,nmodes,iesurface,iesurface_j,&
                                                 &esurface_type,E0_e,P0_e,P_e,d0_e,S_bi_e,g_e,phP)
           endif
           
@@ -519,7 +534,7 @@ program lvcsh
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
           ! update d_h in time t0+dt
-          call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,p_h,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h,d_h)          
+          call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,p_h,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h,nhfre_sh,d_h)          
 
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_h in time t0+dt, to convert c_h(t0+dt) to w_h(t0+dt) 
@@ -532,15 +547,15 @@ program lvcsh
           endif          
 
           ! use FSSH calculation hopping probability in adiabatic representation
-          call calculate_hopping_probability(ihsurface,nhfre,nmodes,nqtotf,w0_h,phP0,d0_h,dt,g_h,g1_h)          
+          call calculate_hopping_probability(ihsurface,nhfre,nhfre_sh,nmodes,nqtotf,w0_h,phP0,d0_h,dt,g_h,g1_h)          
           
           !dealwith trilvial crossing,fixed ge
           if(methodsh == "SC-FSSH") then
             !use SC-FSSH method to fixed ge
-            call get_G_SC_FSSH(ihsurface,nhfre,E0_h,w0_h,w_h,g1_h,g_h)
+            call get_G_SC_FSSH(ihsurface,nhfre,nhfre_sh,E0_h,w0_h,w_h,g1_h,g_h)
           elseif(methodsh == "CC-FSSH") then
             !use CC-FSSH method to fixed ge
-            call get_G_CC_FSSH(nhfre,ihsurface,ihsurface_j,p0_h,p_h,w0_h,w_h,S_ai_h,g1_h,g_h)
+            call get_G_CC_FSSH(nhfre,nhfre_sh,ihsurface,ihsurface_j,p0_h,p_h,w0_h,w_h,S_ai_h,g1_h,g_h)
           endif
           
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
@@ -551,7 +566,7 @@ program lvcsh
           elseif( methodsh == "SC-FSSH") then
             call nonadiabatic_transition_scfssh(lfeedback,nhfre,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)              
           elseif(methodsh == "CC-FSSH") then
-            call nonadiabatic_transition_ccfssh(lfeedback,nhfre,nqtotf,nmodes,ihsurface,ihsurface_j,&
+            call nonadiabatic_transition_ccfssh(lfeedback,nhfre,nhfre_sh,nqtotf,nmodes,ihsurface,ihsurface_j,&
                                           &hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
           endif          
           
@@ -564,11 +579,11 @@ program lvcsh
         dEa2_dQ2 = 0.0
         !dEa2_dQ2 in time t0
         if(lelecsh) then
-          call get_dEa2_dQ2(nmodes,nqtotf,nefre,iesurface,E0_e,d0_e,dEa_dQ_e)
+          call get_dEa2_dQ2(nmodes,nqtotf,nefre,nefre_sh,iesurface,E0_e,d0_e,dEa_dQ_e)
           dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_e
         endif
         if(lholesh) then
-          call get_dEa2_dQ2(nmodes,nqtotf,nhfre,ihsurface,E0_h,d0_h,dEa_dQ_h)
+          call get_dEa2_dQ2(nmodes,nqtotf,nhfre,nhfre_sh,ihsurface,E0_h,d0_h,dEa_dQ_h)
           dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_h
         endif
 
@@ -609,7 +624,7 @@ program lvcsh
             !write(stdout,"(/,A)") "isnap istep runtime iesur ihsur  &
             !&en_e(eV)  en_h(eV)  en_eh(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)" 
            if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
-						write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") time_,(time2-time1),ihsurface_,iesurface_,&
+						write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") time_,(time2-time1),ihsurface,iesurface,&
             -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV
 					 endif
@@ -617,7 +632,7 @@ program lvcsh
             !write(stdout,"(/,A)") "isnap istep runtime ihsur  &
             !& en_h(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"  
            if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
-						write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),ihsurface_,-e_h(ihsurface)*ryd2eV,&
+						write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),ihsurface,-e_h(ihsurface)*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV
 					 endif
 					endif
@@ -627,7 +642,7 @@ program lvcsh
             !write(stdout,"(/,A)") "isnap istep runtime iesur  &
             !&en_e(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"
            if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
-						write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),iesurface_,E_e(iesurface)*ryd2eV,&
+						write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),iesurface,E_e(iesurface)*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV            
            endif
 					else
@@ -719,6 +734,7 @@ program lvcsh
     call save_csit(nefre,nsnap,naver,csit_e,csit_e_file)
     call save_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
     call save_psit(nefre,nsnap,naver,psit_e,psit_e_file)
+		call plot_band_occupatin_withtime(neband,nktotf,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,band_e_file)
   endif
   
   if(lholesh) then
@@ -726,6 +742,7 @@ program lvcsh
     call save_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
     call save_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
     call save_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
+		call plot_band_occupatin_withtime(nhband,nktotf,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,band_h_file)
   endif
   
   

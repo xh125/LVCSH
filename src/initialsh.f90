@@ -1,6 +1,6 @@
 module initialsh
   use kinds     ,only   : dp,dpc
-  use constants ,only   : maxlen,tpi,K_B_Ryd,ryd2eV
+  use constants ,only   : maxlen,tpi,K_B_Ryd,ryd2eV,ryd2mev
   implicit none
   
   contains
@@ -22,10 +22,10 @@ module initialsh
         ieband_max = ibndmax
       endif
 
-      if(ihband_min==0 .and. ihband_max==0) then
-        ihband_min = ibndmin
-        ihband_max = icbm - 1
-      endif
+      !if(ihband_min==0 .and. ihband_max==0) then
+      !  ihband_min = ibndmin
+      !  ihband_max = icbm - 1
+      !endif
       
       write(stdout,"(/,5X,A)") "The electron are non-diabatic dynamica in valence band."
       WRITE(stdout,'(/14x,a,i5,2x,a,i5)') 'ieband_min = ', ieband_min, 'ieband_max = ', ieband_max
@@ -51,10 +51,10 @@ module initialsh
         ihband_max = icbm - 1
       endif
 
-      if(ieband_min==0 .and. ieband_max==0) then
-        ieband_min = icbm
-        ieband_max = ibndmax
-      endif
+      !if(ieband_min==0 .and. ieband_max==0) then
+      !  ieband_min = icbm
+      !  ieband_max = ibndmax
+      !endif
 
       write(stdout,"(/,5X,A)") "The hole are non-diabatic dynamica in valance band."
       WRITE(stdout,'(/14x,a,i5,2x,a,i5)') 'ihband_min = ', ihband_min, 'ihband_max = ', ihband_max      
@@ -221,7 +221,7 @@ module initialsh
       do imode=1,nmodes
         womiga = w(imode,iq)
 
-        if(womiga <= 0.0) then
+        if(womiga*ryd2mev <= 1.0) then
           ph_Q(imode,iq)=0.0
           ph_P(imode,iq)=0.0
         else
@@ -246,19 +246,26 @@ module initialsh
   !=============================================!
   != init dynamical surface                    =!
   !=============================================!  
-  subroutine init_surface(nfre,ww,isurface)
+  subroutine init_surface(nfre,nfre_sh,ww,isurface)
     implicit none
     
-    integer , intent(in) :: nfre
+    integer , intent(in) :: nfre,nfre_sh
     complex(kind=dpc),intent(in)    :: ww(nfre)
     integer , intent(out) :: isurface
     
     integer :: ifre
-    real(kind=dp) :: flagr,flagd
+    real(kind=dp) :: flagr,flagd,flagsum
    
+		flagsum = 0.0
+		do ifre=1,nfre_sh
+			flagsum = flagsum + ww(ifre)*CONJG(ww(ifre))
+		enddo
+	 
+	 
     call random_number(flagr)
+		flagr = flagr * flagsum
     flagd = 0.0d0
-    do ifre = 1,nfre
+    do ifre = 1,nfre_sh
       flagd = flagd + ww(ifre)*CONJG(ww(ifre))
       if(flagr <= flagd) then
         isurface = ifre

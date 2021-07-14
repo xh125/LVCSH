@@ -48,7 +48,7 @@ module dynamics
           do iband1=1,nband
             do iband2=1,nband
               dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
-              P_nk(iband1,ik,isurface)*P_nk(iband2,ikq,isurface)*gmnvkq(iband1,iband2,imode,ik,iq)                 
+              gmnvkq(iband1,iband2,imode,ik,iq)*P_nk(iband1,ik,isurface)*P_nk(iband2,ikq,isurface)                 
             enddo
           enddo
         enddo
@@ -186,11 +186,11 @@ module dynamics
   !===========================================================!
 
 
-  subroutine get_dEa2_dQ2(nmodes,nq,nfre,isurface,EE,dd,dEa2_dQ2)
+  subroutine get_dEa2_dQ2(nmodes,nq,nfre,nfre_sh,isurface,EE,dd,dEa2_dQ2)
     implicit none
-    integer,intent(in) :: nmodes,nq,nfre
+    integer,intent(in) :: nmodes,nq,nfre,nfre_sh
     integer,intent(in) :: isurface
-    real(kind=dp),intent(in)  :: EE(nfre),dd(nfre,nfre,nmodes,nq)
+    real(kind=dp),intent(in)  :: EE(nfre),dd(nfre_sh,nfre_sh,nmodes,nq)
     real(kind=dp),intent(out) :: dEa2_dQ2(nmodes,nq)
     
     integer :: iq,imode,ifre
@@ -198,7 +198,7 @@ module dynamics
     dEa2_dQ2 = 0.0
     do iq=1,nq
       do imode=1,nmodes
-        do ifre=1,nfre
+        do ifre=1,nfre_sh
           if(ifre /= isurface) then
             dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + (EE(ifre)-EE(isurface))*DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iq)
           endif

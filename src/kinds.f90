@@ -19,9 +19,9 @@ module kinds
     implicit none 
     integer ,intent(in):: stdout
     
-    write(stdout,"(/,1X,A67)") repeat("=",67)
-    write(stdout,'(1X,"=",T5,A,T68,"=")') 'DATA TYPE INFORMATION:'
-    write(stdout,"(1X,A67)") repeat("=",67)
+    write(stdout,"(/,1X,A77)") repeat("=",77)
+    write(stdout,'(1X,"=",T5,A,T78,"=")') 'DATA TYPE INFORMATION:'
+    write(stdout,"(1X,A77)") repeat("=",77)
 
     write(stdout,'(/,T2,A,T78,A,2(/,T2,A,T75,I6),3(/,T2,A,T67,E15.8))') &
           'REAL: Data type name:', 'DP', '      Kind value:', kind(0.0_DP), &
@@ -44,7 +44,7 @@ module kinds
     write( stdout,'(/,T2,A,T72,A,/,T2,A,T75,I6,/)') &
           'CHARACTER: Data type name:', '(default)', '           Kind value:', &
           kind('C')
-    write(stdout,*) repeat("=",67)
+    write(stdout,"(1X,A77)") repeat("=",77)
     
   END SUBROUTINE print_kind_info
 

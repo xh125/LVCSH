@@ -266,7 +266,8 @@
   !! External function to calculate the fermi energy
   real(kind = dp), allocatable :: xkf_all(:, :) !xkf_all(3, nkqtotf)
   !! Collect k-point coordinate from all pools in parallel case  
-  REAL(KIND = DP), ALLOCATABLE :: etf_all(:, :)  ! etf_all(nbndsub,nktotf)
+  REAL(KIND = DP), ALLOCATABLE :: etf_all(:, :)  
+	real(kind = dp), allocatable :: etf_all_(:,:) ! etf_all_(nbndsub,nkqtotf)
   !! Eigen-energies on the fine grid collected from all pools in parallel case
   COMPLEX(KIND = DP), ALLOCATABLE :: dmef_all(:, :, :, :)
   !! dipole matrix elements on the fine mesh among all pools
@@ -1671,14 +1672,17 @@
       xkf_all = zero
       ALLOCATE(wkf_all(nkqtotf), STAT = ierr)
       IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error allocating wkf_all', 1)
-      wkf_all = zero     
+      wkf_all = zero 
+			allocate(etf_all_(nbndsub,nkqtotf),stat=ierr)
+			if(ierr /=0) call errore('ephwann_shuffle', 'Error allocating etf_all_', 1)
+			etf_all_ = zero
 #if defined(__MPI)
       !
       ! Note that poolgather2 works with the doubled grid (k and k+q)
       !
       CALL poolgather2(1, nkqtotf, 2 * nkf, wkf, wkf_all)
       CALL poolgather2(3,       nkqtotf, nkqf, xkf, xkf_all)
-      CALL poolgather2(nbndsub, nkqtotf, nkqf, etf, etf_all)    
+      CALL poolgather2(nbndsub, nkqtotf, nkqf, etf, etf_all_)    
       IF (vme) THEN
         ALLOCATE(vmef_all(3, nbndsub, nbndsub, nkqtotf), STAT = ierr)
         IF (ierr /= 0) CALL errore('transport_coeffs', 'Error allocating vmef_all', 1)
@@ -1693,7 +1697,7 @@
   
 #else
       xkf_all = xkf
-      etf_all = etf 
+      etf_all_= etf 
       wkf_all = wkf
       IF (vme) THEN
         ALLOCATE(vmef_all(3, nbndsub, nbndsub, nkqtotf), STAT = ierr)
@@ -1716,21 +1720,21 @@
           ikk = 2*ik-1
           write(stdout,"(/5x,'ik = ', i7 ,' coord.:',3f12.7)") ik,xkf_all(:,ikk)
           if (vme) then
-            write(stdout,"(A)") "   ik ibnd jbnd Enk[eV] Emk[eV]   v_x[Ryd*bohr]&
-                  v_y[Ryd*bohr]                 v_z[Ryd*bohr]"
+            write(stdout,"(3A5,2A8,6A16)") "ik","ibnd","jbnd", "Enk[eV]", "Emk[eV]", "Re(v_x)","Im(v_x)", &
+                  "Re(v_y)","Im(v_y)","Re(v_z)","Im(v_z)"
           else
-            write(stdout,"(A)") "   ik ibnd jbnd Enk[eV] Emk[eV]     d_x[1/bohr]&
-                    d_y[1/bohr]                   d_z[1/bohr]"
+            write(stdout,"(3A5,2A8,6A16)") "ik","ibnd","jbnd","Enk[eV]"," Emk[eV]","Re(d_x)","Im(d_x)",&
+                  "Re(d_y)","Im(d_y)","Re(d_z)","Im(d_z)"
           endif
-          do ibnd=1,nbndsub
-            do jbnd=1,nbndsub
+          do ibnd=ibndmin,ibndmax
+            do jbnd=ibndmin,ibndmax
               if (vme) then
                 write(stdout,"(3i5,2f8.4,3(2E16.6))") &
-                ik, ibnd , jbnd, etf_all(ibnd,ikk)*ryd2ev,etf_all(jbnd,ikk)*ryd2ev,&
+                ik, ibnd , jbnd, etf_all_(ibnd,ikk)*ryd2ev,etf_all_(jbnd,ikk)*ryd2ev,&
                 vmef_all(:,ibnd,jbnd,ikk)
               else 
                 write(stdout,"(3i5,2f8.4,3(2E16.6))") &
-                ik, ibnd , jbnd , etf_all(ibnd,ikk)*ryd2ev,etf_all(jbnd,ikk)*ryd2ev,&
+                ik, ibnd , jbnd , etf_all_(ibnd,ikk)*ryd2ev,etf_all_(jbnd,ikk)*ryd2ev,&
                 dmef_all(:,ibnd,jbnd,ikk)
               endif
             enddo
@@ -1741,7 +1745,9 @@
       if(ierr /=0) call errore('ephwann_shuffle','Error deallocating xkf_all',1)
       deallocate(wkf_all, STAT = ierr)
       IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating wkf_all', 1)
-      IF (vme) THEN
+      deallocate(etf_all_,STAT = ierr)
+			IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating etf_all_', 1)
+			IF (vme) THEN
         deALLOCATE(vmef_all, STAT = ierr)
         IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating vmef_all', 1)
       ELSE

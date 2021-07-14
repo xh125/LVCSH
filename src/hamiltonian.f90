@@ -6,8 +6,9 @@ module hamiltonian
   use elph2, only  : nbndfst,nk=>nktotf,gmnvkq,nq => nqtotf,wf,&
                      ibndmin,ibndmax
   use modes, only  : nmodes
+	use memory_report,only : MB,GB,complex_size, real_size,int_size,ram,print_memory
   use readepw,only : E_nk
-
+	use constants,only : ryd2mev
   use surfacecom,only     : lelecsh,lholesh,ieband_min,ieband_max,&
                             ihband_min,ihband_max
   
@@ -54,18 +55,23 @@ module hamiltonian
 				call io_error(msg)
 			endif
 			gmnvkq_e = 0.0
+			ram = real_size*neband*neband*nmodes*nk*nq
+			call print_memory("gmnvkq_e",ram)
       allocate(lgmnvkq_e(neband,neband,nmodes,nk,nq),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating lgmnvkq_e',1)
 				call io_error(msg)
 			endif
-			lgmnvkq_e = .false.			
+			lgmnvkq_e = .false.
+			call print_memory("lgmnvkq_e",ram)
       allocate(H0_e(nefre,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating H0_e',1)    
 				call io_error(msg)
 			endif
 			H0_e = 0.0
+			ram = real_size*nefre*nefre
+			call print_memory("H_e",ram)
       allocate(H0_e_nk(neband,nk,neband,nk),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating H0_e_nk',1)
@@ -116,12 +122,15 @@ module hamiltonian
 				call io_error(msg)
 		  endif
 			gmnvkq_h = 0.0
+			ram = real_size*nhband*nhband*nmodes*nk*nq
+			call print_memory("gmnvkq_h",ram)
       allocate(lgmnvkq_h(nhband,nhband,nmodes,nk,nq),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating lgmnvkq_h',1)
 				call io_error(msg)
 			endif
 			lgmnvkq_h = .false.            
+			call print_memory("lgmnvkq_h",ram)
       allocate(H0_h(nhfre,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating H0_h',1)    
@@ -140,6 +149,8 @@ module hamiltonian
 				call io_error(msg)
 			endif
 			H_h = 0.0
+			ram = real_size*nhfre*nhfre
+			call print_memory("H_h",ram)
       allocate(H_h_nk(nhband,nk,nhband,nk),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating H_h_nk',1)
@@ -203,7 +214,7 @@ module hamiltonian
 				do nu=1,nmodes
 					do n=iband,jband
 						do m=iband,jband
-							if(ABS(gmnvkq(m,n,nu,ik,iq))>lit .and. wf(nu,iq) > 0.0 ) ngfre = ngfre+1
+							if(ABS(gmnvkq(m,n,nu,ik,iq))>lit .and. wf(nu,iq)*ryd2mev > 1.0 ) ngfre = ngfre+1
 						enddo
 					enddo
 				enddo
@@ -266,7 +277,7 @@ module hamiltonian
 				do imode=1,nmode
 					do iband=1,nband
 						do jband=1,nband
-							if(abs(gmnvkq(jband,iband,imode,ik,iq))>lit) then
+							if(abs(gmnvkq(jband,iband,imode,ik,iq))>lit .and. wf(imode,iq)*ryd2mev > 1.0) then
 								igfre=igfre+1
 								g_n0(igfre)%m=jband
 								g_n0(igfre)%n=iband
@@ -308,11 +319,11 @@ module hamiltonian
     
   end subroutine calculate_eigen_energy_state
   
-	subroutine resort_eigen_energy_stat(nfre,ee,pp,ee_eq,pp_eq)
+	subroutine resort_eigen_energy_stat(nfre,ee,pp,ee_0,pp_0)
 		implicit none
 		integer,intent(in) :: nfre
 		real(kind=dp),intent(inout) :: ee(nfre),pp(nfre,nfre)
-		real(kind=dp),intent(in) :: ee_eq(nfre),pp_eq(nfre,nfre)
+		real(kind=dp),intent(in) :: ee_0(nfre),pp_0(nfre,nfre)
 		
 		real(kind=dp),allocatable :: p_tmp(:),pdotp(:)
 		real(kind=dp) :: e_tmp,flad
@@ -321,31 +332,33 @@ module hamiltonian
 		real(kind=dp) :: maxsv
 		integer :: nmax
 		
-		if(.not. allocated(p_tmp)) allocate(p_tmp(nfre))
-		if(.not. allocated(pdotp)) allocate(pdotp(nfre))	
+		allocate(p_tmp(nfre))
+		allocate(pdotp(nfre))	
 		
 		do ifre =1 ,nfre
-				pdotp = 0.0
-				do jfre=ifre,nfre
-					pdotp(jfre) = SUM(pp(:,jfre)*pp_eq(:,ifre))
-				enddo
-				cfre = Maxloc(ABS(pdotp))
-				maxsv= Maxval(ABS(pdotp))
-				nmax = 0
-				do jfre=ifre,nfre
-					if(ABS(pdotp(jfre)) == maxsv) then
-						nmax=nmax+1
-						if(pdotp(jfre) > pdotp(cfre(1))) cfre(1) = jfre
-					endif
-				enddo
-				
-				e_tmp= ee(ifre)
-				p_tmp= pp(:,ifre)
-				ee(ifre) = ee(cfre(1))
-				pp(:,ifre) = pp(:,cfre(1))
-				ee(cfre(1))= e_tmp
-				pp(:,cfre(1)) = p_tmp
+			pdotp = 0.0
+			do jfre=ifre,nfre
+				pdotp(jfre) = SUM(pp(:,jfre)*pp_0(:,ifre))
+			enddo
+			cfre = Maxloc(ABS(pdotp))
+			maxsv= Maxval(ABS(pdotp))
+			nmax = 0
+			do jfre=ifre,nfre
+				if(ABS(pdotp(jfre)) == maxsv) then
+					nmax=nmax+1
+					!if(pdotp(jfre) > pdotp(cfre(1))) cfre(1) = jfre
+				endif
+			enddo		
+			
+			e_tmp= ee(ifre)
+			p_tmp= pp(:,ifre)
+			ee(ifre) = ee(cfre(1))
+			pp(:,ifre) = pp(:,cfre(1))
+			ee(cfre(1))= e_tmp
+			pp(:,cfre(1)) = p_tmp
 		enddo
+		
+		deallocate(p_tmp,pdotp)
 		
 	end subroutine
 	

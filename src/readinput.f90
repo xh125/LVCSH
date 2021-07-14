@@ -9,7 +9,8 @@ module readinput
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
                         llaser,efield,efield_cart,w_laser,fwhm,nelec,&
                         lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
-                        ieband_min,ieband_max,ihband_min,ihband_max,nnode,ncore,savedsnap
+                        ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh,&
+												nnode,ncore,savedsnap
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
   implicit none
@@ -184,6 +185,8 @@ module readinput
     ieband_max    = 0
     ihband_min    = 0
     ihband_max    = 0
+		nefre_sh      = 0
+		nhfre_sh      = 0
     naver         = 10
     nstep         = 10
     nsnap         = 100
@@ -216,9 +219,9 @@ module readinput
     lsetthreads   = .FALSE.
     mkl_threads   = 4    
     
-    write(stdout,"(/,1X,A67)")   repeat("=",67)
+    write(stdout,"(/,1X,A77)")   repeat("=",77)
     write(stdout,"(1X,10X,A)") "The namelist file as follows"
-    write(stdout,"(1X,A67)")   repeat("=",67)
+    write(stdout,"(1X,A77)")   repeat("=",77)
     do i=1,line_counter+2
       read(incar_unit,"(A80)") ctmp
       write(stdout,"(A80)") ctmp
@@ -244,7 +247,7 @@ module readinput
       lholesh = .true.
     endif
     write(stdout,"(/,1X,A)") "Read parameter Successful!" 
-    write(stdout,*)   repeat("=",67)
+    write(stdout,"(1X,A77)")   repeat("=",77)
     
   end subroutine read_namelist
   

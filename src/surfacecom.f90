@@ -46,6 +46,7 @@ module surfacecom
   logical :: lehpairsh
   
   integer :: ieband_min,ieband_max,ihband_min,ihband_max
+	integer :: nefre_sh,nhfre_sh
   
   !method of surface hopping
   character(len=8) :: MethodSH

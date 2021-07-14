@@ -9,28 +9,28 @@ module cc_fssh
  
   contains
   
-  subroutine allocate_ccfssh(lelecsh,lholesh,nefre,nhfre)
+  subroutine allocate_ccfssh(lelecsh,lholesh,nefre,nefre_sh,nhfre,nhfre_sh)
     implicit none
     logical,intent(in) :: lelecsh,lholesh
-    integer,intent(in) :: nefre,nhfre
+    integer,intent(in) :: nefre,nhfre,nefre_sh,nhfre_sh
     
-    allocate(S_ai_e(nefre))
-    allocate(S_ai_h(nhfre))
-    allocate(S_bi_e(nefre))
-    allocate(S_bi_h(nhfre))
+    allocate(S_ai_e(nefre_sh))
+    allocate(S_ai_h(nhfre_sh))
+    allocate(S_bi_e(nefre_sh))
+    allocate(S_bi_h(nhfre_sh))
   
   end subroutine allocate_ccfssh
     
-  subroutine get_G_CC_FSSH(nfre,isurface,isurface_j,p0,p,w0,w,S_ai,g1,g)
+  subroutine get_G_CC_FSSH(nfre,nfre_sh,isurface,isurface_j,p0,p,w0,w,S_ai,g1,g)
     implicit none
-    integer,intent(in) :: nfre,isurface
+    integer,intent(in) :: nfre,nfre_sh,isurface
     integer,intent(out):: isurface_j
     real(kind=dp),intent(in) :: p0(nfre,nfre)
     real(kind=dp),intent(in) :: p(nfre,nfre)
     complex(kind=dpc),intent(in):: w0(nfre),w(nfre)
-    real(kind=dp),intent(inout) :: S_ai(nfre)
-    real(kind=dp),intent(in)  :: g1(nfre)
-    real(kind=dp),intent(inout) :: g(nfre)
+    real(kind=dp),intent(inout) :: S_ai(nfre_sh)
+    real(kind=dp),intent(in)  	:: g1(nfre_sh)
+    real(kind=dp),intent(inout) :: g(nfre_sh)
     
     integer :: ifre
     integer :: isurface_a,isurface_b,isurface_k
@@ -51,7 +51,7 @@ module cc_fssh
       isurface_j = isurface_a
     else
       !type(2) or type(4)
-      do ifre = 1,nfre
+      do ifre = 1,nfre_sh
         S_ai(ifre) = SUM(p0(:,isurface_a)*p(:,ifre))
         !S_ai(ibasis) = SUM(CONJG(pp0(:,isurface_a))*pp(:,ibasis))
       enddo
@@ -75,22 +75,22 @@ module cc_fssh
     !    
   end subroutine get_G_CC_FSSH  
   
-  subroutine nonadiabatic_transition_ccfssh(lfeedback,nfre,nmodes,nq,&
+  subroutine nonadiabatic_transition_ccfssh(lfeedback,nfre,nfre_sh,nmodes,nq,&
               &isurface,isurface_j,surface_type,EE,P,P0,DD,S_bi,GG,VV)
     use randoms,only :more_random
     use constants,only : ryd2ev,eps10
     use io,only : stdout 
     implicit none
     logical , intent(in)     :: lfeedback
-    integer , intent(in)     :: nfre,nmodes,nq
+    integer , intent(in)     :: nfre,nfre_sh,nmodes,nq
     integer , intent(inout)  :: isurface
     integer , intent(in)     :: isurface_j
     integer , intent(out)    :: surface_type
     real(kind=dp),intent(in) :: EE(nfre)
     real(kind=dp),intent(in) :: P(nfre,nfre),P0(nfre,nfre)
-    real(kind=dp),intent(in) :: DD(nfre,nfre,nmodes,nq)
-    real(kind=dp),intent(out):: S_bi(nfre)
-    real(kind=dp),intent(in) :: GG(nfre)
+    real(kind=dp),intent(in) :: DD(nfre_sh,nfre_sh,nmodes,nq)
+    real(kind=dp),intent(out):: S_bi(nfre_sh)
+    real(kind=dp),intent(in) :: GG(nfre_sh)
     real(kind=dp),intent(inout) :: VV(nmodes,nq)
     
     real(kind=dp) :: sumvd,sumdd,sumgg,flagr,flagd,detaE
@@ -104,14 +104,14 @@ module cc_fssh
     call more_random()
     call random_number(flagr)
     sumgg = 0.0d0
-    do ifre=1,nfre
+    do ifre=1,nfre_sh
       if(ifre /= isurface_a) then
         sumgg = sumgg + GG(ifre)
         if(flagr < sumgg) then
           isurface_b = ifre
           
           S_bi = 0.0
-          do jfre = 1,nfre
+          do jfre = 1,nfre_sh
             S_bi(jfre) = SUM(p0(:,isurface_b)*p(:,jfre))
           enddo
           S_bi = S_bi**2

@@ -6,15 +6,15 @@ module sc_fssh
   real(kind=dp) :: minde_e,minde_h
   
   contains
-  subroutine get_G_SC_FSSH(isurface,nfre,e0,w0,w,g1,g)
+  subroutine get_G_SC_FSSH(isurface,nfre,nfre_sh,e0,w0,w,g1,g)
     use constants ,only   : ryd2eV
     implicit none
     integer,intent(in) :: isurface
-    integer,intent(in) :: nfre
+    integer,intent(in) :: nfre,nfre_sh
     real(kind=dp),intent(in)     :: e0(nfre)
     complex(kind=dpc),intent(in) :: w0(nfre),w(nfre)
-    real(kind=dp),intent(in)     :: g1(nfre)
-    real(kind=dp),intent(inout)  :: g(nfre)
+    real(kind=dp),intent(in)     :: g1(nfre_sh)
+    real(kind=dp),intent(inout)  :: g(nfre_sh)
     
     integer :: ifre
     real(kind=dp) :: sumg0,sumg1
@@ -49,7 +49,7 @@ module sc_fssh
 
     if(isurface == 1) then
       ifre=isurface+1
-    elseif(isurface == nfre) then
+    elseif(isurface == nfre_sh) then
       ifre=isurface-1
     elseif((e0(isurface+1)-e0(isurface)) < (e0(isurface)-e0(isurface-1))) then
       ifre=isurface+1
