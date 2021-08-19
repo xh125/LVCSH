@@ -35,14 +35,15 @@ program lvcsh
   use readepw,only        : readepwout
 	use types,only          : gmnvkq_n0
   use parameters, only    : lreadscfout,scfoutname,lreadphout,phoutname,epwoutname,inputfilename,&
-                            llaser,init_ik,init_eband,init_hband,&
+                            llaser,init_ik,init_eband,init_hband,mix_thr,&
 														calculation,verbosity,nnode,ncore,naver_sum,savedsnap
   use hamiltonian,only    : nefre,neband,H_e,H_e_nk,E_e,P_e,P_e_nk,P0_e_nk,gmnvkq_e,Enk_e,H0_e_nk,E0_e,P0_e,&
                             nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,gmnvkq_h,Enk_h,H0_h_nk,E0_h,P0_h,&
                             H_e_eq,E_e_eq,P_e_eq,H_h_eq,E_h_eq,P_h_eq,&
                             allocate_hamiltonian,set_H_nk,set_H0_nk,&
-                            calculate_eigen_energy_state,resort_eigen_energy_stat,&
-														ngfre_e,ngfre_h,gmnvkq_n0_e,gmnvkq_n0_h,get_gmnvkq_n0,lgmnvkq_e,lgmnvkq_h
+                            calculate_eigen_energy_state,&
+														ngfre_e,ngfre_h,gmnvkq_n0_e,gmnvkq_n0_h,get_gmnvkq_n0
+	use sortting,only       : resort_eigen_energy_stat
   use randoms,only        : init_random_seed
   use lasercom,only       : fwhm,w_laser
   use getwcvk,only        : get_Wcvk
@@ -79,7 +80,7 @@ program lvcsh
   use io      ,only       : stdout,io_time,time1,time2,time_,msg,io_error
   use dynamics,only       : set_gamma,get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,rk4_electron_diabatic,&
                             ADD_BATH_EFFECT
-  
+	use memory_report,only : MB,GB,complex_size, real_size,int_size,ram,print_memory  
   use saveinf,only : pes_e_file,pes_h_file,&
 									   save_pes,save_phQ,save_phP,save_phK,save_phU,&
                      read_pes,read_phQ,read_phP,read_phK,read_phU,&
@@ -109,30 +110,37 @@ program lvcsh
   call set_subband(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
   !get ieband_min,ieband_max,ihband_min,ihband_max
   call allocate_hamiltonian(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
-  if(lelecsh) then
-    call set_H0_nk(nktotf,neband,Enk_e,H0_e_nk,ieband_min,gmnvkq_e,lit_gmnvkq,ngfre_e)
-    H_e_eq = reshape(H0_e_nk,(/ nefre,nefre /))		
-		call calculate_eigen_energy_state(nefre,H_e_eq,E_e_eq,P_e_eq)
+  
+	if(lelecsh) then
+    call set_H0_nk(nktotf,ieband_min,ieband_max,Enk_e,H0_e_nk,gmnvkq_e,lit_gmnvkq,ngfre_e)
+		!set H0_e_nk and gmnvkq_e
+    !H_e_eq = reshape(H0_e_nk,(/ nefre,nefre /))		
+		!call calculate_eigen_energy_state(nefre,H_e_eq,E_e_eq,P_e_eq)
 		if(nefre_sh == 0) nefre_sh = nefre
 		allocate(gmnvkq_n0_e(ngfre_e))
-		call get_gmnvkq_n0(lit_gmnvkq,nktotf,neband,nqtotf,nmodes,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e)
-		write(stdout,"(5X,A,/,5x,A,F12.5,A)")"For electron non-adiabatic coupling calculation,",&
+		call get_gmnvkq_n0(lit_gmnvkq,nktotf,neband,nqtotf,nmodes,gmnvkq_e,ngfre_e,gmnvkq_n0_e)
+		write(stdout,"(/5X,A,/,5x,A,E12.5,A)")"For electron non-adiabatic coupling calculation,",&
 		"only the Energy of gmnvkq_e >",lit_gmnvkq*ryd2meV," meV take into account"
 		write(stdout,"(5X,I12,A)") ngfre_e, " gmnvkq_e be account in calculation."
+		ram = (6*int_size+real_size)*ngfre_e
+		call print_memory("gmnvkq_n0_e",ram)
 	endif
+	
   if(lholesh) then
-    call set_H0_nk(nktotf,nhband,Enk_h,H0_h_nk,ihband_min,gmnvkq_h,lit_gmnvkq,ngfre_h)
+    call set_H0_nk(nktotf,ihband_min,ihband_max,Enk_h,H0_h_nk,gmnvkq_h,lit_gmnvkq,ngfre_h)
     H0_h_nk = -1.0 * H0_h_nk
-    H_h_eq = reshape(H0_h_nk,(/ nhfre,nhfre /))		
-		call calculate_eigen_energy_state(nhfre,H_h_eq,E_h_eq,P_h_eq)		
-    gmnvkq_h  = -1.0 * gmnvkq_h
+    gmnvkq_h  = -1.0 * gmnvkq_h		
+		!set H0_h_nk and gmnvkq_h
+    !H_h_eq = reshape(H0_h_nk,(/ nhfre,nhfre /))		
+		!call calculate_eigen_energy_state(nhfre,H_h_eq,E_h_eq,P_h_eq)		
 		if(nhfre_sh == 0) nhfre_sh = nhfre
 		allocate(gmnvkq_n0_h(ngfre_h))
-		call get_gmnvkq_n0(lit_gmnvkq,nktotf,nhband,nqtotf,nmodes,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h)
-		write(stdout,"(5X,A,/,5x,A,F12.5,A)")"For hole non-adiabatic coupling calculation,",&
+		call get_gmnvkq_n0(lit_gmnvkq,nktotf,nhband,nqtotf,nmodes,gmnvkq_h,ngfre_h,gmnvkq_n0_h)
+		write(stdout,"(/5X,A,/,5x,A,E12.5,A)")"For hole non-adiabatic coupling calculation,",&
 		"only the Energy of gmnvkq_h >",lit_gmnvkq*ryd2meV," meV take into account"
 		write(stdout,"(5X,I12,A)") ngfre_h, " gmnvkq_e be account in calculation."		
-		
+		ram = (6*int_size+real_size)*ngfre_h
+		call print_memory("gmnvkq_n0_h",ram)		
   endif
 	deallocate(gmnvkq)
   !get H0_e_nk(neband,nktotf,neband,nktotf),gmnvkq_e(neband,neband,nktotf,nmodes,nqtotf)
@@ -272,7 +280,7 @@ program lvcsh
       call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ,wf,gmnvkq_e,H0_e_nk,H_e_nk)
       H_e = reshape(H_e_nk,(/ nefre,nefre /))
       call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
-			call resort_eigen_energy_stat(nefre,E_e,P_e,E_e_eq,P_e_eq)
+			!call resort_eigen_energy_stat(nefre,E_e,P_e,E_e_eq,P_e_eq)
       P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
       call convert_diabatic_adiabatic(nefre,P_e,c_e,w_e)
       call init_surface(nefre,nefre_sh,w_e,iesurface)
@@ -282,7 +290,7 @@ program lvcsh
 				write(stdout,"(A)") "Need to set a larger nefre_sh in the inputfile."
 				iesurface = nefre_sh
 			endif
-      call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,P_e_nk,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e,nefre_sh,d_e)
+      call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,P_e_nk,gmnvkq_e,ngfre_e,gmnvkq_n0_e,nefre_sh,d_e)
       E0_e = E_e;P0_e=P_e;P0_e_nk=P_e_nk;d0_e=d_e;w0_e=w_e
     endif
     
@@ -292,7 +300,7 @@ program lvcsh
       call set_H_nk(nhband,nktotf,nmodes,nqtotf,phQ,wf,gmnvkq_h,H0_h_nk,H_h_nk)
       H_h = reshape(H_h_nk,(/ nhfre,nhfre /))    
       call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
-			call resort_eigen_energy_stat(nhfre,E_h,P_h,E_h_eq,P_h_eq)
+			!call resort_eigen_energy_stat(nhfre,E_h,P_h,E_h_eq,P_h_eq)
       P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
       call convert_diabatic_adiabatic(nhfre,P_h,c_h,w_h)
       call init_surface(nhfre,nhfre_sh,w_h,ihsurface)
@@ -302,7 +310,7 @@ program lvcsh
 				write(stdout,"(A)") "Need to set a larger nhfre_sh in the inputfile."
 				ihsurface = nhfre_sh
 			endif			
-      call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h,nhfre_sh,d_h)
+      call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,P_h_nk,gmnvkq_h,ngfre_h,gmnvkq_n0_h,nhfre_sh,d_h)
       E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
     endif
 
@@ -470,12 +478,12 @@ program lvcsh
           ! update E_e,P_e to time t0+dt
           call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
 					!call resort_eigen_energy_stat(nefre,E_e,P_e,E_e_eq,P_e_eq)
-					call resort_eigen_energy_stat(nefre,E_e,P_e,E0_e,P0_e)
+					call resort_eigen_energy_stat(nefre,E_e,P_e,E0_e,P0_e,mix_thr)
           P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
           ! update d_e in time t0+dt
-          call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,p_e,gmnvkq_e,lgmnvkq_e,ngfre_e,gmnvkq_n0_e,nefre_sh,d_e)
+          call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,wf,E_e,p_e,gmnvkq_e,ngfre_e,gmnvkq_n0_e,nefre_sh,d_e)
           
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_e in time t0+dt, to convert c_e(t0+dt) to w_e(t0+dt) 
@@ -529,12 +537,12 @@ program lvcsh
           ! update E_h,P_h in time t0+dt
           call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
 					!call resort_eigen_energy_stat(nhfre,E_h,P_h,E_h_eq,P_h_eq)
-					call resort_eigen_energy_stat(nhfre,E_h,P_h,E0_h,P0_h)
+					call resort_eigen_energy_stat(nhfre,E_h,P_h,E0_h,P0_h,mix_thr)
           P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
           
           ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
           ! update d_h in time t0+dt
-          call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,p_h,gmnvkq_h,lgmnvkq_h,ngfre_h,gmnvkq_n0_h,nhfre_sh,d_h)          
+          call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,wf,E_h,p_h,gmnvkq_h,ngfre_h,gmnvkq_n0_h,nhfre_sh,d_h)          
 
           if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
             ! use p_h in time t0+dt, to convert c_h(t0+dt) to w_h(t0+dt) 

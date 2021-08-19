@@ -2,7 +2,7 @@ module readepw
   use kinds ,only :dp
   use constants,only : maxlen,amu_ry,rytoev,ryd2mev,ryd2eV
   use io, only : io_file_unit,open_file,close_file,findkword,findkline,stdout,io_error,msg
-	use parameters,only : verbosity
+	use parameters,only : verbosity,lit_ephonon
 	use memory_report,only : MB,GB,complex_size, real_size,int_size,ram,print_memory
   use klist, only : nelec,lgauss, degauss, ngauss, nkstot, wk
   use klist_epw, only : xk_all,xkg_all
@@ -1224,7 +1224,7 @@ module readepw
 		
 		do iq=1,nqtotf
 		  do nu=1,nmodes
-				if(wf(nu,iq)<1.0) then !for the phonon with energy little than 1.0 meV, set the g-matrices to 0.
+				if(wf(nu,iq)<lit_ephonon) then !for the phonon with energy little than lit_ephonon meV, set the g-matrices to 0.
 					gmnvkq(:,:,nu,:,iq) = 0.0
 				endif
 				

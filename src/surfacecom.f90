@@ -21,7 +21,10 @@ module surfacecom
   real(kind=dp)   :: gamma_min,gamma_max
   real(kind=dp)   :: ld_fric_min,ld_fric_max
   integer         :: n_gamma
-  real(kind=dp) 	:: lit_gmnvkq  !in unit of mev
+  real(kind=dp) 	:: lit_gmnvkq  
+	!for the gmnvkq with energy larger than lit_gmnvkq (in unit of mev) take into account
+	real(kind=dp)   :: lit_ephonon 
+	!for the phonon with energy wf(iq,nu) larger than lit_ephonon (in unit of mev) take into account
 	
   logical         :: l_ph_quantum
   logical :: lfeedback

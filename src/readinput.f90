@@ -1,9 +1,9 @@
 module readinput
   use kinds,     only : dp
   use constants, only : maxlen
-  use parameters,only : calculation,verbosity,outdir,ldecoherence,Cdecoherence,lit_gmnvkq,&
+  use parameters,only : calculation,verbosity,outdir,ldecoherence,Cdecoherence,lit_gmnvkq,lit_ephonon,&
                         lreadscfout,scfoutname,lreadphout,phoutname,lreadfildyn,fildyn,epwoutname,&
-                        methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,pre_dt,&
+                        methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,pre_dt,mix_thr,&
                         gamma,ld_fric,dt,temp,l_ph_quantum,&
                         l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
@@ -168,7 +168,8 @@ module readinput
     lfeedback     = .true.
 		ldecoherence  = .true.
 		cdecoherence  = 0.1
-		lit_gmnvkq    = 0.0 !meV		
+		lit_gmnvkq    = 1.0d-8 !meV
+		lit_ephonon   = 1.0    !meV
     l_ph_quantum  = .true.
     lelecsh       = .false.
     lholesh       = .false.
@@ -192,6 +193,7 @@ module readinput
     nsnap         = 100
     pre_nstep     = 0
     pre_dt        = 1.0
+		mix_thr       = 0.8
     gamma         = 1.0    ! 0.1   ! the friction coefficient 1/ps
     ld_fric       = 0.1
     l_gamma_energy= .false.
