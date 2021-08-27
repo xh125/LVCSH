@@ -1192,7 +1192,7 @@ module readepw
 		
 		
 		!for testing
-		if(verbosity == "high" .and. .FALSE.) then
+		if(verbosity == "high" .and. .false. ) then
 			write(stdout,"(5X,A,I8,1X,A)") "We only need to compute",totq,"q-points"
 			do iq=1,totq
 				write(stdout,"(/,5X,A)") " Electron-phonon vertex |g| (meV)"
@@ -1204,9 +1204,8 @@ module readepw
 					do ibnd = ibndmin,ibndmax ! ibnd = 1,nbndfst
 						do jbnd = ibndmin,ibndmax !jbnd= 1,nbndfst
 							do nu = 1, nmodes		
-								WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 2e20.10)') ibnd, jbnd, &
-                   nu, etf(ibnd,ik), etf(ibnd,kqmap(ik,calgmnvkq_q(iq))), wf(nu, calgmnvkq_q(iq)),gmnvkq(ibnd, jbnd, nu, ik,calgmnvkq_q(iq)),&
-									 ABS(epmatq(ibnd, jbnd, nu, ik,calgmnvkq_q(iq)))
+								WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd, jbnd, &
+                   nu, etf(ibnd,ik), etf(ibnd,kqmap(ik,calgmnvkq_q(iq))), wf(nu, calgmnvkq_q(iq)),gmnvkq(ibnd, jbnd, nu, ik,calgmnvkq_q(iq))								
 							enddo
 					  enddo
 					enddo
@@ -1252,9 +1251,7 @@ module readepw
 				epmatq(:,:,nu,:,iq)=sqrt(2.0*wf(nu,iq)/nqtotf)*epmatq(:,:,nu,:,iq)
 			enddo
 		enddo
-		
-		gmnvkq = ABS(epmatq)
-		deallocate(epmatq)
+
        
     call findkline(unitepwout,"matrix elements",15,29)
     read(unitepwout,"(A)") ctmp

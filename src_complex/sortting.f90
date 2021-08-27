@@ -18,9 +18,11 @@ module sortting
 		!==============================================================================================
 		
 		integer,intent(in) :: nfre
-		real(kind=dp),intent(inout) :: ee(nfre),pp(nfre,nfre)
+		real(kind=dp),intent(inout)    :: ee(nfre)
+		complex(kind=dp),intent(inout) :: pp(nfre,nfre)
 		! energy and states at time t+δt
-		real(kind=dp),intent(in) 		:: ee_0(nfre),pp_0(nfre,nfre)
+		real(kind=dp),intent(in) 		:: ee_0(nfre)
+		complex(kind=dp),intent(in) :: pp_0(nfre,nfre)
 		! energy and states at time t 
 		real(kind=dp),intent(in)		:: P_lim
 		! threshold to find the mixxing states
@@ -33,7 +35,7 @@ module sortting
 		! a_ji(jfre,ifre) = SUM(CONJG(pp(:,jfre))*pp_0(:,ifre)) = S_ij(jfre,ifre)
 		!========================================================================
 		
-		real(kind=dp),allocatable :: S_ij(:,:)
+		complex(kind=dp),allocatable :: S_ij(:,:)
 		! S_ij(t,t+δt)=  <pp(jfre)|pp_0(ifre)>   
 		! equation(4) of S. Fernandez-Alberti et al., J Chem Phys 137 (2012) 014512.
 		real(kind=dp),allocatable :: P_ij(:,:)
@@ -77,7 +79,7 @@ module sortting
 		
 		! P_ij = S_ij*CONJG(S_ij)
 		! equation(5) of S. Fernandez-Alberti et al., J Chem Phys 137 (2012) 014512.
-		P_ij = S_ij**2
+		P_ij = S_ij*CONJG(S_ij)
 		do ifre=1,nfre
 			SUM_Pik = SUM(P_ij(:,ifre))
 			!SUM_Pik = 1.0
@@ -165,12 +167,14 @@ module sortting
 	subroutine exchange_states(nfre,ifre,maxfre,ee,pp,P_ij)
 		implicit none
 		integer,intent(in) :: nfre,ifre,maxfre
-		real(kind=dp),intent(inout) :: ee(nfre),pp(nfre,nfre),P_ij(nfre,nfre)
+		real(kind=dp),intent(inout) 	 :: ee(nfre)
+		complex(kind=dp),intent(inout) :: pp(nfre,nfre)
+		real(kind=dp),intent(inout)    :: P_ij(nfre,nfre)
 
 		! used as temp to resort the energy and states and overlap
 		real(kind=dp) :: ee_tmp
-		real(kind=dp),allocatable :: pp_tmp(:)
-		real(kind=dp),allocatable :: Pj_tmp(:)
+		complex(kind=dp),allocatable :: pp_tmp(:)
+		complex(kind=dp),allocatable :: Pj_tmp(:)
 
 		allocate(pp_tmp(nfre))
 		allocate(Pj_tmp(nfre))

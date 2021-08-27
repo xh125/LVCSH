@@ -271,19 +271,20 @@ module surfacehopping
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% convert wavefunction from diabatix to adiabatic basis %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  subroutine convert_diabatic_adiabatic(nfre,pp,cc,ww)                                        
+  subroutine convert_diabatic_adiabatic(nfre,pp,cc,ww)
+		use constants,only : czero,cone	
     use f95_precision
     use blas95
     implicit none
     integer,intent(in) :: nfre 
-    real(kind=dp),intent(in) :: pp(nfre,nfre)
+    complex(kind=dp),intent(in)  :: pp(nfre,nfre)
     complex(kind=dpc),intent(in) :: cc(nfre)
     complex(kind=dpc),intent(out):: ww(nfre)
     real(kind=dp) :: sum_cc2,sum_ww2
     
     sum_cc2 = REAL(SUM(cc*CONJG(cc)))
     
-    ww= 0.0d0
+    ww= czero
     !call gemv(pp,cc,ww)
     call gemv(pp,cc,ww,trans='T')
     
@@ -320,7 +321,7 @@ module surfacehopping
     use blas95
     implicit none
     integer,intent(in) :: nfre 
-    real(kind=dp),intent(in) :: pp(nfre,nfre)
+    complex(kind=dpc),intent(in) :: pp(nfre,nfre)
     complex(kind=dpc),intent(in) :: ww(nfre)
     complex(kind=dpc),intent(out):: cc(nfre)
     real(kind=dp) :: sum_cc2,sum_ww2
@@ -382,10 +383,10 @@ module surfacehopping
     implicit none
     integer, intent(in) :: nmodes,nq,nband,nk,nfre_sh
     real(kind=dp),intent(in) :: ee(nband*nk)
-    real(kind=dp),intent(in) :: gmnvkq(nband,nband,nmodes,nk,nq)
-    real(kind=dp),intent(in) :: p_nk(nband,nk,nband*nk)
-		real(kind=dp),intent(in) :: lit_gmnvkq
-    real(kind=dp),intent(out):: dd(nfre_sh,nfre_sh,nmodes,nq)
+    complex(kind=dp),intent(in) :: gmnvkq(nband,nband,nmodes,nk,nq)
+    complex(kind=dp),intent(in) :: p_nk(nband,nk,nband*nk)
+		real(kind=dp),intent(in)    :: lit_gmnvkq
+    complex(kind=dp),intent(out):: dd(nfre_sh,nfre_sh,nmodes,nq)
     
 		integer :: nfre,ifre,jfre,iq,imode ,igfre
     integer :: ik,ikq,iband1,iband2
@@ -504,12 +505,12 @@ module surfacehopping
     integer,intent(in)           :: isurface,nfre,nfre_sh,nmodes,nq
     complex(kind=dpc),intent(in) :: WW(nfre)
     real(kind=dp),intent(in)     :: VV(nmodes,nq)
-    real(kind=dp),intent(in)     :: dd(nfre_sh,nfre_sh,nmodes,nq)
+    complex(kind=dp),intent(in)  :: dd(nfre_sh,nfre_sh,nmodes,nq)
     real(kind=dp),intent(in)     :: tt
     real(kind=dp),intent(out)    :: gg(nfre_sh)
     real(kind=dp),intent(out)    :: gg1(nfre_sh)
     
-    real(kind=dp) :: sumvd
+    complex(kind=dp) :: sumvd
     integer :: ifre,iq,imode
     
     gg = 0.0d0
@@ -525,7 +526,7 @@ module surfacehopping
           enddo
         enddo
         ! in adiabatic representation：the switching probabilities from the active surface isurface to another surface iefre 
-        gg(ifre)=2.0*tt*Real(CONJG(WW(isurface))*WW(ifre))*sumvd/REAL(CONJG(WW(isurface))*WW(isurface))
+        gg(ifre)=2.0*tt*Real(WW(isurface)*CONJG(WW(ifre))*sumvd)/REAL(CONJG(WW(isurface))*WW(isurface))
         gg1(ifre) = gg(ifre)  ! 绝热表象原始的跃迁几率
         !FSSH if g_ij<0,reset to g_ij=0
         if(gg(ifre) < 0.0d0) gg(ifre) = 0.0d0

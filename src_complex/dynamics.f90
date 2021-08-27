@@ -33,8 +33,8 @@ module dynamics
     implicit none
     integer,intent(in) :: nmodes,nq,nband,nk
     integer,intent(in) :: isurface
-    real(kind=dp),intent(in)  :: P_nk(nband,nk,nband*nk)
-    real(kind=dp),intent(in)  :: gmnvkq(nband,nband,nmodes,nk,nq)
+    complex(kind=dp),intent(in)  :: P_nk(nband,nk,nband*nk)
+    complex(kind=dp),intent(in)  :: gmnvkq(nband,nband,nmodes,nk,nq)
     real(kind=dp),intent(out) :: dEa_dQ(nmodes,nq)
     
     integer :: iq,imode,ik,ikq,iband1,iband2
@@ -124,7 +124,7 @@ module dynamics
     use constants,only : cmplx_i,cmplx_0
     implicit none
     integer,intent(in)           :: nfre
-    real(kind=dp),intent(in)     :: HH(nfre,nfre)
+    complex(kind=dp),intent(in)     :: HH(nfre,nfre)
     complex(kind=dpc),intent(in) :: cc(nfre)
     complex(kind=dpc),intent(inout):: dc(nfre)
     
@@ -147,7 +147,7 @@ module dynamics
     implicit none
     integer,intent(in)              :: nfre
     complex(kind=dpc),intent(inout) :: cc(nfre)
-    real(kind=dp),intent(in)        :: HH(nfre)
+    complex(kind=dp),intent(in)        :: HH(nfre)
     complex(kind=dpc),intent(out)   :: cc0(nfre),dc1(nfre),&
                         dc2(nfre),dc3(nfre),dc4(nfre)
     real(kind=dp),intent(in)        :: tt
@@ -188,8 +188,9 @@ module dynamics
     implicit none
     integer,intent(in) :: nmodes,nq,nfre,nfre_sh
     integer,intent(in) :: isurface
-    real(kind=dp),intent(in)  :: EE(nfre),dd(nfre_sh,nfre_sh,nmodes,nq)
-    real(kind=dp),intent(out) :: dEa2_dQ2(nmodes,nq)
+    real(kind=dp),intent(in)    :: EE(nfre)
+		complex(kind=dp),intent(in) :: dd(nfre_sh,nfre_sh,nmodes,nq)
+    real(kind=dp),intent(out)   :: dEa2_dQ2(nmodes,nq)
     
     integer :: iq,imode,ifre
     

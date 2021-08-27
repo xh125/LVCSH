@@ -74,9 +74,11 @@ module surfacecom
   real(kind=dp) :: E_ph_CA_sum,E_ph_QA_sum
   ! averager crystal energy and temperature T,in classical and quantum . 
   
-  real(kind=dp),allocatable :: d_e(:,:,:,:) ,d_h(:,:,:,:) ,g_e(:) ,g_h(:)
-  real(kind=dp),allocatable :: d0_e(:,:,:,:),d0_h(:,:,:,:),g1_e(:),g1_h(:)  
-                               
+  real(kind=dp),allocatable :: g_e(:) ,g_h(:)
+  real(kind=dp),allocatable :: g1_e(:),g1_h(:)  
+	complex(kind=dp),allocatable :: d_e(:,:,:,:) ,d_h(:,:,:,:) 
+  complex(kind=dp),allocatable :: d0_e(:,:,:,:),d0_h(:,:,:,:) 
+	
   
   complex(kind=dpc),allocatable :: c_e(:),c_e_nk(:,:),w_e(:),w0_e(:)
   complex(kind=dpc),allocatable :: c_h(:),c_h_nk(:,:),w_h(:),w0_h(:)

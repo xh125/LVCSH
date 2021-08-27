@@ -71,7 +71,7 @@
                                check_restart_ephwrite
   USE transport,        ONLY : transport_coeffs, scattering_rate_q
   USE grid,             ONLY : qwindow, loadkmesh_fst, xqf_otf
-  USE printing,         ONLY : print_gkk, plot_band, plot_fermisurface
+  USE printing,         ONLY : print_gkk,print_sh, plot_band, plot_fermisurface
   USE io_epw,           ONLY : rwepmatw, epw_read, epw_write
   USE io_transport,     ONLY : tau_read, iter_open, print_ibte, iter_merge
   USE io_selfen,        ONLY : selfen_el_read, spectral_read
@@ -111,13 +111,8 @@
   USE polaron_old,      ONLY : wfc_elec_old
   ! --------------------------------------------------------------------------------
   !
-	
-	!---------------------------------------------------------------------------------
-	! Added by xiehua, used to print the vmef of dmef to the output.
-	!---------------------------------------------------------------------------------
-  use poolgathering,    only : poolgatherc4, poolgather2
-	!---------------------------------------------------------------------------------
-	!
+  
+  !
   IMPLICIT NONE
   !
   INTEGER, INTENT(in) :: nqc
@@ -210,6 +205,8 @@
   !! Index of the CBM
   INTEGER :: totq
   !! Total number of q-points within the fsthick window.
+  integer :: ngn0 = 0
+  !! Totel number matrix elements of gmnvkq/= czero
   INTEGER :: ipool
   !! Cpu index.
   INTEGER :: npool_tmp
@@ -324,19 +321,19 @@
   COMPLEX(KIND = DP), ALLOCATABLE :: vmefp(:, :, :)
   !! Phonon velocity
   !
-	!---------------------------------------------------------------------------------
-	! Added by xiehua, used to print the vmef of dmef to the output.
-	!---------------------------------------------------------------------------------
-  real(kind = dp), allocatable :: xkf_all(:, :) !xkf_all(3, nkqtotf)
+  !---------------------------------------------------------------------------------
+  ! Added by xiehua, used to print the vmef of dmef to the output.
+  !---------------------------------------------------------------------------------
+  !real(kind = dp), allocatable :: xkf_all(:, :) !xkf_all(3, nkqtotf)
   !! Collect k-point coordinate from all pools in parallel case  
-	real(kind = dp), allocatable :: etf_all_(:,:) ! etf_all_(nbndsub,nkqtotf)	
+  !real(kind = dp), allocatable :: etf_all_(:,:) ! etf_all_(nbndsub,nkqtotf)  
   !! Eigen-energies on the fine grid collected from all pools in parallel case  
-	COMPLEX(KIND = DP), ALLOCATABLE :: dmef_all(:, :, :, :)
+  !COMPLEX(KIND = DP), ALLOCATABLE :: dmef_all(:, :, :, :)
   !! dipole matrix elements on the fine mesh among all pools
-  COMPLEX(KIND = DP), ALLOCATABLE :: vmef_all(:, :, :, :)
-  !! velocity matrix elements on the fine mesh among all pools	
-	!---------------------------------------------------------------------------------
-	!
+  !COMPLEX(KIND = DP), ALLOCATABLE :: vmef_all(:, :, :, :)
+  !! velocity matrix elements on the fine mesh among all pools  
+  !---------------------------------------------------------------------------------
+  !
   CALL start_clock('ephwann')
   !
   IF (nbndsub /= nbndep) WRITE(stdout, '(/,5x,a,i4)' ) 'Band disentanglement is used: nbndsub = ', nbndsub
@@ -1755,9 +1752,9 @@
     ENDIF ! if scattering
 
 
-		!---------------------------------------------------------------------------------
-		! Added by xiehua, used to print the vmef of dmef to the output.
-		!---------------------------------------------------------------------------------    
+    !---------------------------------------------------------------------------------
+    ! Added by xiehua, used to print the vmef of dmef to the output.
+    !---------------------------------------------------------------------------------    
     ! Write dmef or vmef to the files
     ! vmef is in units of Ryd * bohr
     ! dmef is in units of 1/a.u. (where a.u. is bohr)
@@ -1765,100 +1762,102 @@
     ! vmef = 2 *dmef
     ! ! ... RY for "Rydberg" atomic units (e^2=2, m=1/2, hbar=1)   
     !Lets gather the velocities from all pools
-    IF (prtgkk    ) then
-      allocate(xkf_all(3,nkqtotf),stat=ierr)
-      if(ierr /=0) call errore('ephwann_shuffle','Error allocating xkf_all',1)
-      xkf_all = zero
-      ALLOCATE(wkf_all(nkqtotf), STAT = ierr)
-      IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error allocating wkf_all', 1)
-      wkf_all = zero 
-			allocate(etf_all_(nbndsub,nkqtotf),stat=ierr)
-			if(ierr /=0) call errore('ephwann_shuffle', 'Error allocating etf_all_', 1)
-			etf_all_ = zero
-#if defined(__MPI)
-      !
-      ! Note that poolgather2 works with the doubled grid (k and k+q)
-      !
-      CALL poolgather2(1, nkqtotf, 2 * nkf, wkf, wkf_all)
-      CALL poolgather2(3,       nkqtotf, nkqf, xkf, xkf_all)
-      CALL poolgather2(nbndsub, nkqtotf, nkqf, etf, etf_all_)    
-      IF (vme == 'wannier') THEN
-        ALLOCATE(vmef_all(3, nbndsub, nbndsub, nkqtotf), STAT = ierr)
-        IF (ierr /= 0) CALL errore('transport_coeffs', 'Error allocating vmef_all', 1)
-        vmef_all(:, :, :, :) = czero
-        CALL poolgatherc4(3, nbndsub, nbndsub, nkqtotf, 2 * nkf, vmef, vmef_all)
-      ELSE
-        ALLOCATE(dmef_all(3, nbndsub, nbndsub, nkqtotf), STAT = ierr)
-        IF (ierr /= 0) CALL errore('transport_coeffs', 'Error allocating dmef_all', 1)
-        dmef_all(:, :, :, :) = czero
-        CALL poolgatherc4(3, nbndsub, nbndsub, nkqtotf, 2 * nkf, dmef, dmef_all)
-      ENDIF
-  
-#else
-      xkf_all = xkf
-      etf_all_= etf 
-      wkf_all = wkf
-      IF (vme == 'wannier') THEN
-        ALLOCATE(vmef_all(3, nbndsub, nbndsub, nkqtotf), STAT = ierr)
-        IF (ierr /= 0) CALL errore('transport_coeffs', 'Error allocating vmef_all', 1)
-        vmef_all = vmef
-      ELSE
-        ALLOCATE(dmef_all(3, nbndsub, nbndsub, nkqtotf), STAT = ierr)
-        IF (ierr /= 0) CALL errore('transport_coeffs', 'Error allocating dmef_all', 1)
-        dmef_all = dmef
-      ENDIF
-#endif    
-      ! Only master writes 
-      IF (mpime == ionode_id) then
-        if(vme == 'wannier') then
-          write(stdout,"(/5X,a)") 'Velocity matrix elements (vmef) (Ryd*bohr)'
-        else
-          write(stdout,"(/5X,a)") 'Dipole   matrix elements (dmef) (1/bohr)'
-        endif
-        do ik = 1,nktotf
-          ikk = 2*ik-1
-          write(stdout,"(/5x,'ik = ', i7 ,' coord.:',3f12.7)") ik,xkf_all(:,ikk)
-          if (vme == 'wannier') then
-            write(stdout,"(3A5,2A8,6A16)") "ik","ibnd","jbnd", "Enk[eV]", "Emk[eV]", "Re(v_x)","Im(v_x)", &
-                  "Re(v_y)","Im(v_y)","Re(v_z)","Im(v_z)"
-          else
-            write(stdout,"(3A5,2A8,6A16)") "ik","ibnd","jbnd","Enk[eV]"," Emk[eV]","Re(d_x)","Im(d_x)",&
-                  "Re(d_y)","Im(d_y)","Re(d_z)","Im(d_z)"
-          endif
-          do ibnd=ibndmin,ibndmax
-            do jbnd=ibndmin,ibndmax
-              if (vme == 'wannier') then
-                write(stdout,"(3i5,2f8.4,3(2E16.6))") &
-                ik, ibnd , jbnd, etf_all_(ibnd,ikk)*ryd2ev,etf_all_(jbnd,ikk)*ryd2ev,&
-                vmef_all(:,ibnd,jbnd,ikk)
-              else 
-                write(stdout,"(3i5,2f8.4,3(2E16.6))") &
-                ik, ibnd , jbnd , etf_all_(ibnd,ikk)*ryd2ev,etf_all_(jbnd,ikk)*ryd2ev,&
-                dmef_all(:,ibnd,jbnd,ikk)
-              endif
-            enddo
-          enddo
-        enddo      
-      ENDIF ! master node
-      deallocate(xkf_all,stat=ierr)
-      if(ierr /=0) call errore('ephwann_shuffle','Error deallocating xkf_all',1)
-      deallocate(wkf_all, STAT = ierr)
-      IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating wkf_all', 1)
-      deallocate(etf_all_,STAT = ierr)
-			IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating etf_all_', 1)
-			IF (vme == 'wannier') THEN
-        deallocate(vmef_all, STAT = ierr)
-        IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating vmef_all', 1)
-      ELSE
-        deallocate(dmef_all, STAT = ierr)
-        IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating dmef_all', 1)
-      ENDIF
-      
-    endif !IF (prtgkk    )
-		!---------------------------------------------------------------------------------
-		!
-		
-		!
+    if(prtgkk) call print_sh()
+    
+!    IF (prtgkk    ) then
+!      allocate(xkf_all(3,nkqtotf),stat=ierr)
+!      if(ierr /=0) call errore('ephwann_shuffle','Error allocating xkf_all',1)
+!      xkf_all = zero
+!      ALLOCATE(wkf_all(nkqtotf), STAT = ierr)
+!      IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error allocating wkf_all', 1)
+!      wkf_all = zero 
+!      allocate(etf_all_(nbndsub,nkqtotf),stat=ierr)
+!      if(ierr /=0) call errore('ephwann_shuffle', 'Error allocating etf_all_', 1)
+!      etf_all_ = zero
+!#if defined(__MPI)
+!      !
+!      ! Note that poolgather2 works with the doubled grid (k and k+q)
+!      !
+!      CALL poolgather2(1, nkqtotf, 2 * nkf, wkf, wkf_all)
+!      CALL poolgather2(3,       nkqtotf, nkqf, xkf, xkf_all)
+!      CALL poolgather2(nbndsub, nkqtotf, nkqf, etf, etf_all_)    
+!      IF (vme == 'wannier') THEN
+!        ALLOCATE(vmef_all(3, nbndsub, nbndsub, nkqtotf), STAT = ierr)
+!        IF (ierr /= 0) CALL errore('transport_coeffs', 'Error allocating vmef_all', 1)
+!        vmef_all(:, :, :, :) = czero
+!        CALL poolgatherc4(3, nbndsub, nbndsub, nkqtotf, 2 * nkf, vmef, vmef_all)
+!      ELSE
+!        ALLOCATE(dmef_all(3, nbndsub, nbndsub, nkqtotf), STAT = ierr)
+!        IF (ierr /= 0) CALL errore('transport_coeffs', 'Error allocating dmef_all', 1)
+!        dmef_all(:, :, :, :) = czero
+!        CALL poolgatherc4(3, nbndsub, nbndsub, nkqtotf, 2 * nkf, dmef, dmef_all)
+!      ENDIF
+!  
+!#else
+!      xkf_all = xkf
+!      etf_all_= etf 
+!      wkf_all = wkf
+!      IF (vme == 'wannier') THEN
+!        ALLOCATE(vmef_all(3, nbndsub, nbndsub, nkqtotf), STAT = ierr)
+!        IF (ierr /= 0) CALL errore('transport_coeffs', 'Error allocating vmef_all', 1)
+!        vmef_all = vmef
+!      ELSE
+!        ALLOCATE(dmef_all(3, nbndsub, nbndsub, nkqtotf), STAT = ierr)
+!        IF (ierr /= 0) CALL errore('transport_coeffs', 'Error allocating dmef_all', 1)
+!        dmef_all = dmef
+!      ENDIF
+!#endif    
+!      ! Only master writes 
+!      IF (mpime == ionode_id) then
+!        if(vme == 'wannier') then
+!          write(stdout,"(/5X,a)") 'Velocity matrix elements (vmef) (Ryd*bohr)'
+!        else
+!          write(stdout,"(/5X,a)") 'Dipole   matrix elements (dmef) (1/bohr)'
+!        endif
+!        do ik = 1,nktotf
+!          ikk = 2*ik-1
+!          write(stdout,"(/5x,'ik = ', i7 ,' coord.:',3f12.7)") ik,xkf_all(:,ikk)
+!          if (vme == 'wannier') then
+!            write(stdout,"(3A5,2A8,6A16)") "ik","ibnd","jbnd", "Enk[eV]", "Emk[eV]", "Re(v_x)","Im(v_x)", &
+!                  "Re(v_y)","Im(v_y)","Re(v_z)","Im(v_z)"
+!          else
+!            write(stdout,"(3A5,2A8,6A16)") "ik","ibnd","jbnd","Enk[eV]"," Emk[eV]","Re(d_x)","Im(d_x)",&
+!                  "Re(d_y)","Im(d_y)","Re(d_z)","Im(d_z)"
+!          endif
+!          do ibnd=ibndmin,ibndmax
+!            do jbnd=ibndmin,ibndmax
+!              if (vme == 'wannier') then
+!                write(stdout,"(3i5,2f8.4,3(2E16.6))") &
+!                ik, ibnd , jbnd, etf_all_(ibnd,ikk)*ryd2ev,etf_all_(jbnd,ikk)*ryd2ev,&
+!                vmef_all(:,ibnd,jbnd,ikk)
+!              else 
+!                write(stdout,"(3i5,2f8.4,3(2E16.6))") &
+!                ik, ibnd , jbnd , etf_all_(ibnd,ikk)*ryd2ev,etf_all_(jbnd,ikk)*ryd2ev,&
+!                dmef_all(:,ibnd,jbnd,ikk)
+!              endif
+!            enddo
+!          enddo
+!        enddo      
+!      ENDIF ! master node
+!      deallocate(xkf_all,stat=ierr)
+!      if(ierr /=0) call errore('ephwann_shuffle','Error deallocating xkf_all',1)
+!      deallocate(wkf_all, STAT = ierr)
+!      IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating wkf_all', 1)
+!      deallocate(etf_all_,STAT = ierr)
+!      IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating etf_all_', 1)
+!      IF (vme == 'wannier') THEN
+!        deallocate(vmef_all, STAT = ierr)
+!        IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating vmef_all', 1)
+!      ELSE
+!        deallocate(dmef_all, STAT = ierr)
+!        IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating dmef_all', 1)
+!      ENDIF
+!      
+!    endif !IF (prtsh    )
+    !---------------------------------------------------------------------------------
+    !
+    
+    !
     ! Now deallocate
     DEALLOCATE(epf17, STAT = ierr)
     IF (ierr /= 0) CALL errore('ephwann_shuffle', 'Error deallocating epf17', 1)

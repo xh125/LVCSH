@@ -69,12 +69,13 @@ module sc_fssh
     integer , intent(in)     :: nfre,nfre_sh,nq,nmodes
     integer , intent(inout)  :: isurface
     real(kind=dp),intent(in) :: EE(nfre)
-    real(kind=dp),intent(in) :: P(nfre,nfre)
-    real(kind=dp),intent(in) :: DD(nfre_sh,nfre_sh,nmodes,nq)
+    complex(kind=dp),intent(in) :: P(nfre,nfre)
+    complex(kind=dp),intent(in) :: DD(nfre_sh,nfre_sh,nmodes,nq)
     real(kind=dp),intent(in) :: GG(nfre_sh)
     real(kind=dp),intent(inout) :: VV(nmodes,nq)
     
-    real(kind=dp) :: sumvd,sumdd,sumgg,flagr,flagd,detaE
+		complex(kind=dp) :: sumvd,sumdd
+    real(kind=dp)    :: sumgg,flagr,flagd,detaE
     integer :: ifre,jfre,imode,iq
     real(kind=dp) :: SUM_E0,SUM_E1,dSUM_E
     

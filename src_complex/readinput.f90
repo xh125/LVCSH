@@ -168,6 +168,7 @@ module readinput
     methodsh      = "FSSH"
     lfeedback     = .true.
 		ldecoherence  = .true.
+    lsortpes      = .false.
 		cdecoherence  = 0.1
 		lit_gmnvkq    = 1.0d-8 !meV
 		lit_ephonon   = 1.0    !meV
@@ -176,7 +177,6 @@ module readinput
     lholesh       = .false.
     lehpairsh     = .false.
     lreadscfout   = .false.
-    lsortpes      = .false.
     scfoutname    = "scf.out"
     lreadphout    = .false.
     phoutname     = "ph.out"

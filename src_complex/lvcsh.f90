@@ -40,8 +40,7 @@ program lvcsh
   use hamiltonian,only    : nefre,neband,H_e,H_e_nk,E_e,P_e,P_e_nk,P0_e_nk,gmnvkq_e,Enk_e,H0_e_nk,E0_e,P0_e,&
                             nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,gmnvkq_h,Enk_h,H0_h_nk,E0_h,P0_h,&
                             allocate_hamiltonian,set_H_nk,set_H0_nk,&
-                            calculate_eigen_energy_state,&
-														ngfre_e,ngfre_h,gmnvkq_n0_e,gmnvkq_n0_h,get_gmnvkq_n0
+                            calculate_eigen_energy_state
 	use sortting,only       : resort_eigen_energy_stat
   use randoms,only        : init_random_seed
   use lasercom,only       : fwhm,w_laser
@@ -437,7 +436,6 @@ program lvcsh
           H_e = reshape(H_e_nk,(/ nefre,nefre /))          
           ! update E_e,P_e to time t0+dt
           call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
-					!call resort_eigen_energy_stat(nefre,E_e,P_e,E_e_eq,P_e_eq)
 					if(lsortpes) call resort_eigen_energy_stat(nefre,E_e,P_e,E0_e,P0_e,mix_thr)
           P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
           
@@ -498,7 +496,6 @@ program lvcsh
           H_h = reshape(H_h_nk,(/ nhfre,nhfre /))          
           ! update E_h,P_h in time t0+dt
           call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
-					!call resort_eigen_energy_stat(nhfre,E_h,P_h,E_h_eq,P_h_eq)
 					if(lsortpes) call resort_eigen_energy_stat(nhfre,E_h,P_h,E0_h,P0_h,mix_thr)
           P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
           

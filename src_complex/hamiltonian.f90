@@ -7,29 +7,29 @@ module hamiltonian
   use modes, only  : nmodes
 	use memory_report,only : MB,GB,complex_size, real_size,int_size,ram,print_memory
   use readepw,only : E_nk
-	use constants,only : ryd2mev
+	use constants,only : ryd2mev,czero,cone
   use surfacecom,only     : lelecsh,lholesh,ieband_min,ieband_max,&
                             ihband_min,ihband_max
   
   implicit none
   
   integer :: neband,nhband,nefre,nhfre,nphfre
-  real(kind=dp),allocatable :: H0_e(:,:),H_e(:,:),Enk_e(:,:)
-  real(kind=dp),allocatable :: H0_e_nk(:,:,:,:),H_e_nk(:,:,:,:)
-  real(kind=dp),allocatable :: H0_h(:,:),H_h(:,:),Enk_h(:,:)
-  real(kind=dp),allocatable :: H0_h_nk(:,:,:,:),H_h_nk(:,:,:,:)
+	complex(kind=dp),allocatable :: H0_e(:,:),H_e(:,:),H0_e_nk(:,:,:,:),H_e_nk(:,:,:,:)
+  complex(kind=dp),allocatable :: H0_h(:,:),H_h(:,:),H0_h_nk(:,:,:,:),H_h_nk(:,:,:,:)
+	real(kind=dp),allocatable    :: Enk_e(:,:),Enk_h(:,:)
+
   
-  real(kind=dp),allocatable :: gmnvkq_e(:,:,:,:,:)
-  real(kind=dp),allocatable :: gmnvkq_h(:,:,:,:,:)
+  complex(kind=dp),allocatable :: gmnvkq_e(:,:,:,:,:)
+  complex(kind=dp),allocatable :: gmnvkq_h(:,:,:,:,:)
 	
-	integer :: ngfre_e,ngfre_h
-	type(gmnvkq_n0),allocatable :: gmnvkq_n0_e(:),gmnvkq_n0_h(:)
 	
   !平衡位置哈密顿量，电声耦合项，总的H和临时H
-  real(kind=dp),allocatable :: E_e(:),P_e(:,:),P_e_nk(:,:,:),&
-                               E0_e(:),P0_e(:,:),P0_e_nk(:,:,:)
-  real(kind=dp),allocatable :: E_h(:),P_h(:,:),P_h_nk(:,:,:),&
-                               E0_h(:),P0_h(:,:),P0_h_nk(:,:,:)
+  real(kind=dp),allocatable    :: E_e(:),E0_e(:)
+	complex(kind=dp),allocatable :: P_e(:,:),P_e_nk(:,:,:),&
+                                  P0_e(:,:),P0_e_nk(:,:,:)
+  real(kind=dp),allocatable    :: E_h(:),E0_h(:)
+	complex(kind=dp),allocatable :: P_h(:,:),P_h_nk(:,:,:),&
+                                  P0_h(:,:),P0_h_nk(:,:,:)
   !哈密顿量的本征值与本征矢   
   integer :: ierr
   contains
@@ -49,7 +49,7 @@ module hamiltonian
 				call io_error(msg)
 			endif
 			gmnvkq_e = 0.0
-			ram = real_size*neband*neband*nmodes*nk*nq
+			ram = complex_size*neband*neband*nmodes*nk*nq
 			call print_memory("gmnvkq_e",ram)
       allocate(H0_e(nefre,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) then
@@ -57,7 +57,7 @@ module hamiltonian
 				call io_error(msg)
 			endif
 			H0_e = 0.0
-			ram = real_size*nefre*nefre
+			ram = complex_size*nefre*nefre
 			call print_memory("H0_e",ram)
       allocate(H0_e_nk(neband,nk,neband,nk),stat=ierr,errmsg=msg)
       if(ierr /=0) then
@@ -94,7 +94,7 @@ module hamiltonian
 				call io_error(msg)
 		  endif
 			gmnvkq_h = 0.0
-			ram = real_size*nhband*nhband*nmodes*nk*nq
+			ram = complex_size*nhband*nhband*nmodes*nk*nq
 			call print_memory("gmnvkq_h",ram)
       allocate(H0_h(nhfre,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) then
@@ -102,7 +102,7 @@ module hamiltonian
 				call io_error(msg)
 			endif
 			H0_h = 0.0
-			ram = real_size*nhfre*nhfre
+			ram = complex_size*nhfre*nhfre
 			call print_memory("H0_h",ram)			
       allocate(H0_h_nk(nhband,nk,nhband,nk),stat=ierr,errmsg=msg)
       if(ierr /=0) then
@@ -117,7 +117,7 @@ module hamiltonian
 				call io_error(msg)
 			endif
 			H_h = 0.0
-			ram = real_size*nhfre*nhfre
+			ram = complex_size*nhfre*nhfre
 			call print_memory("H_h",ram)
       allocate(H_h_nk(nhband,nk,nhband,nk),stat=ierr,errmsg=msg)
       if(ierr /=0) then
@@ -132,13 +132,13 @@ module hamiltonian
   end subroutine allocate_hamiltonian
   
   subroutine set_H0_nk(nk,ibandmin,ibandmax,Enk,H0_nk,gmnvkq_eh)
-    use elph2, only : etf,gmnvkq
+    use elph2, only : etf,epmatq
     implicit none
     integer , intent(in) :: nk
     integer , intent(in) :: ibandmin,ibandmax
     real(kind=dp), intent(out) :: Enk(ibandmax-ibandmin+1,nk)
-		real(kind=dp), intent(out) :: H0_nk(ibandmax-ibandmin+1,nk,ibandmax-ibandmin+1,nk)
-    real(kind=dp), intent(out) :: gmnvkq_eh(ibandmax-ibandmin+1,ibandmax-ibandmin+1,nmodes,nk,nq)
+		complex(kind=dp), intent(out) :: H0_nk(ibandmax-ibandmin+1,nk,ibandmax-ibandmin+1,nk)
+    complex(kind=dp), intent(out) :: gmnvkq_eh(ibandmax-ibandmin+1,ibandmax-ibandmin+1,nmodes,nk,nq)
 		
 		integer :: nband
     integer :: ik,iband
@@ -146,15 +146,15 @@ module hamiltonian
 		
 		nband = ibandmax-ibandmin+1
     
-    H0_nk = 0.0
+    H0_nk = czero
     do ik=1,nk
       do iband=1,nband
 				Enk(iband,ik) = etf(iband+ibandmin-1,ik)
-        H0_nk(iband,ik,iband,ik)=etf(iband+ibandmin-1,ik)
+        H0_nk(iband,ik,iband,ik)=etf(iband+ibandmin-1,ik)*cone
       enddo
     enddo  
       
-    gmnvkq_eh = gmnvkq(ibandmin:ibandmax,ibandmin:ibandmax,:,:,:)    
+    gmnvkq_eh = epmatq(ibandmin:ibandmax,ibandmin:ibandmax,:,:,:)    
 		
   end subroutine set_H0_nk
   
@@ -168,9 +168,9 @@ module hamiltonian
     implicit none
     integer , intent(in) :: nband,nk,nmodes,nq
     real(kind=dp),intent(in) :: ph_Q(nmodes,nq)
-    real(kind=dp),intent(in) :: H0_nk(nband,nk,nband,nk)
-    real(kind=dp),intent(in) :: gmnvkq_eh(nband,nband,nmodes,nk,nq)
-    real(kind=dp),intent(out):: H_nk(nband,nk,nband,nk)
+    complex(kind=dp),intent(in) :: H0_nk(nband,nk,nband,nk)
+    complex(kind=dp),intent(in) :: gmnvkq_eh(nband,nband,nmodes,nk,nq)
+    complex(kind=dp),intent(out):: H_nk(nband,nk,nband,nk)
     
     integer :: iq,nu,iband,jband
     integer :: ik,ikq    
@@ -193,43 +193,6 @@ module hamiltonian
         
   end subroutine set_H_nk
 
-	subroutine get_gmnvkq_n0(lit,nk,nband,nq,nmode,gmnvkq,ngfre,g_n0)
-		use epwcom,only  : kqmap
-		use types
-		implicit none
-		integer ,intent(in) :: nk,nband,nq,nmode,ngfre
-		real(kind=dp),intent(in) :: lit
-		real(kind=dp),intent(in) :: gmnvkq(nband,nband,nmode,nk,nq)
-		type(gmnvkq_n0),intent(out) :: g_n0(ngfre)
-		
-		integer :: ik,iband,jband,iq,imode,igfre
-		
-		igfre=0
-		do iq=1,nq
-			do ik=1,nk
-				do imode=1,nmode
-					do iband=1,nband
-						do jband=1,nband
-							if(abs(gmnvkq(jband,iband,imode,ik,iq))>lit .and. wf(imode,iq)*ryd2mev > lit_ephonon) then
-							! Only account for phonon with energy larger than lit_ephonon meV.
-								igfre=igfre+1
-								g_n0(igfre)%m=jband
-								g_n0(igfre)%n=iband
-								g_n0(igfre)%v=imode
-								g_n0(igfre)%ik=ik
-								g_n0(igfre)%iq=iq
-								g_n0(igfre)%ikq=kqmap(ik,iq)
-								g_n0(igfre)%g= gmnvkq(jband,iband,imode,ik,iq)
-							endif
-						enddo
-					enddo
-				enddo
-			enddo
-		enddo
-		
-	end subroutine get_gmnvkq_n0
-
-
 
   !========================================!
   != calculate eigenenergy and eigenstate =!
@@ -239,11 +202,13 @@ module hamiltonian
     use lapack95
     implicit none
     integer ,intent(in) :: nfre
-    real(kind=dp),intent(in) :: H(nfre,nfre)
-    real(kind=dp),intent(out):: ee(nfre),pp(nfre,nfre) 
+    complex(kind=dp),intent(in)  :: H(nfre,nfre)
+    real(kind=dp),intent(out)    :: ee(nfre)
+		complex(kind=dp),intent(out) :: pp(nfre,nfre) 
 		
     pp = H
-    call syev(pp,ee,'V','U')	
+		call heevd(pp,ee,'V','U')
+    !call syev(pp,ee,'V','U')	
     !!USE MKL lib could have a high speed in dgeev , sgeev   !in page 1131 and 1241
     !!On exit, hh array is overwritten
     !call heev(pp,ee,'V','U')    !P1143 MKL
