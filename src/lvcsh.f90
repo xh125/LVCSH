@@ -9,11 +9,11 @@
 
 program lvcsh
   !=====================================================================================================!
-  != this program is used to simulate carrier transport with the self-consistent surface hopping method=!
+  != This program is used to simulation carrier relaxtion in materials with the surface hopping method.=!
   !=====================================================================================================!
-  != of materials. We use a liner vibronic coupling model with electron-phonon couplings and           =!
+  != We use a liner vibronic coupling model with electron-phonon couplings and                         =!
   !=====================================================================================================!
-  !=  system interaction with environment by system-bath interactions                                  =!     
+  != materials interaction with environment by system-bath interactions                                =!     
   !=====================================================================================================!
   != Last updata 2021-08.27 Version:0.3.0                                                              =!   
   != Developed by XieHua at department of physic, USTC;xh125@mail.ustc.edu.cn                          =!
