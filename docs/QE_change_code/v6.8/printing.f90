@@ -90,7 +90,7 @@
     REAL(KIND = DP), ALLOCATABLE :: epc_sym(:, :, :)
     !! Temporary g-vertex for each pool
 		complex(kind=dp),allocatable :: epc_cmp(:,:,:,:)
-		!! g-vertex with out "SYMMETRIZE"
+		!! gnmvkq-vertex with out "SYMMETRIZE"
     !
     ! find the bounds of k-dependent arrays in the parallel case in each pool
     CALL fkbounds(nktotf, lower_bnd, upper_bnd)
