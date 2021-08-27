@@ -268,9 +268,9 @@ module surfacehopping
   
 
   
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-  !% convert wavefunction from diabatix to adiabatic basis %!
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  !=========================================================!
+  != convert wavefunction from diabatix to adiabatic basis =!
+  !=========================================================!  
   subroutine convert_diabatic_adiabatic(nfre,pp,cc,ww)                                        
     use f95_precision
     use blas95
@@ -312,9 +312,9 @@ module surfacehopping
   
   end subroutine convert_diabatic_adiabatic
 
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-  !% convert wavefunction from adiabatix to diabatic basis %!
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  !=========================================================!
+  != convert wavefunction from adiabatix to diabatic basis =!
+  !=========================================================!  
   subroutine convert_adiabatic_diabatic(nfre,pp,ww,cc)                                        
     use f95_precision
     use blas95
@@ -372,9 +372,9 @@ module surfacehopping
 		
 	end subroutine add_decoherence
   
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-  !% calculate nonadiabatic coupling %!
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+  !===================================!
+  != calculate nonadiabatic coupling =!
+  !===================================!
   ! ref : PPT-91
   subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,ee,p_nk,gmnvkq,lit_gmnvkq,nfre_sh,dd)
     use kinds,only :  dp
@@ -475,10 +475,6 @@ module surfacehopping
   end subroutine calculate_nonadiabatic_coupling
   
   
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-  !% calculate eigenenergy and eigenstate %!
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
-  
   function bolziman(womiga,temp)
     use kinds ,only : dp
     implicit none
@@ -488,11 +484,9 @@ module surfacehopping
     !<nb>=1/(exp{hw/kbT}-1)
   end function bolziman
  
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-  !% CALCULATE HOPPING PROBABILITY %!
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-  !% REF: NOTEBOOK PAGE 631        %!
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!  
+  !================================================================!
+  != CALCULATE HOPPING PROBABILITY                                =! 
+  !================================================================!
   !call calculate_hopping_probability(w0_e,phP0,d0,dt,g,g1) using FSSH in adiabatic representation
   !ref : 1 J. C. Tully, J. Chem. Phys. 93 (1990) 1061.
   !ref : 2 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
