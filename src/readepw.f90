@@ -2,7 +2,7 @@ module readepw
   use kinds ,only :dp
   use constants,only : maxlen,amu_ry,rytoev,ryd2mev,ryd2eV,cone,czero,ci
   use io, only : io_file_unit,open_file,close_file,findkword,findkline,stdout,io_error,msg
-	use parameters,only : verbosity,lit_ephonon
+	use parameters,only : verbosity,lit_ephonon,lit_gmnvkq
 	use memory_report,only : MB,GB,complex_size, real_size,int_size,ram,print_memory
   use klist, only : nelec,lgauss, degauss, ngauss, nkstot, wk
   use klist_epw, only : xk_all,xkg_all
@@ -53,6 +53,8 @@ module readepw
   real(kind=dp) ::  wq          ,&! Phonon frequency
                     ekk         ,&! Eigenenergies at k
                     ekq           ! Eigenenergies at k+q
+  real(kind=dp) ::  max_wf
+  
   
   real(kind=dp),allocatable :: epc(:,:,:,:)
   !! g vectex accross all pools
@@ -63,7 +65,7 @@ module readepw
   real(kind=dp),allocatable :: E_nk(:,:),E_mkq(:,:)
 	
 	real(kind=dp),allocatable :: max_g(:,:)
-  integer,allocatable :: calgmnvkq_q(:)
+  integer,allocatable       :: calgmnvkq_q(:)
 	
 
   real(kind=dp) :: wannier_plot_radius,wannier_plot_scale
@@ -1242,10 +1244,12 @@ module readepw
 
 		etf = etf/ryd2eV
     etf = etf - ef
-    wf = wf/ryd2mev		
+    wf = wf/ryd2mev
 		gmnvkq = gmnvkq/ryd2mev
 		epmatq = epmatq/ryd2mev
-		
+    max_wf = Maxval(wf(nmodes,:))
+		lit_gmnvkq = lit_gmnvkq*sqrt(2.0*max_wf/nqtotf)
+    
 		do iq=1,nqtotf
 			do nu = 1,nmodes
 				gmnvkq(:,:,nu,:,iq)=sqrt(2.0*wf(nu,iq)/nqtotf)*gmnvkq(:,:,nu,:,iq)
