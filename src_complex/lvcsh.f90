@@ -42,8 +42,8 @@ program lvcsh
                             gmnvkq_e,Enk_e,H0_e_nk,E0_e,P0_e,nhfre,nhband,H_h, &
                             H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,gmnvkq_h,Enk_h,      &
                             H0_h_nk,E0_h,P0_h,allocate_hamiltonian,set_H_nk,   &
-                            set_H0_nk,calculate_eigen_energy_state,ngfre_e,    &
-                            ngfre_h,gmnvkq_n0_e,gmnvkq_n0_h,get_gmnvkq_n0
+                            set_H0_nk,calculate_eigen_energy_state    
+                            
   use sortting,only       : resort_eigen_energy_stat
   use randoms,only        : init_random_seed
   use lasercom,only       : fwhm,w_laser
@@ -232,10 +232,10 @@ program lvcsh
       write(stdout,"(/5X,A)") "The phonon dynamica set as classical."
     endif
     write(stdout,"(5X,A38,F11.5,A4,A9,F11.5,A4)") &
-    "The initial energy of phonon: SUM_phT=",0.5*SUM(phP**2)*ryd2eV," eV",&
-    " SUM_phU=",0.5*SUM(wf**2*phQ**2)*ryd2eV," eV"
+    "The initial energy of phonon: SUM_phT=",0.5*SUM(ABS(phP)**2)*ryd2eV," eV",&
+    " SUM_phU=",0.5*SUM(wf**2*ABS(phQ)**2)*ryd2eV," eV"
     write(stdout,"(5X,A38,F11.5,A4)") &
-    "The initial energy of phonon: SUM_phE=",0.5*SUM(phP**2+wf**2*phQ**2)*ryd2eV," eV."
+    "The initial energy of phonon: SUM_phE=",0.5*SUM(ABS(phP)**2+wf**2*ABS(phQ)**2)*ryd2eV," eV."
     
     dEa_dQ = 0.0
     dEa2_dQ2 = 0.0
@@ -256,10 +256,11 @@ program lvcsh
     endif
     
     write(stdout,"(5X,A23,F6.2,A2,A19,F11.5,A4,A9,F11.5,A4)") &
-    "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phT=",0.5*SUM(phP**2)*ryd2eV," eV",&
-    " SUM_phU=",0.5*SUM(wf**2*phQ**2)*ryd2eV," eV"
+    "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phT=",0.5*SUM(ABS(phP)**2)*ryd2eV," eV",&
+    " SUM_phU=",0.5*SUM(wf**2*ABS(phQ)**2)*ryd2eV," eV"
     write(stdout,"(5X,A23,F6.2,A2,A19,F11.5,A4)") &
-    "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phE=",0.5*SUM(phP**2+wf**2*phQ**2)*ryd2eV," eV."    
+    "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phE="&
+    ,0.5*SUM(ABS(phP)**2+wf**2*ABS(phQ)**2)*ryd2eV," eV."    
     
     !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband(in the diabatic states)
     call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
@@ -316,8 +317,8 @@ program lvcsh
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     !% calculate phonon energy                                %!
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-    phU = 0.5*(wf**2)*(phQ**2)
-    phK = 0.5*phP**2        
+    phU = 0.5*(wf**2)*(phQ*CONJG(phQ))
+    phK = 0.5*phP*CONJG(phP)        
     SUM_phK = SUM(phK)
     SUM_phU = SUM(phU)
     SUM_phE = SUM_phK+SUM_phU
@@ -592,8 +593,8 @@ program lvcsh
         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
         !% Write non-adiabatic dynamica energy information every step       %!
         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-        phU = 0.5*(wf**2)*(phQ**2)
-        phK = 0.5*phP**2        
+        phU = 0.5*(wf**2)*(phQ*CONJG(phQ))
+        phK = 0.5*phP*CONJG(phP)        
         SUM_phK = SUM(phK)
         SUM_phU = SUM(phU)
         SUM_phE = SUM_phK+SUM_phU 
@@ -688,7 +689,6 @@ program lvcsh
     wsit_e = wsit_e /naver
     psit_e = psit_e /naver
     pes_e  = pes_e  /naver
-    !pes_one_e
   endif
   
   if(lholesh) then
@@ -696,7 +696,6 @@ program lvcsh
     wsit_h = wsit_h /naver
     psit_h = psit_h /naver
     pes_h  = pes_h  /naver
-    !pes_one_h
   endif
 
 
