@@ -5,14 +5,14 @@ SHELL = /bin/sh
 # path
 #project_home = $(dir $(abspath $(MAKEFILE_LIST)))
 project_home = ..
-srcdir       = $(project_home)/src
-bindir       = $(project_home)/bin
+srcdir       = $(project_home)/src_complex
+bindir       = $(project_home)/bin_complex
 
 # the path to find the source code. 
 VPATH = $(srcdir)
 
 # output exe file
-exe	    = LVCSH.x
+exe	    = LVCSH_complex.x
 
 # IFLAGS = how to locate directories with *.h or *.f90 file to be included
 IFLAGS         = -I$(project_home)/include
