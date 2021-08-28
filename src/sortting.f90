@@ -154,9 +154,7 @@ module sortting
 		!	endif
 		!	
 		!enddo
-		
-		
-		
+
 		
 		deallocate(P_ij,P_ii,P_i,i_mix,j_mix)
 		
