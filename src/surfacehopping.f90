@@ -115,20 +115,20 @@ module surfacehopping
       wsit_e = 0.0d0
       psit_e = 0.0d0
 			
-      !if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
-        allocate(cc0_e(nefre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating cc0_e',1)
-        allocate(dc1_e(nefre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating dc1_e',1)
-        allocate(dc2_e(nefre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating dc2_e',1)
-        allocate(dc3_e(nefre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating dc3_e',1)
-        allocate(dc4_e(nefre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating dc4_e',1)
-        allocate(n_e(nefre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating n_e',1)            
-      !endif
+
+      allocate(cc0_e(nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating cc0_e',1)
+      allocate(dc1_e(nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc1_e',1)
+      allocate(dc2_e(nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc2_e',1)
+      allocate(dc3_e(nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc3_e',1)
+      allocate(dc4_e(nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc4_e',1)
+      allocate(n_e(nefre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating n_e',1)            
+        
       
       allocate(w_e(nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating w_e',1)  
@@ -190,20 +190,18 @@ module surfacehopping
       wsit_h = 0.0
       psit_h = 0.0
 			
-      !if(methodsh == "SC-FSSH" .OR. methodsh == "CC-FSSH") then
-        allocate(cc0_h(nhfre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating cc0_h',1)
-        allocate(dc1_h(nhfre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating dc1_h',1)
-        allocate(dc2_h(nhfre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating dc2_h',1)
-        allocate(dc3_h(nhfre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating dc3_h',1)
-        allocate(dc4_h(nhfre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating dc4_h',1)
-        allocate(n_h(nhfre),stat=ierr,errmsg=msg)
-        if(ierr /=0) call errore('surfacehopping','Error allocating n_h',1)                  
-      !endif
+      allocate(cc0_h(nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating cc0_h',1)
+      allocate(dc1_h(nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc1_h',1)
+      allocate(dc2_h(nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc2_h',1)
+      allocate(dc3_h(nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc3_h',1)
+      allocate(dc4_h(nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating dc4_h',1)
+      allocate(n_h(nhfre),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating n_h',1)                  
       
       allocate(w_h(nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating w_h',1)  
@@ -216,9 +214,7 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating g1_h',1) 
       
       allocate(E0_h(1:nhfre),stat=ierr,errmsg=msg)
-      if(ierr /=0) call errore('surfacehopping','Error allocating E0_h',1)
-      !allocate(E_h_(1:nhfre),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating E_h_',1)      
+      if(ierr /=0) call errore('surfacehopping','Error allocating E0_h',1)    
       
       allocate(P0_h(nhfre,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h',1)
@@ -230,37 +226,6 @@ module surfacehopping
         allocate(S_bi_h(nhfre_sh))
       endif
     endif
-    
-      !allocate(pes(0:nefre,1:nsnap,1:naver),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating pes',1)
-      !pes = 0.0
-      !allocate(inf(1:3,1:nsnap,1:naver),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating inf',1)
-      !inf = 0.0
-      !allocate(csit(nefre,nsnap),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating csit',1)
-      !csit = 0.0
-      !allocate(wsit(nefre,nsnap),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating wsit',1)
-      !wsit = 0.0 
-      !allocate(psit(nefre,nsnap),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating psit',1)   
-      !psit = 0.0
-      !allocate(xsit(nefre,nsnap),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating xsit',1)  
-      !xsit = 0.0
-      !allocate(ksit(nefre,nsnap),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating ksit',1)    
-      !ksit = 0.0
-      !allocate(msd(nsnap),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating msd',1)
-      !msd = 0.0
-      !allocate(ipr(nsnap),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating ipr',1)
-      !ipr = 0.0
-      !allocate(msds(nsnap,naver),stat=ierr,errmsg=msg)
-      !if(ierr /=0) call errore('surfacehopping','Error allocating csit',1)
-      !msds = 0.0
     
     
   end subroutine allocatesh
