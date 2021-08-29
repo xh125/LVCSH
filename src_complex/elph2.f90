@@ -38,6 +38,8 @@
   INTEGER, ALLOCATABLE ::    &!
     igk(:),                  &!  Index for k+G vector
     igkq(:),                 &!  Index for k+q+G vector
+    iminusq(:),              &!  Index for -q vector
+    iminusk(:),              &!  Index for -k vector
     igk_k_all(:, :),         &!  Global index (in case of parallel)
     ngk_all(:),              &!  Global number of plane wave for each global k-point
     map_rebal(:),            &!  Map between the k-point and their load rebalanced one

@@ -198,7 +198,7 @@ module dynamics
       do imode=1,nmodes
         do ifre=1,nfre_sh
           if(ifre /= isurface) then
-            dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + (EE(ifre)-EE(isurface))*(ABS(DD(ifre,isurface,imode,iq)))**2
+            dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) - (EE(ifre)-EE(isurface))*(ABS(DD(ifre,isurface,imode,iq)))**2
           endif
         enddo
       enddo

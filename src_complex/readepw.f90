@@ -36,7 +36,7 @@ module readepw
               nu       ,           &! Mode index
               totq     ,           &! Total number of q-points within the fsthick window.
               iq,iq_                ! Current q-point index
-  INTEGER :: i,j,k,iw
+  INTEGER :: i,j,k,iw,i_,j_,k_
   !! generic counter
   INTEGER :: ipol
   !! counter on polarizations
@@ -88,7 +88,7 @@ module readepw
   contains
 	
   subroutine readepwout(fepwout)
-    use elph2,    only : nqtotf,xqf,nbndfst
+    use elph2,    only : nqtotf,xqf,nbndfst,iminusq,iminusk
     use grid,     only : loadqmesh,kq2k_map,loadkmesh_fullBZ,get_ikq
     use modes,    only : nmodes
     use control_epw, only : eig_read,epbread,epbwrite,efermi_read,scissor
@@ -824,13 +824,27 @@ module readepw
     endif
     wqf = 1.0d0/(dble(nqtotf))
     
+    allocate(iminusq(nqtotf))
+    
+    
     do i = 1 ,nqf1
-      do j=1,nqf2
+      i_ = nqf1 + 2 - i
+      if(i_ > nqf1) i_ = i_ - nqf1
+      
+      do j = 1 ,nqf2
+        j_ = nqf2 + 2 - j
+        if(j_ > nqf2) j_ = j_ - nqf2
+        
         do k=1,nqf3
+          k_ = nqf3 + 2 - k
+          if(k_ > nqf3) k_ = k_ - nqf3
+          
           iq = (i - 1) * nqf2 * nqf3 + (j - 1) * nqf3 + k
           xqf(1, iq) = DBLE(i - 1) / DBLE(nqf1)
           xqf(2, iq) = DBLE(j - 1) / DBLE(nqf2)
           xqf(3, iq) = DBLE(k - 1) / DBLE(nqf3)          
+          
+          iminusq(iq) = (i_ - 1) * nqf2 * nqf3 + (j_ - 1) * nqf3 + k_
         enddo
       enddo
     enddo  
@@ -892,13 +906,27 @@ module readepw
 		wkf = 0.0d0
     wkf = 1.0d0/dble(nktotf) !
 		
+    allocate(iminusk(nktotf))
+    
+    
     DO i = 1, nkf1
+      i_ = nkf1 + 2 - i
+      if(i_ > nkf1) i_ = i_ - nkf1    
+
       DO j = 1, nkf2
+        j_ = nkf2 + 2 - j
+        if(j_ > nkf2) j_ = j_ - nkf2      
+
         DO k = 1, nkf3
+          k_ = nkf3 + 2 - k
+          if(k_ > nkf3) k_ = k_ - nkf3
+          
           ik = (i - 1) * nkf2 * nkf3 + (j - 1) * nkf3 + k
           xkf(1, ik) = DBLE(i - 1) / DBLE(nkf1)
           xkf(2, ik) = DBLE(j - 1) / DBLE(nkf2)
           xkf(3, ik) = DBLE(k - 1) / DBLE(nkf3)
+          iminusk(ik)= (i_ - 1) * nkf2 * nkf3 + (j_ - 1) * nkf3 + k_
+          
         ENDDO
       ENDDO
     ENDDO       
@@ -1258,7 +1286,6 @@ module readepw
 		enddo
 		
 		gmnvkq = ABS(epmatq)
-		!deallocate(epmatq)
        
     call findkline(unitepwout,"matrix elements",15,29)
     read(unitepwout,"(A)") ctmp
@@ -1269,7 +1296,7 @@ module readepw
     endif
     allocate(vmef(1:3,ibndmin:ibndmax,ibndmin:ibndmax,1:nktotf),stat=ierr,errmsg=msg)
 		if(ierr /= 0) call io_error(msg)
-		ram = real_size*3*(ibndmax-ibndmin+1)**2*nktotf
+		ram = complex_size*3*(ibndmax-ibndmin+1)**2*nktotf
 		call print_memory("vmef",ram)
 		
     do ik=1,nkf
