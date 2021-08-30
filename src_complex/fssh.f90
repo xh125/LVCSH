@@ -48,7 +48,7 @@ module fssh
           
           
           if(flagd > 0.0) then
-            flagd = (sumvd/sumdd)*(-1.0+dsqrt(flagd))
+            flagd = (sumvd/sumdd)*(-1.0+dsqrt(flagd))  ! effective scratting time
             do iq=1,nq
               do imode=1,nmodes
                 if(lfeedback) VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)

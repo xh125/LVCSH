@@ -344,7 +344,7 @@ module surfacehopping
   ! ref : PPT-91
   subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,ee,p_nk,gmnvkq,lit_gmnvkq,nfre_sh,dd)
     use kinds,only :  dp
-		use types
+		use elph2,only :  iminusq
     implicit none
     integer, intent(in)          :: nmodes,nq,nband,nk,nfre_sh
     real(kind=dp),intent(in)     :: ee(nband*nk)
@@ -411,30 +411,48 @@ module surfacehopping
 		!version 3 时间变短五倍，由gmnvkg中0的个数决定缩短时间
     dd=czero
 		do iq=1,nq
-			do ik =1 ,nk
-				ikq = kqmap(ik,iq)
-				do imode=1,nmodes
-					do iband1=1,nband
-						do iband2=1,nband
-							epc = gmnvkq(iband1,iband2,imode,ik,iq)
-							if(ABS(epc) > lit_gmnvkq) then
-								do ifre=1,nfre-1
-									do jfre=ifre+1,nfre
-										dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
-										&epc*CONJG(p_nk(iband1,ik,ifre))*p_nk(iband2,ikq,jfre)
-									enddo
-								enddo
-							endif
+      if(iminusq(iq)>=iq) then
+        !dd(ifre,jfre,imode,-iq)=-1.0*CONJG(dd(jfre,ifre,imode,iq))
+        do ik =1 ,nk
+          ikq = kqmap(ik,iq)
+          do imode=1,nmodes
+            do iband1=1,nband
+              do iband2=1,nband
+                epc = gmnvkq(iband1,iband2,imode,ik,iq)
+                if(ABS(epc) > lit_gmnvkq) then
+                  do ifre=1,nfre
+                    do jfre=1,nfre                    
+                      dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
+                      &epc*CONJG(p_nk(iband1,ik,ifre))*p_nk(iband2,ikq,jfre)
+                    enddo
+                  enddo
+                endif
+              enddo
             enddo
           enddo
         enddo
-      enddo
+        if(iminusq(iq) /= iq) then
+          do imode = 1,nmodes
+            do ifre=1,nfre
+              do jfre=1,nfre
+                dd(ifre,jfre,imode,iminusq(iq)) = CONJG(dd(jfre,ifre,imode,iq))
+              enddo
+            enddo
+          enddo
+        endif
+      endif
     enddo
 		
-		do ifre=1,nfre-1
-			do jfre=ifre+1,nfre
-				dd(ifre,jfre,:,:) = dd(ifre,jfre,:,:)/(ee(jfre)-ee(ifre))
-				dd(jfre,ifre,:,:) = -1.0*dd(ifre,jfre,:,:)		
+      
+    
+    
+		do ifre=1,nfre
+			do jfre=1,nfre
+        if(jfre/= ifre) then
+          dd(ifre,jfre,:,:) = dd(ifre,jfre,:,:)/(ee(jfre)-ee(ifre))
+        else
+          !dd(ifre,jfre,:,:) = czero
+        endif
 			enddo
 		enddo
     

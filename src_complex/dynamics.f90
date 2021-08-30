@@ -28,6 +28,7 @@ module dynamics
   end subroutine
   
   subroutine get_dEa_dQ(nmodes,nq,nband,nk,P_nk,gmnvkq,isurface,dEa_dQ)
+    use elph2,only : iminusq
     implicit none
     integer,intent(in) :: nmodes,nq,nband,nk
     integer,intent(in) :: isurface
@@ -38,18 +39,23 @@ module dynamics
     integer :: iq,imode,ik,ikq,iband1,iband2
     
     dEa_dQ = czero
+    !dEa_dQ(nu,q)=dEa_dQ(nu,-q)*
     do iq=1,nq
-      do imode=1,nmodes
-        do ik=1,nk
-          ikq = kqmap(ik,iq)
-          do iband1=1,nband
-            do iband2=1,nband
-              dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
-              gmnvkq(iband1,iband2,imode,ik,iq)*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
+      if(iminusq(iq)>=iq) then
+      ! ph_Q(v,q)=ph_Q(v,-q)*    
+        do imode=1,nmodes
+          do ik=1,nk
+            ikq = kqmap(ik,iq)
+            do iband1=1,nband
+              do iband2=1,nband
+                dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
+                gmnvkq(iband1,iband2,imode,ik,iq)*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
+              enddo
             enddo
           enddo
         enddo
-      enddo
+        if(iminusq(iq) /= iq)dEa_dQ(:,iminusq(iq)) = CONJG(dEa_dQ(:,iq))
+      endif
     enddo
     
   end subroutine get_dEa_dQ
@@ -216,8 +222,10 @@ module dynamics
   ! ref: 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
   SUBROUTINE ADD_BATH_EFFECT(nmodes,nq,wf,ld_gamma,temp,dEa2_dQ2,TT,l_ph_quantum,XX,VV)
     use kinds,only : dp,dpc
+    use parameters,only : lit_ephonon
+    use elph2,only :  iminusq
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
-    use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7
+    use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7,ryd2mev
     implicit none
     
     integer , intent(in)      :: nq,nmodes
@@ -235,34 +243,39 @@ module dynamics
     real(kind=dp) :: gamma,womiga,aver_E_T
     
     DO iq=1,nq
-      do imode=1,nmodes
-        womiga = wf(imode,iq)
-        gamma = ld_gamma(imode,iq)
-        if(womiga > 0.0) then
-					if(l_ph_quantum) then
-						aver_E_T = (bolziman(womiga,temp)+0.5)*womiga
-						!aver_E_T = KB*TEMP
-					else
-						aver_E_T = KB*TEMP
-					endif
-				else
-					aver_E_T = 0.0
-				endif
-        SIGMAR=DSQRT(2.0*gamma*aver_E_T*TT)
-        wwf2 = wf(imode,iq)**2+dEa2_dQ2(imode,iq)
-      
-        R1=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
-        R2=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
-        R3=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
-        R4=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
-        Z1=R1    ! V=phP
-        Z2=TT*(R1/2.0D0+R2/SQRT3/2.0D0)  !V*T
-        Z3=TT**2*(R1/6.0D0+R2*SQRT3/12.0D0+R3/SQRT5/12.0D0) ! V*T**2
-        Z4=TT**3*(R1/24.0D0+R2*SQRT3/40.0D0+R3/SQRT5/24.0D0+R4/SQRT7/120.0D0) ! V*T**3
-        XX(imode,iq)=XX(imode,iq)+(Z2-GAMMA*Z3+(-wwf2+GAMMA**2)*Z4)
-        VV(imode,iq)=VV(imode,iq)+(Z1-GAMMA*Z2+(-wwf2+GAMMA**2)*Z3+(2.0*gamma*wwf2-GAMMA**3)*Z4)
+      if(iminusq(iq)>=iq) then
+      ! ph_Q(v,q)=ph_Q(v,-q)*
+        do imode=1,nmodes
+          womiga = wf(imode,iq)
+          gamma = ld_gamma(imode,iq)
+          if(womiga*ryd2mev > lit_ephonon ) then
+            if(l_ph_quantum) then
+              aver_E_T = (bolziman(womiga,temp)+0.5)*womiga
+              !aver_E_T = KB*TEMP
+            else
+              aver_E_T = KB*TEMP
+            endif
+          else
+            aver_E_T = 0.0
+          endif
+          SIGMAR=DSQRT(2.0*gamma*aver_E_T*TT)
+          wwf2 = wf(imode,iq)**2+dEa2_dQ2(imode,iq)
         
-      enddo
+          R1=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
+          R2=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
+          R3=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
+          R4=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
+          Z1=R1    ! V=phP
+          Z2=TT*(R1/2.0D0+R2/SQRT3/2.0D0)  !V*T
+          Z3=TT**2*(R1/6.0D0+R2*SQRT3/12.0D0+R3/SQRT5/12.0D0) ! V*T**2
+          Z4=TT**3*(R1/24.0D0+R2*SQRT3/40.0D0+R3/SQRT5/24.0D0+R4/SQRT7/120.0D0) ! V*T**3
+          XX(imode,iq)=XX(imode,iq)+(Z2-GAMMA*Z3+(-wwf2+GAMMA**2)*Z4)
+          VV(imode,iq)=VV(imode,iq)+(Z1-GAMMA*Z2+(-wwf2+GAMMA**2)*Z3+(2.0*gamma*wwf2-GAMMA**3)*Z4)
+          XX(imode,iminusq(iq)) = CONJG(XX(imode,iq)) 
+          VV(imode,iminusq(iq)) = CONJG(VV(imode,iq))
+        
+        enddo
+      endif
     enddo
     
   ENDSUBROUTINE  

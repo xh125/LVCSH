@@ -167,8 +167,8 @@ program lvcsh
       do istep=1,pre_nstep
         call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
         call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
-        SUM_phK = SUM_phK+ 0.5*SUM(phP**2)
-        SUM_phU = SUM_phU+ 0.5*SUM((wf**2)*(phQ**2))
+        SUM_phK = SUM_phK+ 0.5*SUM(ABS(phP)**2)
+        SUM_phU = SUM_phU+ 0.5*SUM((wf**2)*(ABS(phQ)**2))
       enddo
       SUM_phK = SUM_phK/pre_nstep
       SUM_phU = SUM_phU/pre_nstep
@@ -573,7 +573,7 @@ program lvcsh
 
         !===================!
         != add bath effect =!
-        !===================!         
+        !===================!       
         call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,dt,l_ph_quantum,phQ,phP)
 
 
