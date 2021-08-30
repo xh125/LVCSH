@@ -27,35 +27,40 @@ module dynamics
     
   end subroutine
   
-  subroutine get_dEa_dQ(nmodes,nq,nband,nk,P_nk,gmnvkq,isurface,dEa_dQ)
+  subroutine get_dEa_dQ(nmodes,nq,nband,nk,P_nk,gmnvkq,lit_gmnvkq,isurface,dEa_dQ)
     use elph2,only : iminusq
     implicit none
     integer,intent(in) :: nmodes,nq,nband,nk
     integer,intent(in) :: isurface
+    real(kind=dp),intent(in)      :: lit_gmnvkq
     complex(kind=dpc),intent(in)  :: P_nk(nband,nk,nband*nk)
     complex(kind=dpc),intent(in)  :: gmnvkq(nband,nband,nmodes,nk,nq)
     complex(kind=dpc),intent(out) :: dEa_dQ(nmodes,nq)
     
     integer :: iq,imode,ik,ikq,iband1,iband2
+    complex(kind=dpc) :: epc
     
     dEa_dQ = czero
     !dEa_dQ(nu,q)=dEa_dQ(nu,-q)*
     do iq=1,nq
-      if(iminusq(iq)>=iq) then
+      !if(iminusq(iq)>=iq) then
       ! ph_Q(v,q)=ph_Q(v,-q)*    
         do imode=1,nmodes
           do ik=1,nk
             ikq = kqmap(ik,iq)
             do iband1=1,nband
               do iband2=1,nband
-                dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
-                gmnvkq(iband1,iband2,imode,ik,iq)*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
+                epc = gmnvkq(iband1,iband2,imode,ik,iq)
+                if(ABS(epc) > lit_gmnvkq) then
+                  dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
+                  epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
+                endif
               enddo
             enddo
           enddo
         enddo
-        if(iminusq(iq) /= iq)dEa_dQ(:,iminusq(iq)) = CONJG(dEa_dQ(:,iq))
-      endif
+        !if(iminusq(iq) /= iq) dEa_dQ(:,iminusq(iq)) = CONJG(dEa_dQ(:,iq))
+      !endif
     enddo
     
   end subroutine get_dEa_dQ
@@ -66,6 +71,8 @@ module dynamics
   != ref: http://en.wikipedia.org/wiki/runge_kutta_methods               =!
   !=======================================================================!
   subroutine rk4_nuclei(nmodes,nq,dEa_dQ,ld_gamma,wf,xx,vv,tt)
+    use parameters,only : lit_ephonon
+    use constants,only : ryd2mev,czero
     implicit none
     integer , intent(in) :: nmodes,nq
     real(kind=dp),intent(in)   :: ld_gamma(nmodes,nq)
@@ -76,6 +83,8 @@ module dynamics
     real(kind=dp):: tt2,tt6
     complex(kind=dpc):: xx0(nmodes,nq),dx1(nmodes,nq),dx2(nmodes,nq),dx3(nmodes,nq),dx4(nmodes,nq)
     complex(kind=dpc):: vv0(nmodes,nq),dv1(nmodes,nq),dv2(nmodes,nq),dv3(nmodes,nq),dv4(nmodes,nq)
+    integer :: iq,imode
+    real(kind=dp) :: womiga
 
     tt2=tt/2.0d0; tt6=tt/6.0d0
     call derivs_nuclei(nmodes,nq,dEa_dQ,wf,ld_gamma,xx,vv,dx1,dv1)
@@ -87,6 +96,18 @@ module dynamics
     call derivs_nuclei(nmodes,nq,dEa_dQ,wf,ld_gamma,xx0,vv0,dx4,dv4)
     xx=xx+tt6*(dx1+2.0d0*dx2+2.0d0*dx3+dx4)
     vv=vv+tt6*(dv1+2.0d0*dv2+2.0d0*dv3+dv4)
+    
+    do iq=1,nq
+      do imode=1,nmodes
+        womiga = wf(imode,iq)
+        if(womiga*ryd2mev <= lit_ephonon ) then
+          xx(imode,iq) = czero
+          vv(imode,iq) = czero
+        endif
+      enddo
+    enddo
+    
+    
   endsubroutine
   
   !====================================================!
@@ -99,6 +120,7 @@ module dynamics
   ! ref : PPT-92
   ! ref : 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
   subroutine derivs_nuclei(nmodes,nq,dEa_dQ,wf,ld_gamma,xx,vv,dx,dv)
+    use elph2,only : iminusq
     implicit none
     integer,intent(in) :: nmodes,nq
     complex(kind=dpc),intent(in) :: dEa_dQ(nmodes,nq)
@@ -110,7 +132,8 @@ module dynamics
     integer :: iq,imode,ik,iband1,iband2,ikq
     
     dx = vv
-    dv = -wf**2*CONJG(xx) - dEa_dQ - ld_gamma*vv
+    !dv = -wf**2*xx - dEa_dQ - ld_gamma*vv
+    dv = -wf**2*xx - CONJG(dEa_dQ) - ld_gamma*vv
     
     !do iq=1,nq
     !  do imode=1,nmodes
@@ -225,7 +248,7 @@ module dynamics
     use parameters,only : lit_ephonon
     use elph2,only :  iminusq
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
-    use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7,ryd2mev
+    use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7,ryd2mev,cone,ci,tpi
     implicit none
     
     integer , intent(in)      :: nq,nmodes
@@ -237,8 +260,10 @@ module dynamics
     logical,intent(in)        :: l_ph_quantum
     complex(kind=dpc), intent(inout) :: XX(nmodes,nq),VV(nmodes,nq)
     
-    integer :: imode,iq
-    real(kind=dp) :: SIGMAR,R1,R2,R3,R4,Z1,Z2,Z3,Z4
+    integer :: imode,iq,i
+    real(kind=dp) :: SIGMAR
+    complex(kind=dpc) :: R1,R2,R3,R4,Z1,Z2,Z3,Z4
+    complex(kind=dpc) :: cplx_tmp
     real(kind=dp) :: wwf2
     real(kind=dp) :: gamma,womiga,aver_E_T
     
@@ -255,25 +280,26 @@ module dynamics
             else
               aver_E_T = KB*TEMP
             endif
-          else
-            aver_E_T = 0.0
+
+            SIGMAR=DSQRT(2.0*gamma*aver_E_T*TT)
+            wwf2 = wf(imode,iq)**2+dEa2_dQ2(imode,iq)
+          
+          
+            cplx_tmp = VV(imode,iq)/ABS(VV(imode,iq))            
+          
+            R1=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)*cplx_tmp
+            R2=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)*cplx_tmp
+            R3=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)*cplx_tmp
+            R4=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)*cplx_tmp
+            Z1=R1    ! V=phP
+            Z2=TT*(R1/2.0D0+R2/SQRT3/2.0D0)  !V*T
+            Z3=TT**2*(R1/6.0D0+R2*SQRT3/12.0D0+R3/SQRT5/12.0D0) ! V*T**2
+            Z4=TT**3*(R1/24.0D0+R2*SQRT3/40.0D0+R3/SQRT5/24.0D0+R4/SQRT7/120.0D0) ! V*T**3
+            XX(imode,iq)=XX(imode,iq)+(Z2-GAMMA*Z3+(-wwf2+GAMMA**2)*Z4)
+            VV(imode,iq)=VV(imode,iq)+(Z1-GAMMA*Z2+(-wwf2+GAMMA**2)*Z3+(2.0*gamma*wwf2-GAMMA**3)*Z4)
+            XX(imode,iminusq(iq)) = CONJG(XX(imode,iq)) 
+            VV(imode,iminusq(iq)) = CONJG(VV(imode,iq))
           endif
-          SIGMAR=DSQRT(2.0*gamma*aver_E_T*TT)
-          wwf2 = wf(imode,iq)**2+dEa2_dQ2(imode,iq)
-        
-          R1=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
-          R2=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
-          R3=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
-          R4=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)
-          Z1=R1    ! V=phP
-          Z2=TT*(R1/2.0D0+R2/SQRT3/2.0D0)  !V*T
-          Z3=TT**2*(R1/6.0D0+R2*SQRT3/12.0D0+R3/SQRT5/12.0D0) ! V*T**2
-          Z4=TT**3*(R1/24.0D0+R2*SQRT3/40.0D0+R3/SQRT5/24.0D0+R4/SQRT7/120.0D0) ! V*T**3
-          XX(imode,iq)=XX(imode,iq)+(Z2-GAMMA*Z3+(-wwf2+GAMMA**2)*Z4)
-          VV(imode,iq)=VV(imode,iq)+(Z1-GAMMA*Z2+(-wwf2+GAMMA**2)*Z3+(2.0*gamma*wwf2-GAMMA**3)*Z4)
-          XX(imode,iminusq(iq)) = CONJG(XX(imode,iq)) 
-          VV(imode,iminusq(iq)) = CONJG(VV(imode,iq))
-        
         enddo
       endif
     enddo

@@ -415,11 +415,11 @@ program lvcsh
         dEa_dQ = 0.0
         !dEa_dQ in time t0
         if(lelecsh) then
-          call get_dEa_dQ(nmodes,nqtotf,neband,nktotf,P0_e_nk,gmnvkq_e,iesurface,dEa_dQ_e)
+          call get_dEa_dQ(nmodes,nqtotf,neband,nktotf,P0_e_nk,gmnvkq_e,lit_gmnvkq,iesurface,dEa_dQ_e)
           dEa_dQ = dEa_dQ + dEa_dQ_e
         endif
         if(lholesh) then
-          call get_dEa_dQ(nmodes,nqtotf,nhband,nktotf,P0_h_nk,gmnvkq_h,ihsurface,dEa_dQ_h)
+          call get_dEa_dQ(nmodes,nqtotf,nhband,nktotf,P0_h_nk,gmnvkq_h,lit_gmnvkq,ihsurface,dEa_dQ_h)
           dEa_dQ = dEa_dQ + dEa_dQ_h
         endif
         
