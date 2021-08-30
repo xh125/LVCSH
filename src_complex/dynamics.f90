@@ -110,7 +110,7 @@ module dynamics
     integer :: iq,imode,ik,iband1,iband2,ikq
     
     dx = vv
-    dv = -wf**2*xx - dEa_dQ - ld_gamma*vv
+    dv = -wf**2*CONJG(xx) - dEa_dQ - ld_gamma*vv
     
     !do iq=1,nq
     !  do imode=1,nmodes
