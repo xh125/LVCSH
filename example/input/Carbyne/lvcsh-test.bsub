@@ -24,14 +24,4 @@ done
 
 NP=`cat ${CURDIR}/nodelist |wc -l`
 
-
-#for i in {1..32}
-#do
-#mkdir sample$i
-#cp ./LVCSH.in ./sample$i/
-#cd ./sample$i
 LVCSH_complex.x
-#cd ..
-#done
-#wait
-
