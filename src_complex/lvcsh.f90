@@ -330,24 +330,24 @@ program lvcsh
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     if(lholesh) then
       if(lelecsh) then
-        write(stdout,"(/,A)") "   time(fs)     rt(s) hsur esur&
-        &  E_h(eV)      E_e(eV)     E_eh(eV)     T_ph(eV)     U_ph(eV)     E_ph(eV)     E_tot(eV)"         
-        write(stdout,"(F11.2,F10.2,I5,I5,7(1X,F11.4))") 0.00,0.00,&
+        write(stdout,"(/,A)") " time(fs)    rt(s) hsur esur&
+        &     E_h(eV)     E_e(eV)    E_eh(eV)    T_ph(eV)    U_ph(eV)    E_ph(eV)   E_tot(eV)"         
+        write(stdout,"(F9.2,F9.2,I5,I5,7(1X,F11.4))") 0.00,0.00,&
         ihsurface,iesurface,&
         -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
         SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV       
       else 
-        write(stdout,"(/,A)") "   time(fs)     rt(s) hsur&
-        &  E_h(eV)     T_ph(eV)     U_ph(eV)     E_ph(eV)     E_tot(eV)"       
-        write(stdout,"(F11.2,F10.2,I5,5(1X,F11.4))") 0.00,0.00,&
+        write(stdout,"(/,A)") " time(fs)    rt(s) hsur&
+        &     E_h(eV)    T_ph(eV)    U_ph(eV)    E_ph(eV)   E_tot(eV)"       
+        write(stdout,"(F11.2,F11.2,I5,5(1X,F11.4))") 0.00,0.00,&
         ihsurface,-e_h(ihsurface)*ryd2eV,&
         SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV     
       endif
     else
       if(lelecsh) then
-        write(stdout,"(/,A)") "   time(fs)     rt(s) esur&
-        &  E_e(eV)     T_ph(eV)     U_ph(eV)     E_ph(eV)     E_tot(eV)" 
-        write(stdout,"(F11.2,F10.2,I5,5(1X,F11.4))") 0.00,0.00,&
+        write(stdout,"(/,A)") " time(fs)    rt(s) esur&
+        &     E_e(eV)    T_ph(eV)    U_ph(eV)     E_ph(eV)   E_tot(eV)" 
+        write(stdout,"(F11.2,F11.2,I5,5(1X,F11.4))") 0.00,0.00,&
         iesurface,e_e(iesurface)*ryd2eV,&
         SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV     
       else
@@ -605,7 +605,7 @@ program lvcsh
             !write(stdout,"(/,A)") "isnap istep runtime iesur ihsur  &
             !&en_e(eV)  en_h(eV)  en_eh(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)" 
            if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
-            write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") time_,(time2-time1),ihsurface,iesurface,&
+            write(stdout,"(F9.2,F9.2,I5,I5,7(1X,F11.4))") time_,(time2-time1),ihsurface,iesurface,&
             -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV
            endif
@@ -613,7 +613,7 @@ program lvcsh
             !write(stdout,"(/,A)") "isnap istep runtime ihsur  &
             !& en_h(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"  
            if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
-            write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),ihsurface,-e_h(ihsurface)*ryd2eV,&
+            write(stdout,"(F9.2,F9.2,I5,5(1X,F11.4))") time_,(time2-time1),ihsurface,-e_h(ihsurface)*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV
            endif
           endif
@@ -622,7 +622,7 @@ program lvcsh
             !write(stdout,"(/,A)") "isnap istep runtime iesur  &
             !&en_e(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"
            if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
-            write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") time_,(time2-time1),iesurface,E_e(iesurface)*ryd2eV,&
+            write(stdout,"(F9.2,F9.2,I5,5(1X,F11.4))") time_,(time2-time1),iesurface,E_e(iesurface)*ryd2eV,&
             SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV            
            endif
           else
@@ -821,8 +821,7 @@ program lvcsh
   write(stdout,'(1X,"Program LVCSH stoped on ",A9," at ",A9)') cdate,ctime  
   
   call cpu_time(t1)
-  !write(6,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'
-  write(stdout,'(a,f10.2,a)') 'total time is',(t1-t0)/3600,'hours'  
+  write(stdout,'(a,f9.2,a)') 'total time is',(t1-t0)/3600,'hours'  
   
   close(stdout)
   
