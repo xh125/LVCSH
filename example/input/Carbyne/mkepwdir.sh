@@ -5,7 +5,7 @@ for i in $(seq 80 40 200)
 #		mkdir epw$i/QEfiles
 #		cp QEfiles/epw$i.out epw$i/QEfiles/
 		cp lvcsh.bsub epw$i
-		sed -i "2s/lvcsh-epw40/lvcsh-epw$i-node/g" epw$i/lvcsh.bsub
+		sed -i "2s/lvcsh-epw40/lvcsh-epw$i-n0/g" epw$i/lvcsh.bsub
 		cp job.sh epw$i
 		cp LVCSH.in epw$i
 		sed -i "19s/40/$i/g" epw$i/LVCSH.in

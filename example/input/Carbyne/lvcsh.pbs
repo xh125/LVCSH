@@ -17,13 +17,6 @@ export MODULEPATH=/public/software/modules:/public/home/wzhuang/xh/modulefiles
 
 module load apps/MD/LVCSH/0.1.0
 
-# pw
-#export exename1=${PBS_JOBNAME%%-*}.x
-# scf
-#export infilename1=${PBS_JOBNAME#*-}
-
-#export exename2=ph.x
-#export infilename2=ph
 for i in {1..56}
 do
 mkdir sample$i
@@ -33,7 +26,5 @@ LVCSH.x &
 cd ..
 done
 wait
-#mpirun -np $NP ${exename1} -npool $NP <${infilename1}.in> ${infilename1}.out
-#mpirun -np $NP ${exename1} <${infilename1}.in> ${infilename1}.out
-#mpirun -np $NP ${exename2} -npool $NP <${infilename2}.in> ${infilename2}.out
+
 
