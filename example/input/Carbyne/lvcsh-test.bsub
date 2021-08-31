@@ -1,0 +1,37 @@
+#!/bin/bash
+#BSUB -J lvcsh-epw40
+#BSUB -q publicq-128
+##BSUB -q privateq-zw
+#BSUB -n 1
+#BSUB -R "span[ptile=1]"
+#BSUB -o %J.out
+#BSUB -e %J.err
+
+#source ~/xh/.bashrc
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+export MODULEPATH=/share/home/ZhuangW/xh/modulefiles
+
+module load lvcsh/0.6.0
+
+CURDIR=$PWD
+#Generate nodelist
+rm -f ${CURDIR}/nodelist >& /dev/null
+for i in `echo $LSB_HOSTS`
+do
+echo $i >> ${CURDIR}/nodelist
+done
+
+NP=`cat ${CURDIR}/nodelist |wc -l`
+
+
+#for i in {1..32}
+#do
+#mkdir sample$i
+#cp ./LVCSH.in ./sample$i/
+#cd ./sample$i
+LVCSH_complex.x
+#cd ..
+#done
+#wait
+

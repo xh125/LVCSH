@@ -206,7 +206,7 @@ program lvcsh
   != loop over realizations =!
   !==========================!  
   do iaver=1,naver
-    write(stdout,'(/,a,I4,a)') '###### iaver=',iaver,' ######'    
+    write(stdout,'(/,1X,a,I4,a)') '###### iaver=',iaver,' ######'    
     call get_date_and_time(cdate,ctime)
     write(stdout,'(1X,"This trajectory start on ",A9," at ",A9)') cdate,ctime      
     !==================!
@@ -329,24 +329,24 @@ program lvcsh
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     if(lholesh) then
       if(lelecsh) then
-        write(stdout,"(/,A)") "   time(fs) rt(s) hsur esur&
+        write(stdout,"(/,A)") "   time(fs)     rt(s) hsur esur&
         &  E_h(eV)  E_e(eV) E_eh(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)"         
-        write(stdout,"(F11.2,F6.2,I5,I5,7(1X,F8.4))") 0.00,0.00,&
+        write(stdout,"(F11.2,F10.2,I5,I5,7(1X,F8.4))") 0.00,0.00,&
         ihsurface,iesurface,&
         -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
         SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV       
       else 
-        write(stdout,"(/,A)") "   time(fs) rt(s) hsur&
+        write(stdout,"(/,A)") "   time(fs)     rt(s) hsur&
         &  E_h(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)"       
-        write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") 0.00,0.00,&
+        write(stdout,"(F11.2,F10.2,I5,5(1X,F8.4))") 0.00,0.00,&
         ihsurface,-e_h(ihsurface)*ryd2eV,&
         SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV     
       endif
     else
       if(lelecsh) then
-        write(stdout,"(/,A)") "   time(fs) rt(s) esur&
+        write(stdout,"(/,A)") "   time(fs)     rt(s) esur&
         &  E_e(eV) T_ph(eV) U_ph(eV) E_ph(eV) E_tot(eV)" 
-        write(stdout,"(F11.2,F6.2,I5,5(1X,F8.4))") 0.00,0.00,&
+        write(stdout,"(F11.2,F10.2,I5,5(1X,F8.4))") 0.00,0.00,&
         iesurface,e_e(iesurface)*ryd2eV,&
         SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV     
       else
