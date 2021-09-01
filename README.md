@@ -6,14 +6,14 @@ a propagator and an implementation of Tully's model problems described in Tully,
 
 ## Install
 
-The code are writen in Fortran, and need MKL library. To compiler the code, do as follwing step.
+The code are writen in Fortran, and need MKL Fortran 95 library. To compiler the code, do as follwing step.
 
 ```bash
 module load compiler/intel/2020.4.302
 tar -zxvf lvcsh.tar.gz
 cd LVCSH  
 cd make  
-make  
+make    
 cd ../make_complex  
 make  
 ```
