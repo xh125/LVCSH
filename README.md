@@ -20,7 +20,7 @@ make
 
 ## Butterfly of the code
 
-![Alt Butterfly](https://mailustceducn-my.sharepoint.com/:i:/g/personal/xh125_mail_ustc_edu_cn/EWqEBJJC5dxEvMFxXtDiXEoBjtb25NvKd1HZIeMSMUpvJg)
+![Alt Butterfly](https:)
 
 ## Recompile Quantum_Espresso
 
