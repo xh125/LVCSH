@@ -18,9 +18,9 @@ cd ../make_complex
 make  
 ```
 
-## Recomple Quantum_Espresso
+## Recompile Quantum_Espresso
 
-The the code use the EPW output file as main input file. Now only the version of ***V.6.8*** of Quantum_Espresso be support and need to change the EPW source code and recompile to print out the gmnvkq and vmef in complex formated.
+The the code use the EPW output file as main input file. Now only the version of [***V.6.8*** of Quantum_Espresso](https://github.com/QEF/q-e/releases/tag/qe-6.8) be support and need to change the [EPW](https://epw-code.org/) source code and recompile to print out the gmnvkq and vmef in complex formated.
 
 ```bash
 cp LVCSH/docs/QE_change_code/v6.8/* qe-6.8/EPW/src
