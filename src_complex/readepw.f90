@@ -85,6 +85,10 @@ module readepw
   !! use random points for the fine q-mesh
   INTEGER :: rand_nk
   !! use random points for the fine k-mesh	
+  integer :: nvbmax,ncbmin
+  real(kind=dp) :: evbmax,ecbmin
+  real(kind=dp) :: enbmax
+  
   contains
 	
   subroutine readepwout(fepwout)
@@ -1270,8 +1274,22 @@ module readepw
       enddo
 		enddo
 
+    do ibnd= ibndmin,ibndmax
+      enbmax = Maxval(etf(ibnd,:))
+      if(enbmax>ef*ryd2eV) then
+        ncbmin = ibnd
+        EXIT
+      endif
+    enddo
+    nvbmax = ncbmin - 1
+    evbmax = Maxval(etf(nvbmax,:))
+    ecbmin = Minval(etf(ncbmin,:))
+    if(icbm /= ncbmin) write(stdout,"(5X,A)") "Warning! The nelec need to be set right."
+    
 		etf = etf/ryd2eV
-    etf = etf - ef
+    evbmax = evbmax/ryd2eV
+    ecbmin = ecbmin/ryd2eV
+    etf = etf - evbmax
     wf = wf/ryd2mev
 		gmnvkq = gmnvkq/ryd2mev
 		epmatq = epmatq/ryd2mev
