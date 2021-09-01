@@ -18,10 +18,6 @@ cd ../make_complex
 make  
 ```
 
-## Butterfly of the code
-
-![Alt Butterfly](https://github.com/xh125/MarkdownImage/raw/main/Image/Butterfly-lvcsh.png)
-
 ## Recompile Quantum_Espresso
 
 The the code use the EPW output file as main input file. Now only the version of [***V.6.8*** of Quantum_Espresso](https://github.com/QEF/q-e/releases/tag/qe-6.8) be support and need to change the [EPW](https://epw-code.org/) source code and recompile to print out the gmnvkq and vmef in complex formated.
@@ -31,3 +27,7 @@ cp LVCSH/docs/QE_change_code/v6.8/* qe-6.8/EPW/src
 cd qe-6.8
 make epw
 ```
+
+## Butterfly of the code
+
+![Alt Butterfly](https://github.com/xh125/MarkdownImage/raw/main/Image/Butterfly-lvcsh.png)
