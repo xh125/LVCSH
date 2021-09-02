@@ -11,7 +11,6 @@ module parameters
                           l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&
                           lelecsh,lholesh,lehpairsh,ldecoherence,Cdecoherence,&
                           ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh
-	use modes,only : nmodes
   implicit none
   
   !integer,parameter :: npk = 40000 ! max number of k-points in pw.x calculation
@@ -40,7 +39,7 @@ module parameters
            llaser,efield,efield_cart,w_laser,fwhm,&
            lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
            nelec,ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh,&
-					 nnode,ncore,savedsnap,nmodes,lsortpes
+					 nnode,ncore,savedsnap,lsortpes
 
   contains
   

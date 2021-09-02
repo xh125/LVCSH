@@ -13,7 +13,7 @@ module readinput
 												nnode,ncore,savedsnap,lsortpes
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
-	use modes, only : nmodes
+
   implicit none
     integer               :: in_unit,tot_num_lines,ierr,loop,in1,in2
     integer               :: num_lines,line_counter
@@ -219,7 +219,6 @@ module readinput
 		nnode         = 1
 		ncore         = 1
 		savedsnap     = 100
-		nmodes        = 0
     
     lsetthreads   = .FALSE.
     mkl_threads   = 4    

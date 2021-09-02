@@ -752,7 +752,6 @@ module readepw
 		read(unitepwout,"(38X,I8)") nrr_q
 		read(unitepwout,"(46X,I8)") nrr_g
 		
-    write(stdout,"(/5x,A,I12)") "Number of phonon modes (nmodes) =",nmodes
     
 		!! Check Memory usage
 		!CALL system_mem_usage(valueRSS)
@@ -1123,6 +1122,43 @@ module readepw
 		endif
 		etf = 0.0d0
     
+
+
+    if(allocated(kqmap)) deallocate(kqmap) 
+    allocate(kqmap(nktotf,nqtotf),stat=ierr,errmsg=msg)
+    if(ierr /=0) then
+			call errore('readepw','Error allocating kqmap',1)                  
+			call io_error(msg)
+		endif
+		kqmap = 1
+  
+    call findkline(unitepwout,"We only need to compute",6,28)
+    read(unitepwout,"(29X,i8)") totq
+		write(stdout,"(5X,A5,I8,A)") "Only ",totq," q-points falls within the fsthick windows."
+		write(stdout,"(5X,A,I8,A)")  'We only need to compute ', totq, ' q-points'
+    
+		allocate(calgmnvkq_q(totq))
+
+    ! Need to set nmodes, for the reason of natoms be set to zero when epw.x restart.
+    nmodes = 0
+    call findkline(unitepwout," Electron-phonon vertex |g| (meV)",6,38)
+    do i=1,6
+      read(unitepwout,*)
+    enddo
+    do
+      read(unitepwout,"(3i9)") ibnd_,jbnd_,nu_
+      if(nu_>nmodes) then
+        nmodes = nu_
+      else
+        exit
+      endif
+    enddo
+    do i=1,nmodes + 7
+      backspace(unitepwout)
+    enddo
+    !read(unitepwout,"(A)") ctmp
+    write(stdout,"(/5x,A,I12)") "Number of phonon modes (nmodes) =",nmodes    
+
     !! Fine mesh set of g-matrices.  It is large for memory storage
     !ALLOCATE(epf17(nbndfst, nbndfst, nmodes, nkf), STAT = ierr)
     allocate(gmnvkq(ibndmin:ibndmax,ibndmin:ibndmax,1:nmodes,1:nktotf,1:nqtotf),stat=ierr,errmsg=msg)
@@ -1157,22 +1193,8 @@ module readepw
 			call errore('readepw','Error allocating wf',1)                
 			call io_error(msg)
 		endif
-		wf = 0.0
-
-    if(allocated(kqmap)) deallocate(kqmap) 
-    allocate(kqmap(nktotf,nqtotf),stat=ierr,errmsg=msg)
-    if(ierr /=0) then
-			call errore('readepw','Error allocating kqmap',1)                  
-			call io_error(msg)
-		endif
-		kqmap = 1
-  
-    call findkline(unitepwout,"We only need to compute",6,28)
-    read(unitepwout,"(29X,i8)") totq
-		write(stdout,"(5X,A5,I8,A)") "Only ",totq," q-points falls within the fsthick windows."
-		write(stdout,"(5X,A,I8,A)")  'We only need to compute ', totq, ' q-points'
+		wf = 0.0    
     
-		allocate(calgmnvkq_q(totq))
 
     ! 1160 DO iqq = iq_restart, totq
     do iq=1,totq
