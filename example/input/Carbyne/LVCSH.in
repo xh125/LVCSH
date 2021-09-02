@@ -18,8 +18,8 @@ lsortpes      = .false.
 mix_thr       = 0.8
 nefre_sh      = 40
 nhfre_sh      = 40
-nmodes        = 24
-epwoutname    = "../../QEfiles/epw40.out"
+
+epwoutname    = "./QEfiles/epw40.out"
 naver         = 1
 nstep         = 2
 nsnap         = 1000
