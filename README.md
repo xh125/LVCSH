@@ -30,14 +30,16 @@ make epw
 ## Example
 
 1. make a work directory  
-2. In work dir do epw calculate  
-
+2. In work dir do epw calculate, the dir structure as follow  
+   
 ```
                     (work directory)  
         ___________________|____________________
        |             |            |             |     
      relax          scf         phonon         epw 
 ```
+In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
+3.
 
 
 ## Butterfly of the code
