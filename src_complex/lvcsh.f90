@@ -134,57 +134,12 @@ program lvcsh
   call allocatesh(methodsh,lelecsh,lholesh,nmodes,nqtotf)
   
   if(trim(calculation) == "lvcsh") then
-  if(l_gamma_energy) then
-    !在BO势能面进行郎之万动力学计算，
-    !设置不同的gamma，测试摩擦系数对于动力学的影响。
-    
-    call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,l_ph_quantum,phQ,phP)
-    write(stdout,"(/5X,A51,F11.5,A2)") "The temperature of the non-adiabatic dynamica is : ",temp," K"
-    write(stdout,"(5X,A49,F11.5,A4)") "The average energy of phonon(quantum): <SUM_phE>=",E_ph_QA_sum*ryd2eV," eV."
-    write(stdout,"(5X,A49,F11.5,A4)") "The average energy of phonon(class)  : <SUM_phE>=",E_ph_CA_sum*ryd2eV," eV."
-    if(l_ph_quantum) then
-      write(stdout,"(/5X,A)") "The phonon dynamica set as quantum"
-    else
-      write(stdout,"(/5X,A)") "The phonon dynamica set as classical."
-    endif
-    
-    write(stdout,"(5X,A)") repeat("=",67)
-    write(stdout,"(5X,A)") "   gamma  ld_fric  phK(eV)  phU(eV)  phE(eV)"
-    
-    do igamma=0,n_gamma
-      gamma   = gamma_min+igamma*(gamma_max-gamma_min)/n_gamma
-      ld_fric = ld_fric_min+igamma*(ld_fric_max-ld_fric_min)/n_gamma
-      call set_gamma(nmodes,nqtotf,gamma,ld_fric,wf,ld_gamma)
-      dEa_dQ = 0.0
-      dEa2_dQ2 = 0.0
-      call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,l_ph_quantum,phQ,phP)
-      do istep=1,pre_nstep
-        call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
-        call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
-      enddo
-      SUM_phK = 0.0
-      SUM_phU = 0.0
-      do istep=1,pre_nstep
-        call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
-        call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
-        SUM_phK = SUM_phK+ 0.5*SUM(ABS(phP)**2)
-        SUM_phU = SUM_phU+ 0.5*SUM((wf**2)*(ABS(phQ)**2))
-      enddo
-      SUM_phK = SUM_phK/pre_nstep
-      SUM_phU = SUM_phU/pre_nstep
-      write(stdout,"(5X,5(F8.3,1X))") &
-            gamma,ld_fric,SUM_phK*ryd2eV,SUM_phU*ryd2eV,(SUM_phK+SUM_phU)*ryd2eV
-    enddo
-    
-    stop
-  endif
   
   ! set the friction coefficient of Langevin dynamica of all phonon modes.
   call set_gamma(nmodes,nqtotf,gamma,ld_fric,wf,ld_gamma)
   
-  
-  
   if(llaser) then
+    ! ref : https://journals.aps.org/prb/pdf/10.1103/PhysRevB.72.045314
     call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
     !get W_cvk(icband,ivband,ik)
     
@@ -194,7 +149,6 @@ program lvcsh
     write(stdout,"(/,5X,A)") "In the laser obsorbtion,the Pump laser as follow:"
     write(stdout,"(5X,A22,F12.7,A4)")  "Laser centred energy :",w_laser*ryd2eV," eV."
     write(stdout,"(5X,A38,F12.7,A4)")  "The full width at half-maximum:fwhm = ",fwhm*ry_to_fs," fs."
-    
     
   endif
   

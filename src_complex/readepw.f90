@@ -1326,7 +1326,9 @@ module readepw
 		enddo
 		
 		gmnvkq = ABS(epmatq)
-       
+    
+
+    !ref : https://journals.aps.org/prb/pdf/10.1103/PhysRevB.72.045314
     call findkline(unitepwout,"matrix elements",15,29)
     read(unitepwout,"(A)") ctmp
     if(ctmp(32:35)=="vmef") then
@@ -1347,7 +1349,7 @@ module readepw
         enddo
       enddo
     enddo
-    ! v_(k,i) = 1/m <ki|p|ki> = 2 * dmef (:, i,i,k) 
+    ! v_(k,i) = 1/m <ki|p|ki> = 2 * dmef (:, i,i,k)
     ! vmef = 2 *dmef
     ! ! ... RY for "Rydberg" atomic units (e^2=2, m=1/2, hbar=1)   
     if (.not. vme) vmef = 2.0*vmef  !in unit of Ryd*bohr   
