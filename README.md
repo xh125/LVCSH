@@ -27,6 +27,15 @@ cp LVCSH/docs/QE_change_code/v6.8/* qe-6.8/EPW/src
 cd qe-6.8
 make epw
 ```
+## Example
+
+1. make a work directory  
+2. In work dir do epw calculate  
+$~~~~~~~~~~~~~~~~~~~~~~$(work directory)  
+$~~~$ $______________________$<u>|</u>$___________________$      
+$~~~$|    $~~~~~~~~~~~~$ | $~~~~~~~~~~~~~~~~~$ | $~~~~~~~~~~~~~~~~~~~~~$ |  
+relax $~~~~~~~$ scf $~~~~~~~~~~~~$ phonon $~~~~~~~~~~~~$ epw 
+
 
 ## Butterfly of the code
 
