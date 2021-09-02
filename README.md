@@ -107,7 +107,7 @@ for i in $(seq 40 40 160)
         sed -i "s:../../QEfiles/epw40.out:epw$i.out:g" epw$i/QEfiles/LVCSH.in
         cp lvcsh-test.bsub epw$i/QEfiles
         cd epw$i/QEfiles
-        sed -i "2s/lvcsh-epw40/lvcsh-epw$i/g" lvcsh-test.bsub
+        sed -i "2s/lvcsh-epw40/lvcsh-epw$i-test/g" lvcsh-test.bsub
         bsub < lvcsh-test.bsub
         cd ../..
     done
@@ -194,7 +194,6 @@ module load lvcsh/0.6.2
 LVCSH_complex.x
 
 ```
-
 
 ## Butterfly of the code
 
