@@ -18,6 +18,7 @@ module parameters
 
   real(kind=dp)   :: init_kx,init_ky,init_kz  !激发后初始的电子(空穴)的k坐标
   integer         :: init_hband,init_eband    !激发后初始的电子(空穴)所处的能带
+  real(kind=dp)   :: init_e_en,init_h_en      !激发后初始电子(空穴)的能量
   integer         :: init_ikx,init_iky,init_ikz,init_ik 
   real(kind=dp)   :: mix_thr
 	! threshold to find the mixxing states

@@ -80,7 +80,7 @@ module initialsh
   
   ! ref: 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
   ! ref: 2. HuangKun <固体物理> (9-29) (9-31)
-  subroutine init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
+  subroutine init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband,e_en,h_en)
     use parameters,only : init_ikx,init_iky,init_ikz,init_kx,init_ky,init_kz
     use epwcom,only : nkf1,nkf2,nkf3
     use readepw,only : etf,icbm,xkf
@@ -96,6 +96,7 @@ module initialsh
     logical,intent(in)    :: llaser
     integer,intent(out)   :: init_ik
     integer,intent(inout) :: init_eband,init_hband
+    real(kind=dp),intent(out) :: e_en,h_en
     integer :: ik,ihband,ieband
     real(kind=dp) :: flagr,flagd,W_cvk_all
     real(kind=dp) :: obsorbEn
@@ -121,19 +122,12 @@ module initialsh
                  enddo
                enddo
       enddo outter
-      obsorbEn = (etf(init_eband,init_ik)-etf(init_hband,init_ik))*ryd2eV
-      write(stdout,"(/5X,A)") "Initial eh_KSstate:  "
-      write(stdout,"(5X,A3,I5,1X,A10,3(F12.6,1X),A2)") "ik=",init_ik, "coord.: ( ",(xkf(ipol,init_ik),ipol=1,3)," )"
-      write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_hband=",init_hband," Initial hole Energy:",&
-                                                etf(init_hband,init_ik)*ryd2eV," eV"
-      write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_eband=",init_eband," Initial elec Energy:",&
-                                                etf(init_eband,init_ik)*ryd2eV," eV"      
-      write(stdout,"(5X,A18,F12.5,A3)")"elec-hole energy= ",obsorbEn," eV"
+
     else
       init_ikx = get_ik(init_kx,nkf1)
       init_iky = get_ik(init_ky,nkf2)
       init_ikz = get_ik(init_kz,nkf3)
-      init_ik  =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz
+      init_ik  =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz     
       if(init_eband < icbm .or. init_eband > ieband_max) then
         write(stdout,"(/5X,A29,I5)") "Wrong! The init_eband set as:",init_eband
         write(stdout,"(5X,A29,I5,A16,I5)") "The init_eband need to set : ",icbm,"<= init_eband <=",ieband_max
@@ -143,6 +137,17 @@ module initialsh
         write(stdout,"(5X,A29,I5,A16,I5)") "The init_hband need to set : ",ihband_min,"<= init_hband <=",ivbm
       endif      
     endif
+
+    obsorbEn = (etf(init_eband,init_ik)-etf(init_hband,init_ik))*ryd2eV
+    e_en = etf(init_eband,init_ik)
+    h_en = -1.0*etf(init_hband,init_ik)
+    write(stdout,"(/5X,A)") "Initial eh_KSstate:  "
+    write(stdout,"(5X,A3,I5,1X,A10,3(F12.6,1X),A2)") "ik=",init_ik, "coord.: ( ",(xkf(ipol,init_ik),ipol=1,3)," )"
+    write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_hband=",init_hband," Initial hole Energy:",&
+                                              etf(init_hband,init_ik)*ryd2eV," eV"
+    write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_eband=",init_eband," Initial elec Energy:",&
+                                              etf(init_eband,init_ik)*ryd2eV," eV"      
+    write(stdout,"(5X,A18,F12.5,A3)")"elec-hole energy= ",obsorbEn," eV"
     
   end subroutine init_eh_KSstat
   
@@ -155,11 +160,35 @@ module initialsh
     complex(kind=dpc),intent(out) :: c_nk(nband,nk) 
     
     init_band = init_band - iband_min + 1
-    c_nk = 0.0d0
-    c_nk(init_band,init_ik) = 1.0d0
+    c_nk = czero
+    c_nk(init_band,init_ik) = cone
     
   end subroutine init_stat_diabatic
-  
+
+  subroutine init_stat_adiabatic(nfre,EE,nfre_sh,init_En,isurface)
+    implicit none
+    integer, intent(in) :: nfre,nfre_sh
+    real(kind=dp),intent(in) :: EE(nfre)
+    real(kind=dp),intent(in) :: init_En
+    integer, intent(out)     :: isurface
+    
+    integer :: ifre
+    real(kind=dp),allocatable :: Ptsur(:)
+    integer :: localp(1)
+    
+    allocate(Ptsur(1:nfre_sh))
+    Ptsur = 0.0
+    do ifre = 1,nfre_sh
+      Ptsur(ifre) = (EE(ifre)-init_En)**2
+    enddo
+    
+    localp = MinLOC(Ptsur)
+    isurface = localp(1)
+    
+    deallocate(Ptsur)
+    
+  end subroutine
+ 
   function get_ik(kx,nkx)
     use kinds,only : dp
     implicit none

@@ -11,8 +11,8 @@ module surfacehopping
                          phQ,phP,phQ0,phP0,phK,phU,SUM_phU,SUM_phK,SUM_phK0,SUM_phE,&
                          phQsit,phPsit,phKsit,phUsit,ld_gamma,&
                          dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
-                         d_e,g_e,g1_e,c_e_nk,w_e,w0_e,d0_e,nefre_sh,&
-                         d_h,g_h,g1_h,c_h_nk,w_h,w0_h,d0_h,nhfre_sh,&
+                         d_e,g_e,g1_e,c_e,c_e_nk,w_e,w0_e,d0_e,nefre_sh,&
+                         d_h,g_h,g1_h,c_h,c_h_nk,w_h,w0_h,d0_h,nhfre_sh,&
                          pes_one_e,pes_e,csit_e,wsit_e,psit_e,&
                          pes_one_h,pes_h,csit_h,wsit_h,psit_h 
   use cc_fssh,only : S_ai_e,S_ai_h,S_bi_e,S_bi_h
@@ -98,6 +98,8 @@ module surfacehopping
       
       allocate(c_e_nk(neband,nktotf),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)
+      allocate(c_e(neband*nktotf),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating c_e',1)      
       
       allocate(pes_one_e(0:nefre,0:nsnap),pes_e(0:nefre,0:nsnap))
 			ram = real_size*(1+nefre)*(1+nsnap)
@@ -173,6 +175,8 @@ module surfacehopping
 
       allocate(c_h_nk(nhband,nktotf),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h_nk',1)  
+      allocate(c_h(nhband*nktotf),stat=ierr,errmsg=msg)
+      if(ierr /=0) call errore('surfacehopping','Error allocating c_h',1)  
       
       allocate(pes_one_h(0:nhfre,0:nsnap),pes_h(0:nhfre,0:nsnap))
 			ram = real_size*(1+nhfre)*(1+nsnap)
