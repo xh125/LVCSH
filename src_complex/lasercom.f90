@@ -5,14 +5,12 @@ module lasercom
   logical         :: llaser         ! If .TRUE. a laser electric field  is applied.
   real(kind=dp)   :: efield         ! Amplitude of the laser electric field (in Ry a.u.;1 a.u. = 36.3609*10^10 V/m)
   real(kind=dp)   :: efield_cart(3) ! laser electric field (in Ry a.u.=36.3609*10^10 V/m) in cartesian axis.
-  real(kind=dp)   :: efiled_s(3)    ! direction of the laser electric field
   real(kind=dp)   :: w_laser        ! the center energy of laser in eV.
   real(kind=dp)   :: fwhm, fwhm_2T2   !         
   ! The laser shape is assumed to be a Gaussian f(t)=exp(-t^2/2T^2)
   !T is related to the full width at half-maximum as fwhm = 2sqrt(2ln2)T
   ! F(w)=exp(-(w-w_laser)^2*T^2/2)
-  real(kind=dp)   :: Efield_x,Efield_y,Efield_z
-  ! The laser Electric field strength along the xyz direction
+
   real(kind=dp),allocatable :: W_cvk(:,:,:) !光激发下的跃迁几率大小
   contains
   

@@ -6,7 +6,7 @@ module readinput
                         methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,pre_dt,mix_thr,&
                         gamma,ld_fric,dt,temp,l_ph_quantum,&
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
-                        llaser,efield,efield_cart,w_laser,fwhm,nelec,&
+                        llaser,efield_cart,w_laser,fwhm,nelec,&
                         lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
                         ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh,&
 												nnode,ncore,savedsnap,lsortpes
@@ -205,8 +205,7 @@ module readinput
     init_eband    = 1      ! the initial electron band
     init_hband    = 1      ! the initial hole band
     llaser        = .true.
-    efield        = 1.0    ! V/m
-    efield_cart   = (/ 0.0,0.0,1.0 /)  ! V/m
+    efield_cart   = (/ 0.0,0.0,0.0 /)  ! V/m
     w_laser       = 1.0    ! eV
     fwhm          = 10     ! fs
 		nnode         = 1
@@ -259,8 +258,8 @@ module readinput
 		gamma = gamma / Ry_TO_THZ ! change gamma in unit of (THZ) to (Ryd)
     dt    = dt / Ry_TO_fs     ! in Rydberg atomic units(1 a.u.=4.8378 * 10^-17 s)
     pre_dt= pre_dt/ Ry_TO_fs
-    efield= efield / Ryd2V_m  ! (in Ry a.u.;1 a.u. = 36.3609*10^10 V/m)
-    efield_cart = efield_cart / Ryd2V_m
+    
+    efield_cart = efield_cart / Ryd2V_m ! (in Ry a.u.;1 a.u. = 36.3609*10^10 V/m)
     w_laser = w_laser /ryd2eV
     fwhm = fwhm/ ry_to_fs  
     fwhm_2T2 = fwhm**2.0/4.0*log(2.0)
