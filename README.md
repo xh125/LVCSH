@@ -150,7 +150,6 @@ lsortpes      = .false.
 mix_thr       = 0.8
 !nefre_sh      = 40
 !nhfre_sh      = 40
-!nmodes        = 6
 epwoutname    = "./QEfiles/epw40.out"
 naver         = 10
 nstep         = 2
