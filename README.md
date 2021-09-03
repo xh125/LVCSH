@@ -92,12 +92,14 @@ wait
 ```bash
 mkepwdir.sh
 #!/bin/bash
+ncore=28
 for i in $(seq 40 40 160)
     do 
         mkdir epw$i
         mkdir epw$i/QEfiles
         cp ../epw/epw$i.out epw$i/QEfiles/
         cp lvcsh.bsub epw$i
+        sed -i "s/ncore/$ncore/g" epw$i/lvcsh.bsub
         sed -i "2s/lvcsh-epw/lvcsh-epw$i-n0/g" epw$i/lvcsh.bsub
         cp job.sh epw$i
         cp LVCSH.in epw$i
@@ -120,7 +122,7 @@ job.sh
     do 
     mkdir node$i
     cp ./lvcsh.bsub ./node$i/
-    sed -i "2s/n0/n$i/s" ./node$i/lvcsh.bsub
+    sed -i "2s/n0/n$i/g" ./node$i/lvcsh.bsub
     cp ./LVCSH.in ./node$i/
     cd ./node$i
     bsub < lvcsh.bsub
@@ -185,7 +187,15 @@ module load lvcsh/0.6.2
 
 LVCSH_complex.x
 
+```  
+
+6. By look the initial adiabatic state in the QEfiles/LVCSH.out for different kpoints directory. Set the **nefre_sh** and **nhfre_sh** in the QEfiles/LVCSH.in to tests the time for one step nonadiabatic calculation. Then, subscrib the job again.  
+
+```shell
+bsub < lvcsh-test.bsub
 ```
+
+7. 
 
 ## Butterfly of the code
 
