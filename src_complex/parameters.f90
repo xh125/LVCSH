@@ -8,7 +8,6 @@ module parameters
   use klist,only        : nelec
   use surfacecom,only   : methodsh,lfeedback,naver,nstep,nsnap,dt,pre_nstep,pre_dt,&
                           temp,gamma,ld_fric,l_ph_quantum,lit_gmnvkq,lit_ephonon,&
-                          l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&
                           lelecsh,lholesh,lehpairsh,ldecoherence,Cdecoherence,&
                           ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh
   implicit none
@@ -34,7 +33,6 @@ module parameters
 					 lreadscfout,lreadphout,scfoutname,phoutname,lreadfildyn,fildyn,&
 					 epwoutname,methodsh,lfeedback,naver,nstep,nsnap,mix_thr,&
            pre_nstep,pre_dt,gamma,ld_fric,l_ph_quantum,dt,temp,&
-           l_gamma_energy,gamma_min,gamma_max,ld_fric_min,ld_fric_max,n_gamma,&
            init_kx,init_ky,init_kz,init_hband,init_eband,&
            llaser,efield,efield_cart,w_laser,fwhm,&
            lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&

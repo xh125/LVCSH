@@ -206,6 +206,8 @@ module initialsh
     use parameters,only : lit_ephonon
     use surfacecom,only : E_ph_CA_sum,E_ph_QA_sum
     use elph2,only : iminusq
+    use io,only : stdout
+    use constants,only : ryd2eV
     implicit none
     integer,intent(in)           :: nmodes,nq
     real(kind=dp),intent(in)     :: T
@@ -261,6 +263,28 @@ module initialsh
         enddo
       endif
     enddo
+    
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    !% Write phonon energy information         %!
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    write(stdout,"(/5X,A51,F11.5,A2)") &
+          "The temperature of the non-adiabatic dynamica is : ",T," K"
+    write(stdout,"(5X,A49,F11.5,A4)") &
+          "The average energy of phonon(quantum): <SUM_phE>=",E_ph_QA_sum*ryd2eV," eV."
+    write(stdout,"(5X,A49,F11.5,A4)") &
+          "The average energy of phonon(class)  : <SUM_phE>=",E_ph_CA_sum*ryd2eV," eV."
+    
+    if(l_ph_quantum) then
+      write(stdout,"(/5X,A)") "The phonon dynamica set as quantum"
+    else
+      write(stdout,"(/5X,A)") "The phonon dynamica set as classical."
+    endif
+    write(stdout,"(5X,A38,F11.5,A4,A9,F11.5,A4)") &
+    "The initial energy of phonon: SUM_phT=",0.5*SUM(ABS(ph_P)**2)*ryd2eV," eV",&
+    " SUM_phU=",0.5*SUM(w**2*ABS(ph_Q)**2)*ryd2eV," eV"
+    write(stdout,"(5X,A38,F11.5,A4)") &
+    "The initial energy of phonon: SUM_phE=",0.5*SUM(ABS(ph_P)**2+w**2*ABS(ph_Q)**2)*ryd2eV," eV."    
+    
     
   end subroutine init_normalmode_coordinate_velocity
   

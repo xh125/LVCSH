@@ -10,6 +10,8 @@ module getwcvk
     !得到光激发下垂直跃迁的跃迁几率
     use elph2,only  : vmef,nkf  !vmef(3,nbndsub,nbndsub,nkf)
     use readepw,only : etf,icbm
+    use io,only : stdout
+    use constants,only : ryd2eV,ry_to_fs
     implicit none
     integer , intent(in) :: ihband_min,ieband_max
     real(kind=dp),intent(in) :: fwhm
@@ -48,6 +50,14 @@ module getwcvk
         enddo
       enddo
     enddo  
+    
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    !% Write laser information            %!
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    write(stdout,"(/,5X,A)") "In the laser obsorbtion,the Pump laser as follow:"
+    write(stdout,"(5X,A22,F12.7,A4)")  "Laser centred energy :",w_center*ryd2eV," eV."
+    write(stdout,"(5X,A38,F12.7,A4)")  "The full width at half-maximum:fwhm = ",fwhm*ry_to_fs," fs."    
+    
     
   end subroutine get_Wcvk
   

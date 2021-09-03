@@ -52,9 +52,8 @@ program lvcsh
                             init_eh_KSstat,init_stat_diabatic,init_surface
   use surfacecom,only     : methodsh,lfeedback,lit_gmnvkq,naver,nsnap,nstep,dt,&
                             pre_nstep,pre_dt,l_ph_quantum,gamma,temp,iaver,    &
-                            isnap,istep,ldecoherence,Cdecoherence,ld_fric_max, &
-                            l_gamma_energy,gamma_min,gamma_max,ld_fric_min,    &
-                            n_gamma,lelecsh,lholesh,ieband_min,ieband_max,     &
+                            isnap,istep,ldecoherence,Cdecoherence,             &
+                            lelecsh,lholesh,ieband_min,ieband_max,             &
                             ihband_min,ihband_max,nefre_sh,nhfre_sh,iesurface, &
                             ihsurface,iesurface_j,ihsurface_j,c_e,c_e_nk,d_e,  &
                             d0_e,c_h,c_h_nk,d_h,d0_h,dEa_dQ,                   &
@@ -138,19 +137,9 @@ program lvcsh
   ! set the friction coefficient of Langevin dynamica of all phonon modes.
   call set_gamma(nmodes,nqtotf,gamma,ld_fric,wf,ld_gamma)
   
-  if(llaser) then
-    ! ref : https://journals.aps.org/prb/pdf/10.1103/PhysRevB.72.045314
-    call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
-    !get W_cvk(icband,ivband,ik)
-    
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-    !% Write laser information            %!
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-    write(stdout,"(/,5X,A)") "In the laser obsorbtion,the Pump laser as follow:"
-    write(stdout,"(5X,A22,F12.7,A4)")  "Laser centred energy :",w_laser*ryd2eV," eV."
-    write(stdout,"(5X,A38,F12.7,A4)")  "The full width at half-maximum:fwhm = ",fwhm*ry_to_fs," fs."
-    
-  endif
+  if(llaser) call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
+  ! ref : https://journals.aps.org/prb/pdf/10.1103/PhysRevB.72.045314
+  !get W_cvk(icband,ivband,ik)
   
   call init_random_seed()
   if(lsetthreads) call set_mkl_threads(mkl_threads)
@@ -169,28 +158,8 @@ program lvcsh
     
     !!Get the initial normal mode coordinate phQ and versity phP
     call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,l_ph_quantum,phQ,phP)
+    
     !应该先跑平衡后，再做电子空穴动力学计算   
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-    !% Write phonon energy information         %!
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-    write(stdout,"(/5X,A51,F11.5,A2)") &
-          "The temperature of the non-adiabatic dynamica is : ",temp," K"
-    write(stdout,"(5X,A49,F11.5,A4)") &
-          "The average energy of phonon(quantum): <SUM_phE>=",E_ph_QA_sum*ryd2eV," eV."
-    write(stdout,"(5X,A49,F11.5,A4)") &
-          "The average energy of phonon(class)  : <SUM_phE>=",E_ph_CA_sum*ryd2eV," eV."
-    
-    if(l_ph_quantum) then
-      write(stdout,"(/5X,A)") "The phonon dynamica set as quantum"
-    else
-      write(stdout,"(/5X,A)") "The phonon dynamica set as classical."
-    endif
-    write(stdout,"(5X,A38,F11.5,A4,A9,F11.5,A4)") &
-    "The initial energy of phonon: SUM_phT=",0.5*SUM(ABS(phP)**2)*ryd2eV," eV",&
-    " SUM_phU=",0.5*SUM(wf**2*ABS(phQ)**2)*ryd2eV," eV"
-    write(stdout,"(5X,A38,F11.5,A4)") &
-    "The initial energy of phonon: SUM_phE=",0.5*SUM(ABS(phP)**2+wf**2*ABS(phQ)**2)*ryd2eV," eV."
-    
     dEa_dQ = 0.0
     dEa2_dQ2 = 0.0
     do istep=1,pre_nstep
@@ -215,6 +184,8 @@ program lvcsh
     write(stdout,"(5X,A23,F6.2,A2,A19,F11.5,A4)") &
     "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phE="&
     ,0.5*SUM(ABS(phP)**2+wf**2*ABS(phQ)**2)*ryd2eV," eV."    
+    
+    
     
     !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband(in the diabatic states)
     call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband)
@@ -423,7 +394,6 @@ program lvcsh
           endif
             
             
-          
           ! use FSSH calculation hopping probability in adiabatic representation,get g_e,g1_e
           call calculate_hopping_probability(iesurface,nefre,nefre_sh,nmodes,nqtotf,w0_e,phP0,d0_e,dt,g_e,g1_e)          
           
@@ -480,8 +450,7 @@ program lvcsh
             call add_decoherence(Cdecoherence,SUM_phK0,dt,nhfre,ihsurface,E0_h,w_h)
             call convert_adiabatic_diabatic(nhfre,p_h,w_h,c_h)
           endif            
-            
-                   
+             
 
           ! use FSSH calculation hopping probability in adiabatic representation
           call calculate_hopping_probability(ihsurface,nhfre,nhfre_sh,nmodes,nqtotf,w0_h,phP0,d0_h,dt,g_h,g1_h)          
@@ -504,7 +473,7 @@ program lvcsh
             call nonadiabatic_transition_scfssh(lfeedback,nhfre,nhfre_sh,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)              
           elseif(methodsh == "CC-FSSH") then
             call nonadiabatic_transition_ccfssh(lfeedback,nhfre,nhfre_sh,nqtotf,nmodes,ihsurface,ihsurface_j,&
-   &hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
+                 &hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
           endif          
           
         endif 
