@@ -1,9 +1,8 @@
 #!/bin/bash
 #BSUB -J lvcsh-epw
-#BSUB -q publicq-large
-##BSUB -q privateq-zw
-#BSUB -n 32
-#BSUB -R "span[ptile=32]"
+#BSUB -q privateq-zw
+#BSUB -n ncore
+#BSUB -R "span[ptile=ncore]"
 #BSUB -o %J.out
 #BSUB -e %J.err
 
@@ -25,7 +24,7 @@ done
 NP=`cat ${CURDIR}/nodelist |wc -l`
 
 
-for i in {1..${NP}}
+for i in {1..ncore}
 do
 mkdir sample$i
 cp ./LVCSH.in ./sample$i/
