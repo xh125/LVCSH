@@ -87,7 +87,7 @@ wait
 
 ```
 
-5. Use shell script mkepwdir.sh to build dir for diffrent kpoints and qpoints Surface hopping calculation. And the script will make a test running in the different director to give how to set nefre_sh and nhfre_sh.  
+5. Use shell script mkepwdir.sh to build dir for diffrent kpoints and qpoints Surface hopping calculation. And the script will make a test running in the different director to give how to set **`nefre_sh`** and **`nhfre_sh`**.  
 
 ```bash
 mkepwdir.sh
@@ -119,7 +119,8 @@ for i in $(seq 40 40 160)
 ```bash
 job.sh
 #!/bin/bash
-    for i in {1..10}
+    nnodes=10
+    for i in {1..$nnodes}
     do 
     mkdir node$i
     cp ./lvcsh.bsub ./node$i/
@@ -196,7 +197,23 @@ LVCSH_complex.x
 bsub < lvcsh-test.bsub
 ```
 
-7. 
+7. change the LVCSH.in file in the epw40, including the parameters for lvcsh run as following:
+
+```fortran
+nefre_sh = 34
+nhfre_sh = 34
+naver    = 100
+nstep    = 2
+nsnap    = 1000
+dt       = 0.5
+nnode    = 10
+ncore    = 28
+savedsnap= 25
+```
+
+change the **`nnodes`** in the job.sh bash script. Then './job.sh' to make lvcsh running in `nnodes` node, which include `ncore` CPU cores.  
+
+8. After the setp 7, change the parameter `calculation = plot` and `epwoutname = './QEfiles/epw40.out'` of  LVCSH.in in the dir `epw40`. Then run `LVCSH_complex.x` in `epw40` dir.
 
 ## Butterfly of the code
 
