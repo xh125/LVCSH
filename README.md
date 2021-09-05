@@ -109,7 +109,7 @@ for i in $(seq 40 40 160)
         sed -i "s:../../QEfiles/epw40.out:epw$i.out:g" epw$i/QEfiles/LVCSH.in
         cp lvcsh-test.bsub epw$i/QEfiles
         cd epw$i/QEfiles
-        sed -i "2s/lvcsh-epw40/lvcsh-epw$i-test/g" lvcsh-test.bsub
+        sed -i "2s/lvcsh-epw/lvcsh-epw$i/g" lvcsh-test.bsub
         bsub < lvcsh-test.bsub
         cd ../..
     done
@@ -175,7 +175,7 @@ savedsnap     = 1
 ```bash
 lvcsh-test.bsub
 #!/bin/bash
-#BSUB -J lvcsh-epw40
+#BSUB -J lvcsh-epw-test
 #BSUB -q privateq-zw
 #BSUB -n 1
 #BSUB -R "span[ptile=1]"
@@ -189,7 +189,7 @@ LVCSH_complex.x
 
 ```  
 
-6. By look the initial adiabatic state in the QEfiles/LVCSH.out for different kpoints directory. Set the **nefre_sh** and **nhfre_sh** in the QEfiles/LVCSH.in to tests the time for one step nonadiabatic calculation. Then, subscrib the job again.  
+6. By look the initial adiabatic state in the QEfiles/LVCSH.out for different kpoints directory. Set the **$\color{red}{nefre\_sh}$** and **$\color{red}{nhfre\_sh}$** in the QEfiles/LVCSH.in to tests the time for one step nonadiabatic calculation. Then, subscrib the job again.  
 
 ```shell
 bsub < lvcsh-test.bsub
