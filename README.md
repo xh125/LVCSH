@@ -189,7 +189,7 @@ LVCSH_complex.x
 
 ```  
 
-6. By look the initial adiabatic state in the QEfiles/LVCSH.out for different kpoints directory. Set the $\color{red} \mathsf{nefre\_sh}$ and $\color{red} \mathsf{nhfre\_sh}$ in the QEfiles/LVCSH.in to tests the time for one step nonadiabatic calculation. Then, subscrib the job again.  
+6. By look the initial adiabatic state in the QEfiles/LVCSH.out for different kpoints directory. Set the $\color{red} \mathsf{nefre_sh}$ and $\color{red} \mathsf{nhfre_sh}$ in the QEfiles/LVCSH.in to tests the time for one step nonadiabatic calculation. Then, subscrib the job again.  
 
 ```shell
 bsub < lvcsh-test.bsub
