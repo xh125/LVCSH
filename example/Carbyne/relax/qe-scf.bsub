@@ -1,0 +1,17 @@
+#!/bin/bash
+#BSUB -J pw-xcf
+#BSUB -q privateq-zw
+#BSUB -n 28
+#BSUB -R "span[ptile=28]"
+#BSUB -o %J.out
+#BSUB -e %J.err
+
+source ~/xiehua/.bashrc
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+#export MODULEPATH=/share/home/zw/xiehua/opt/modules-4.7.1/modulefiles:/share/home/zw/xiehua/opt/intel/oneapi/modulefiles
+
+module load Quantum_Espresso/6.8.0
+
+mpirun -np 28 pw.x -npool $NP <vc-relax.in> vc-relax.out
+

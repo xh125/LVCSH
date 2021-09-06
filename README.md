@@ -34,16 +34,115 @@ make epw
 
 2. In work dir do epw calculate, the dir structure as follow  
 
-```
+   ```bash
                     (work directory)  
         ___________________|_____________________________
        |             |            |             |        |
      relax          scf         phonon         epw      LVCSH
-```  
+   ```  
+
+3. 在不同的目录下面进行结构优化、自洽计算、声子谱计算和电声耦合计算  
+
+   3.1 进入relax目录，创建vc-relax.in 进行晶格结构优化。对于参数的设置，`etot_conv_thr`,`forc_conv_thr`,`conv_thr`和`press_conv_thr`的精度需要设置的比较高，需要用于后续计算**phonon**. 在该案例中收敛判据可能不够，在实际的计算中，应该根据需要进行设置。
+  
+   ```fortran
+   vc-relax.in
+   &CONTROL
+    calculation   = "vc-relax"  
+    restart_mode  = "from_scratch"
+    prefix        = "carbyne"
+    outdir        = "./outdir/"
+    pseudo_dir    = "./pseudo/"
+    verbosity     = "high"
+    tprnfor       = .true.  
+    tstress       = .true.
+    etot_conv_thr =  1.0d-6
+    forc_conv_thr =  1.0d-5
+   /
+
+   &SYSTEM
+    ibrav       = 0
+    nat         = 2
+    ntyp        = 1
+    nbnd        = 16
+    occupations = 'fixed'
+    !    occupations = "smearing"
+    !    smearing    = "cold"    
+    !    degauss     =  1.0d-2
+    ecutwfc     =  50
+    ecutrho     =  400
+    /
+
+    &ELECTRONS
+    conv_thr         =  1.000e-9
+    electron_maxstep =  200
+    mixing_beta      =  7.00000e-01
+    startingpot      = "atomic"
+    startingwfc      = "atomic+random"
+    /
+
+    &IONS
+    ion_dynamics = "bfgs"
+    /
+
+    &CELL
+    cell_dofree    = "x"
+    cell_dynamics  = "bfgs"
+    press_conv_thr =  0.01
+    /
+
+    K_POINTS {automatic}
+     40  1  1  0 0 0
+
+    ATOMIC_SPECIES
+    C      12.01070  C.pbe-n-kjpaw_psl.1.0.0.UPF
+
+    CELL_PARAMETERS (angstrom)
+    2.565602620   0.000000000   0.000000000
+    0.000000000  10.000000000   0.000000000
+    0.000000000   0.000000000  10.000000000
+
+    ATOMIC_POSITIONS (angstrom)
+    C             0.0002913894       5.0000000000       5.0000000000
+    C             1.2644833916       5.0000000000       5.0000000000
+   ```
+
+   采用下面命令查看计算过程中的受力情况已经压力张量和晶格常数变化情况  
+
+   ```bash
+   cat vc-relax.out |grep -A 10 "Total force ="
+   ```
+
+   计算结束后，使用下面命令得到优化后的结果
+
+   ```bash
+   awk  '/Begin final coordinates/,/End final coordinates/{print $0}' vc-relax.out
+
+   
+   Begin final coordinates
+        new unit-cell volume =   1731.62982 a.u.^3 (   256.60106 Ang^3 )
+        density =      0.15545 g/cm^3
+   
+   CELL_PARAMETERS (angstrom)
+      2.566010647   0.000000000   0.000000000
+      0.000000000  10.000000000   0.000000000
+      0.000000000   0.000000000  10.000000000
+   
+   ATOMIC_POSITIONS (angstrom)
+   C             0.0019333750        5.0000000000        5.0000000000
+   C             1.2630425527        5.0000000000        5.0000000000
+   End final coordinates
+      
+   ```
+
+
+   3.2
+
+
 
 >In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
 
-3. make a directory for lvcsh calculation  
+1. make a directory for lvcsh calculation  
 
 ```bash
 mkdir LVCSH
