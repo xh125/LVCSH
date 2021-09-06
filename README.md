@@ -173,14 +173,29 @@ make epw
    /
    ```
 
-   对计算出来的态密度采用OriginPro进行作图，如下所示。  
+   对计算出来的态密度采用OriginPro进行作图，(采用较密kpoint计算的结果)如下所示。  
    ![dos](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/dos.png)  
+   采用 **`projwfc.x`** 对态密度进行分波态密度计算，用于bandfat分析，后面进行Wannier计算，需要根据分波态密度来选取初始猜测的wannier函数。  
 
+   ```fortran
+   projwfc.in
+    
+    &PROJWFC
+   prefix = 'carbyne'
+   outdir = './outdir'
+   ngauss = 0
+   degauss= 0.01
+   DeltaE = 0.5
+   filpdos= 'carbyne.pdos'
+   filproj= 'carbyne.proj'
+   / 
+   
+   projwfc.x <projwfc.in>projwfc.out
+   ```  
 
+   处理分波态密度得到的结果如下:  
 
-
-
-
+   ![Pdos](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/Pdos.png)  
 
 >In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
 
