@@ -28,22 +28,22 @@ cd qe-6.8
 make epw
 ```  
 
-## Example
+## Tutorial
 
 1. make a work directory  
 
-2. In work dir do epw calculate, the dir structure as follow  
+2. In work directory do epw calculate, to get the electron-phonon coupling matrix. the dir structure as follow  
 
    ```bash
                     (work directory)  
-        ___________________|_____________________________
-       |             |            |             |        |
-     relax          scf         phonon         epw      LVCSH
+        ___________________|_______________________________
+       |          |     |           |             |        |
+     relax       scf   dos        phonon         epw      LVCSH
    ```  
 
-3. 在不同的目录下面进行结构优化、自洽计算、声子谱计算和电声耦合计算  
+   计算电声耦合项的步骤如下所示。在不同的目录下面进行结构优化、自洽计算、声子谱计算和电声耦合计算  
 
-   3.1 进入relax目录，创建vc-relax.in 进行晶格结构优化。对于参数的设置，`etot_conv_thr`,`forc_conv_thr`,`conv_thr`和`press_conv_thr`的精度需要设置的比较高，需要用于后续计算**phonon**. 在该案例中收敛判据可能不够，在实际的计算中，应该根据需要进行设置。
+   2.1 进入relax目录，创建vc-relax.in 进行晶格结构优化。对于参数的设置，`etot_conv_thr`,`forc_conv_thr`,`conv_thr`和`press_conv_thr`的精度需要设置的比较高，需要用于后续计算**phonon**. 在该案例中收敛判据可能不够，在实际的计算中，应该根据需要进行设置。
   
    ```fortran
    vc-relax.in
@@ -135,8 +135,49 @@ make epw
       
    ```
 
+   2.2 `cp vc-relax.in relax.in` 将上面优化得到的`CELL_PARAMETERS` 和`ATOMIC_POSITIONS` 结果在relax.in中进行修改，并修改为`calculation = "relax"`, 将`&CELL /`部分注释掉。再对原子位置进行优化。计算完成后，运行下列命令得到优化后的原子位置。  
 
-   3.2
+   `awk  '/Begin final coordinates/,/End final coordinates/{print $0}' relax.out`  
+   得到如下结果：  
+
+   ```bash
+   Begin final coordinates
+
+    ATOMIC_POSITIONS (angstrom)
+    C             0.0019333750        5.0000000000        5.0000000000
+    C             1.2630425527        5.0000000000        5.0000000000
+    End final coordinates
+   ```  
+
+   2.3 `cp relax.in scf.in` 将上面的原子位置（**ATOMIC_POSITIONS**）结果在scf.in文件中进行修改。修改`calculation = "scf"` 将`&IONS /` 部分注释掉。`mkdir ../scf` 并将修改后的scf.in文件复制到`../scf`中进行自洽计算。  
+
+   2.4 计算态密度.修改`calculaiton='nscf'` 并增加`kpoint`的采样密度。
+
+   ```bash
+   cp -r scf dos
+   cd dos
+   mv scf.in nscf.in
+   ```  
+
+   使用dos.x对nscf计算得态密度进行处理。输入文件`dos.in`如下：  
+
+   ```fortran
+   &DOS
+   prefix = 'carbyne'
+   outdir = './outdir'
+   bz_sum = "smearing"
+   ngauss = 0
+   degauss = 2.0d-2
+   DeltaE  = 0.01
+   fildos = 'carbyne.dos'
+   /
+   ```
+
+   对计算出来的态密度采用OriginPro进行作图，如下所示。
+
+
+
+
 
 
 
