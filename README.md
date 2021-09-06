@@ -173,7 +173,8 @@ make epw
    /
    ```
 
-   对计算出来的态密度采用OriginPro进行作图，如下所示。
+   对计算出来的态密度采用OriginPro进行作图，如下所示。  
+   ![dos](https://github.com/xh125/MarkdownImage/blob/main/Image/LVCSH/dos.tif)  
 
 
 
@@ -357,4 +358,4 @@ change the **`nnodes`** in the job.sh bash script. Then './job.sh' to make lvcsh
 
 ## Butterfly of the code
 
-![Alt Butterfly](https://github.com/xh125/MarkdownImage/raw/main/Image/Butterfly-lvcsh.png)
+![Alt Butterfly](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/Butterfly-lvcsh.png)
