@@ -197,6 +197,12 @@ make epw
 
    ![Pdos](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/Pdos.png)  
 
+   2.5 计算能带
+
+   ```bash
+   cp scf band
+   ```
+
 >In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
 
 1. make a directory for lvcsh calculation  
@@ -308,13 +314,16 @@ lehpairsh     = .true.
 !ihband_max    = 2
 !lsortpes      = .false.
 !mix_thr       = 0.8
+epwoutname    = "./QEfiles/epw40.out"
 !nefre_sh      = 40
 !nhfre_sh      = 40
-epwoutname    = "./QEfiles/epw40.out"
+nnode         = 1
+ncore         = 28
 naver         = 10
+nsnap         = 1000
 nstep         = 2
-nsnap         = 2
 dt            = 0.5
+savedsnap     = 1
 pre_nstep     = 50000
 pre_dt        = 0.5
 gamma         = 0.0   ! in unit of ps-1
@@ -325,9 +334,6 @@ llaser        = .true.
 efield_cart   = 1.0 1.0 1.0
 w_laser       = 2.0  ! in unit of eV
 fwhm          = 100  ! in unit of fs
-nnode         = 1
-ncore         = 32
-savedsnap     = 1
 ```  
 
 ```bash
