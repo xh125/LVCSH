@@ -214,7 +214,100 @@ make epw
    ```
 
    计算完成后使用bands.x处理能带数据。在能带计算之后，用projwfc.x生成的fatband.projwfc_up文件，可以和bands.x生成的文件bands.dat结合，画出各个能带的原子轨道投影，画图脚本如下：/LVCSH/tools/fatband.f90。计算能带图如下:  
-   ![band.png](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/fatband.png)
+   ![band.png](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/fatband.png)  
+
+   2.6 根据fatband中的结果，进行wannier90计算  
+
+   2.6.1 Scf计算  
+
+   2.6.2 nscf计算
+
+   ```bash
+   cp scf.in nscf.in并做如下修改
+   calculation   = "nscf" 
+   nbnd        = 16
+   !K_POINTS {automatic}
+   ! 1  1  40  0 0 0
+   
+   kmesh.pl 1 1 40 >>nscf.in
+   pw.x < nscf.in > nscf.out
+   
+   ```  
+
+   2.6.3 Wannier90计算  
+
+   ```fortran
+   !System
+   num_wann  = 4
+   num_bands = 6
+    
+   !Projection
+   begin projections
+   C : px;py
+   end projections
+    
+   !Job Control
+   exclude_bands : 1-2
+   !restart =
+    
+   !disentanglement
+   dis_win_min  = -25.0
+   dis_win_max  = 7.0
+   dis_froz_min = -12.0
+   dis_froz_max = -0.6
+   dis_num_iter = 1000
+   dis_mix_ratio= 0.5
+   dis_conv_tol = 1.0E-10
+   dis_conv_window = 5
+    
+   !Wannierise
+   num_iter = 10000
+   conv_tol = 1.0E-10
+   conv_window     = 10
+   guiding_centres = .true.
+
+   ! SYSTEM
+    
+   begin unit_cell_cart
+   Ang
+     20.000000   0.000000   0.000000
+     0.000000  20.000000   0.000000
+     0.000000   0.000000   2.565985410
+   end unit_cell_cart
+    
+   begin atoms_cart
+   Ang
+   C       10.0000000000       10.0000000000       -0.0019756118
+   C       10.0000000000       10.0000000000        1.2517014809
+   end atoms_cart
+    
+   ! KPOINTS     
+   ```  
+
+   ```bash
+   echo "mp_grid = 1 1 40">>${seedname}.win
+   echo "begin kpoints">>${seedname}.win
+   kmesh.pl 1 1 40 wannier >>${seedname}.win
+   echo "end kpoints">>${seedname}.win
+   ```  
+
+   2.6.4 'wannier90.x -pp seedname'  
+   2.6.5 `pw2wannier90.x < pw2wan.in > pw2wan.out`  
+
+   ```fortran
+   pw2wan.in
+   &inputpp
+      outdir   = './outdir'
+      prefix   = 'carbyne'
+      seedname = 'carbyne'
+      spin_component = 'none'
+      write_mmn = .true.
+      write_amn = .true.
+      write_unk = .true.
+   /
+   ```  
+
+   2.6.6 `mpirun -np $NP wannier90.x seedname`
 
 >In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
 
