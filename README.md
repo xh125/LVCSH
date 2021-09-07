@@ -154,7 +154,7 @@ make epw
     End final coordinates
    ```  
 
-   2.3 `cp relax.in scf.in` 将上面的原子位置（**ATOMIC_POSITIONS**）结果在scf.in文件中进行修改。修改`calculation = "scf"` 将`&IONS /` 部分注释掉。`mkdir ../scf` 并将修改后的scf.in文件复制到`../scf`中进行自洽计算。  
+   2.3 `cp relax.in scf.in` 将上面的原子位置（**ATOMIC_POSITIONS**）结果在scf.in文件中进行修改。修改`calculation = "scf"` 将`&IONS /` 部分注释掉。`mkdir ../scf` 并将修改后的scf.in文件复制到`../scf`中，修改`scf.in`中的`outdir= './'` 进行自洽计算。  
 
    2.4 计算态密度.修改`calculaiton='nscf'` 并增加`kpoint`的采样密度。
 
@@ -469,10 +469,6 @@ make epw
      fsthick     = 5.0 ! eV
      temps       = 1 ! K
      degaussw    = 0.005 ! eV
-   
-   !  band_plot   = .true.
-   !  filkf       = './LGX.txt'
-   !  filqf       = './LGX.txt'
    
      nkf1 = 40
      nkf2 = 1

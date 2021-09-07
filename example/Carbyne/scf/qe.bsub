@@ -1,0 +1,26 @@
+#!/bin/bash
+#BSUB -J scf
+##BSUB -q privateq-zw
+#BSUB -q publicq-large
+#BSUB -n 32
+#BSUB -R "span[ptile=32]"
+#BSUB -o %J.out
+#BSUB -e %J.err
+
+CURDIR=$PWD
+rm -f nodelist >& /dev/null
+for host in `echo $LSB_HOSTS`
+do
+echo $host >> nodelist
+done
+NP=`cat nodelist | wc -l`
+
+#source ~/xiehua/.bashrc
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+export MODULEPATH=/share/home/ZhuangW/xh/modulefiles:$MODULEPATH
+
+module load Quantum_Espresso/6.8.0
+
+mpirun -np $NP pw.x -npool $NP <scf.in > scf.out
+
