@@ -378,7 +378,7 @@ make epw
 
    计算得到的声子谱如下图所示：  
    ![band-tructure-phonon](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/phonon.png)  
-   
+
    2.7.5 使用matdyn.x计算声子态密度. matdyn-dos.in  
 
    ```fortran
@@ -394,15 +394,107 @@ make epw
    /
    
    ```
->In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
 
-1. make a directory for lvcsh calculation  
+   2.7.6 使用pp.py(位于目录**EPW/bin**下)收集ph.x计算得到的fildvscf相关文件到save文件夹。  
 
-```bash
-mkdir LVCSH
-```
+   2.8 [EPW](https://docs.epw-code.org/doc/Inputs.html) 计算电声耦合强度.计算电声耦合强度需要在scf计算和phonon计算中采用较高的收敛判据。包括：`etot_conv_thr`,`forc_conv_thr`,`press_conv_thr`,`conv_thr` ,`tr2_ph`   
 
-4. make a lsf job script. Need to change the BUSB -q,-n,-R and MODULEPATH as your Environment.   
+   * 第一步：进入phonon目录进行scf自洽计算  
+   * 第二步：ph.x进行DFPT计算（最费时间，需要注意设置参数`fildyn`和`fildvscf`  
+   * 第三步：使用pp.py收集ph.x计算得到的fildvscf相关文件到save文件夹  
+   * 第四步：进入epw目录，先进行scf计算（或者将phonon目录中的内容拷贝过来），再进行nscf计算。scf计算和nscf计算需要使用与phonon计算时相同的参数设置和计算精度。  
+   `kmesh.pl 1 1 40 >>${prefix}.nscf.in`  
+   * 第五步，设置epw.in文件，进行epw计算，设置`prtgkk`.注意**fsthick**的设置，会影响打印出来的电声耦合矩阵元包含的能带数和q点数。epw.in如下：  
+
+   ```forrtran
+   epw calculation of carbyne
+   &inputepw
+     prefix = 'carbyne'
+     outdir = './'
+     amass(1)= 12.0107
+     dvscf_dir = '../phonon/save/'
+   
+     iverbosity = 0
+   
+     elph        = .true.
+   ! epbwrite    = .true.
+   ! epbread     = .false.
+     epwwrite    = .true.
+     epwread     = .false.
+     etf_mem     = 1
+     prtgkk   = .true.
+   
+   !  eig_read    = .true.
+   
+     asr_typ     = 'simple'
+     use_ws      = .true.
+   
+     wannierize = .true.
+     nbndsub     =  4
+     bands_skipped = 'exclude_bands = 1-2'
+     num_iter = 10000
+     iprint   = 2
+   !  dis_win_max = 12
+   !  dis_win_min = -25
+   !  dis_froz_min = -11
+     dis_froz_max = -0.2
+     proj(1) = 'C:py;pz'
+   !  proj(2) = 'C:sp-1'
+     write_wfn= .true.
+     wannier_plot= .true.
+     wdata(1)= 'bands_plot = .true.'
+     wdata(2)= 'begin kpoint_path'
+     wdata(3)= 'G 0.00 0.00 0.00 M 0.50 0.00 0.00'
+     wdata(4)= 'end kpoint_path'
+     wdata(5)= 'bands_plot_format = gnuplot'
+     wdata(6)= 'conv_tol      = 1.0e-10 '
+     wdata(7)= 'conv_window   = 3      '
+     wdata(8)= 'dis_conv_tol  = 1.0e-10 '
+     wdata(9)= 'dis_conv_window = 3     '
+     wdata(10)= 'dis_num_iter= 10000      '
+     wdata(11)= 'dis_mix_ratio= 0.5      '
+     wdata(12)= 'guiding_centres = .true.'
+     wdata(13)= 'translate_home_cell  : true'
+     wdata(14)= 'translation_centre_frac :   0.0 0.0 0.0  '
+   
+     elecselfen  = .false.
+     phonselfen  = .false.
+     a2f         = .false.
+   
+     fsthick     = 5.0 ! eV
+     temps       = 1 ! K
+     degaussw    = 0.005 ! eV
+   
+   !  band_plot   = .true.
+   !  filkf       = './LGX.txt'
+   !  filqf       = './LGX.txt'
+   
+     nkf1 = 40
+     nkf2 = 1
+     nkf3 = 1
+     nqf1 = 40
+     nqf2 = 1
+     nqf3 = 1
+   
+     nk1 = 40
+     nk2 = 1
+     nk3 = 1
+     nq1 = 40
+     nq2 = 1
+     nq3 = 1
+   /    
+   ```  
+
+   * In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
+
+3. 构建目录使用手动方式进行LVCSH.x的并行计算  
+   make a directory **LVCSH** for lvcsh calculation。并在LVCSH目录下放入LVCSH.in输入文件，以及并行计算的脚本和任务提交脚本bsub脚本。  
+
+   ```bash
+   mkdir LVCSH
+   ```
+
+1. make a lsf job script. Need to change the BUSB -q,-n,-R and MODULEPATH as your Environment.   
 
 ```bash
 lvcsh.bsub
