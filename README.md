@@ -30,15 +30,15 @@ make epw
 
 ## Tutorial
 
-1. make a work directory  
+1. make a work directory (**Carbyne**)  
 
 2. In work directory do epw calculate, to get the electron-phonon coupling matrix. the dir structure as follow  
 
    ```bash
                     (work directory)  
         ___________________|_______________________________
-       |          |     |           |             |        |
-     relax       scf   dos        phonon         epw      LVCSH
+       |       |       |     |         |          |        |
+     relax   pseudo   scf   dos     phonon       epw      LVCSH
    ```  
 
    计算电声耦合项的步骤如下所示。在不同的目录下面进行结构优化、自洽计算、声子谱计算和电声耦合计算  
@@ -64,7 +64,7 @@ make epw
     ibrav       = 0
     nat         = 2
     ntyp        = 1
-    nbnd        = 16
+    !nbnd        = 16
     occupations = 'fixed'
     !    occupations = "smearing"
     !    smearing    = "cold"    
@@ -117,7 +117,9 @@ make epw
 
    ```bash
    awk  '/Begin final coordinates/,/End final coordinates/{print $0}' vc-relax.out
+   ```
 
+   ```bash
    
    Begin final coordinates
         new unit-cell volume =   1731.62982 a.u.^3 (   256.60106 Ang^3 )
@@ -137,7 +139,10 @@ make epw
 
    2.2 `cp vc-relax.in relax.in` 将上面优化得到的`CELL_PARAMETERS` 和`ATOMIC_POSITIONS` 结果在relax.in中进行修改，并修改为`calculation = "relax"`, 将`&CELL /`部分注释掉。再对原子位置进行优化。计算完成后，运行下列命令得到优化后的原子位置。  
 
-   `awk  '/Begin final coordinates/,/End final coordinates/{print $0}' relax.out`  
+   ```bash
+   awk  '/Begin final coordinates/,/End final coordinates/{print $0}' relax.out  
+   ```  
+
    得到如下结果：  
 
    ```bash

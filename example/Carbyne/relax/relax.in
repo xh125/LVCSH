@@ -1,5 +1,5 @@
 &CONTROL
-    calculation   = "vc-relax"  
+    calculation   = "relax"  
     restart_mode  = "from_scratch"
     prefix        = "carbyne"
     outdir        = "./outdir/"
@@ -36,11 +36,11 @@
     ion_dynamics = "bfgs"
 /
 
-&CELL
-    cell_dofree    = "x"
-    cell_dynamics  = "bfgs"
-    press_conv_thr =  0.05
-/
+!&CELL
+!    cell_dofree    = "x"
+!    cell_dynamics  = "bfgs"
+!    press_conv_thr =  0.05
+!/
 
 K_POINTS {automatic}
  100  1  1  0 0 0
@@ -49,11 +49,11 @@ ATOMIC_SPECIES
 C      12.01070  C.pbe-n-kjpaw_psl.1.0.0.UPF
 
 CELL_PARAMETERS (angstrom)
-   2.565602620   0.000000000   0.000000000
+   2.565541996   0.000000000   0.000000000
    0.000000000  10.000000000   0.000000000
    0.000000000   0.000000000  10.000000000
 
 ATOMIC_POSITIONS (angstrom)
-C             0.0002913894       5.0000000000       5.0000000000
-C             1.2644833916       5.0000000000       5.0000000000
+C             0.0003937758        5.0000000000        5.0000000000
+C             1.2643511192        5.0000000000        5.0000000000
 
