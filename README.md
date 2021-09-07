@@ -501,14 +501,14 @@ make epw
    #!/bin/bash
    #BSUB -J lvcsh-epw
    #BSUB -q privateq-zw
-   #BSUB -n 32
-   #BSUB -R "span[ptile=32]"
+   #BSUB -n 28
+   #BSUB -R "span[ptile=28]"
    #BSUB -o %J.out
    #BSUB -e %J.err
    
    export MODULEPATH=/share/home/zw/xiehua/opt/modules-4.7.1/modulefiles
    
-   module load lvcsh/0.6.0
+   module load lvcsh/0.6.4
    
    CURDIR=$PWD
    #Generate nodelist
@@ -600,13 +600,13 @@ make epw
    epwoutname    = "./QEfiles/epw40.out"
    !nefre_sh      = 40
    !nhfre_sh      = 40
-   nnode         = 1
+   nnode         = 10
    ncore         = 28
-   naver         = 10
+   naver         = 100
    nsnap         = 1000
    nstep         = 2
    dt            = 0.5
-   savedsnap     = 1
+   savedsnap     = 25
    pre_nstep     = 50000
    pre_dt        = 0.5
    gamma         = 0.0   ! in unit of ps-1
@@ -625,15 +625,13 @@ make epw
    #BSUB -J lvcsh-epw-test
    #BSUB -q privateq-zw
    #BSUB -n 1
-   #BSUB -R "span[ptile=1]"
    #BSUB -o %J.out
    #BSUB -e %J.err
    
    export MODULEPATH=/share/home/zw/xiehua/opt/modules-4.7.1/modulefiles
-   module load lvcsh/0.6.2
+   module load lvcsh/0.6.4
    
    LVCSH_complex.x
-   
    ```  
 
    3.3 By look the initial adiabatic state in the QEfiles/LVCSH.out for different kpoints directory. Set the **`nefre_sh`** and **`nhfre_sh`** in the QEfiles/LVCSH.in to tests the time for one step nonadiabatic calculation. Then, subscrib the job again.  

@@ -1,8 +1,7 @@
 #!/bin/bash
-#BSUB -J lvcsh-epw40
+#BSUB -J lvcsh-epw
 #BSUB -q privateq-zw
 #BSUB -n 1
-#BSUB -R "span[ptile=1]"
 #BSUB -o %J.out
 #BSUB -e %J.err
 
