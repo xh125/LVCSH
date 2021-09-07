@@ -197,11 +197,24 @@ make epw
 
    ![Pdos](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/Pdos.png)  
 
-   2.5 计算能带
+   2.5 计算能带,修改`calculation='bands'`，`nbnd` 和`K_POINTS crystal_b`部分进行第一布里渊区高对称kpoint的能带计算。  
 
    ```bash
-   cp scf band
+   cp -r scf band
+   cd band
+   cp scf.in pw-bands.in
+   
+   calculation   = "bands"
+   nbnd = 22
+   K_POINTS crystal_b
+   3
+   -0.5 0.0 0.0 50
+    0.0 0.0 0.0 50
+    0.5 0.0 0.0 1
    ```
+
+   计算完成后使用bands.x处理能带数据。在能带计算之后，用projwfc.x生成的fatband.projwfc_up文件，可以和bands.x生成的文件bands.dat结合，画出各个能带的原子轨道投影，画图脚本如下：/LVCSH/tools/fatband.f90。计算能带图如下:  
+   ![band.png](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/fatband.png)
 
 >In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
 
