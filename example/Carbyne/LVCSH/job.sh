@@ -1,5 +1,7 @@
 #!/bin/bash
-	for i in {1..10}
+nnode=10
+sed -i "s:nnode:nnode = $nnode !:g" LVCSH.in
+for i in $(seq 1 1 $nnode)
 	do 
 	mkdir node$i
 	cp ./lvcsh.bsub ./node$i/	

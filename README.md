@@ -488,7 +488,58 @@ make epw
 
    * In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
 
-3. 构建目录使用手动方式进行LVCSH.x的并行计算  
+3. 构建目录，进行LVCSH.x的串行计算（只能单核计算，程序内的并行计算待开发）,需要测试`lit_ephonon`的值，由于低频声学支声子部分可能会导致计算结果发散，（低频声学支会导致Normal mode极大）
+
+   ```bash
+   mkdir LVCSH-epw40
+   cp ./epw/epw40.out ./LVCSH-epw40
+   cd LVCSH-epw40
+   vi LVCSH.in
+   LVCSH_complex.x &
+   ```  
+
+   ```fortran
+   calculation   = "lvcsh" ! "lvcsh" or "plot"
+   verbosity     = "low"   ! "low" or "high"
+   outdir        = "./"
+   methodsh      = "FSSH"
+   lit_gmnvkq    = 0.0    ! in unit of meV
+   lit_ephonon   = 10.0    ! in unit of meV
+   lfeedback     = .true.
+   lehpairsh     = .true.
+   !lelecsh       = .true.
+   !lholesh       = .true.
+   !ieband_min    = 3
+   !ieband_max    = 4
+   !ihband_min    = 1
+   !ihband_max    = 2
+   !lsortpes      = .false.
+   !mix_thr       = 0.8
+   epwoutname    = "epw40.out"
+   !nefre_sh      = 40
+   !nhfre_sh      = 40
+   nnode         = 1
+   ncore         = 1
+   naver         = 2000
+   nsnap         = 1000
+   nstep         = 2
+   dt            = 0.5
+   savedsnap     = 25
+   ldecoherence  = .true.
+   Cdecoherence  = 0.1
+   l_ph_quantum  = .true.
+   temp          = 300
+   pre_nstep     = 50000
+   pre_dt        = 0.5
+   !gamma         = 0.0   ! in unit of ps-1
+   ld_fric       = 0.01   ! 
+   llaser        = .true.
+   efield_cart   = 1.0 1.0 1.0
+   w_laser       = 2.0  ! in unit of eV
+   fwhm          = 100  ! in unit of fs   
+   ```  
+
+4. 构建目录使用手动方式进行LVCSH.x的并行计算(在不同的节点和核上进行不同轨迹的计算，计算完成后使用LVCSH.x程序后处理取平均值.)  
    make a directory **LVCSH** for lvcsh calculation。并在LVCSH目录下放入LVCSH.in输入文件，以及并行计算的脚本和任务提交脚本bsub脚本。  
 
    ```bash
@@ -502,8 +553,8 @@ make epw
    #!/bin/bash
    #BSUB -J lvcsh-epw
    #BSUB -q privateq-zw
-   #BSUB -n 28
-   #BSUB -R "span[ptile=28]"
+   #BSUB -n ncore
+   #BSUB -R "span[ptile=ncore]"
    #BSUB -o %J.out
    #BSUB -e %J.err
    
@@ -521,7 +572,7 @@ make epw
    
    NP=`cat ${CURDIR}/nodelist |wc -l`
    
-   for i in {1..${NP}}
+   for i in $(seq 1 1 $NP)
    do
    mkdir sample$i
    cp ./LVCSH.in ./sample$i/
@@ -538,35 +589,50 @@ make epw
    ```bash
    mkepwdir.sh
    #!/bin/bash
-   ncore=28
-   for i in $(seq 40 40 160)
-       do 
-           mkdir epw$i
-           mkdir epw$i/QEfiles
-           cp ../epw/epw$i.out epw$i/QEfiles/
-           cp lvcsh.bsub epw$i
-           sed -i "s/ncore/$ncore/g" epw$i/lvcsh.bsub
-           sed -i "s/lvcsh-epw/lvcsh-epw$i-n0/g" epw$i/lvcsh.bsub
-           cp job.sh epw$i
-           cp LVCSH.in epw$i
-           sed -i "s:epw40:epw$i:g" epw$i/LVCSH.in
-           sed -i "s:ncore:ncore=$ncore #:g" epw$i/LVCSH.in
-           cp LVCSH.in epw$i/QEfiles
-           sed -i "s/low/high/g" epw$i/QEfiles/LVCSH.in
-           sed -i "s:../../QEfiles/epw40.out:epw$i.out:g" epw$i/QEfiles/LVCSH.in
-           cp lvcsh-test.bsub epw$i/QEfiles
-           cd epw$i/QEfiles
-           sed -i "2s/lvcsh-epw/lvcsh-epw$i/g" lvcsh-test.bsub
-           bsub < lvcsh-test.bsub
-           cd ../..
-       done
+   ncore=32
+   MODULEPATH="/share/home/ZhuangW/xh/modulefiles"
+   lvcsh_version="0.6.4"
+   QUEUE_NAME="publicq-128"
+   for i in $(seq 40 40 80)
+   do
+        mkdir epw$i
+
+        mkdir epw$i/QEfiles
+        cp ../epw/epw$i.out epw$i/QEfiles/
+
+        cp lvcsh.bsub epw$i
+        sed -i "s/ncore/$ncore/g" epw$i/lvcsh.bsub
+        sed -i "2s:lvcsh-epw:lvcsh-epw${i}-n0:g" epw$i/lvcsh.bsub
+        sed -i "s:privateq-zw:$QUEUE_NAME:g" epw$i/lvcsh.bsub
+        sed -i "s:MODULEPATH=:MODULEPATH=$MODULEPATH #:g" epw$i/lvcsh.bsub
+        sed -i "s:0.6.4:$lvcsh_version:g" epw$i/lvcsh.bsub
+        cp job.sh epw$i
+        cp LVCSH.in epw$i
+        sed -i "s:./epw.out:../../QEfiles/epw$i.out:g" epw$i/LVCSH.in
+        sed -i "s:ncore:ncore = $ncore !:g" epw$i/LVCSH.in
+        cp LVCSH.in epw$i/QEfiles
+        sed -i "s:verbosity:verbosity="high" !:g" epw$i/QEfiles/LVCSH.in
+        sed -i "s:./epw.out:./epw$i.out:g" epw$i/QEfiles/LVCSH.in
+        sed -i "s:naver:naver = 10 !:g" epw$i/QEfiles/LVCSH.in
+        sed -i "s:nsnap:nsnap = 2 !:g" epw$i/QEfiles/LVCSH.in
+        sed -i "s:savedsnap:savedsnap = 2 !:g" epw$i/QEfiles/LVCSH.in
+        cp lvcsh-test.bsub epw$i/QEfiles
+        cd epw$i/QEfiles
+        sed -i "2s/lvcsh-epw/lvcsh-epw$i-test/g" lvcsh-test.bsub
+        sed -i "s:privateq-zw:$QUEUE_NAME:g" lvcsh-test.bsub
+        sed -i "s:MODULEPATH=:MODULEPATH=$MODULEPATH #:g" lvcsh-test.bsub
+        sed -i "s:0.6.4:$lvcsh_version:g" lvcsh-test.bsub
+        bsub < lvcsh-test.bsub
+        cd ../..
+   done   
    ```  
 
    ```bash
    job.sh
    #!/bin/bash
-       nnodes=10
-       for i in {1..$nnodes}
+       nnode=10
+       sed -i "s:nnode:nnode = $nnode !:g" LVCSH.in
+       for i in $(seq 1 1 $nnode)
        do 
        mkdir node$i
        cp ./lvcsh.bsub ./node$i/
@@ -623,13 +689,14 @@ make epw
    ```bash
    lvcsh-test.bsub
    #!/bin/bash
-   #BSUB -J lvcsh-epw-test
+   #BSUB -J lvcsh-epw
    #BSUB -q privateq-zw
    #BSUB -n 1
    #BSUB -o %J.out
    #BSUB -e %J.err
    
    export MODULEPATH=/share/home/zw/xiehua/opt/modules-4.7.1/modulefiles
+   
    module load lvcsh/0.6.4
    
    LVCSH_complex.x

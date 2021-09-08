@@ -24,7 +24,7 @@ done
 NP=`cat ${CURDIR}/nodelist |wc -l`
 
 
-for i in {1..ncore}
+for i in $(seq 1 1 $NP)
 do
 mkdir sample$i
 cp ./LVCSH.in ./sample$i/
