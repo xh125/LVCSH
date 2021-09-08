@@ -1,6 +1,6 @@
 #!/bin/bash
-ncore=28
-for i in $(seq 160 40 160)
+ncore=32
+for i in $(seq 40 40 240)
 	do
 		mkdir epw$i
 		mkdir epw$i/QEfiles

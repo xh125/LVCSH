@@ -407,8 +407,8 @@ make epw
    * 第一步：进入phonon目录进行scf自洽计算  
    * 第二步：ph.x进行DFPT计算（最费时间，需要注意设置参数`fildyn`和`fildvscf`  
    * 第三步：使用pp.py收集ph.x计算得到的fildvscf相关文件到save文件夹  
-   * 第四步：进入epw目录，先进行scf计算（或者将phonon目录中的内容拷贝过来），再进行nscf计算。scf计算和nscf计算需要使用与phonon计算时相同的参数设置和计算精度。  
-   `kmesh.pl 1 1 40 >>${prefix}.nscf.in`  
+   * 第四步：进入epw目录，先进行scf计算（或者将phonon目录中的内容拷贝过来），再进行nscf计算,需要设置所有的k点并且修改`nbnd` 的值。scf计算和nscf计算需要使用与phonon计算时相同的参数设置和计算精度。  
+   `kmesh.pl 40 1 1 >>${prefix}.nscf.in`  
    * 第五步，设置epw.in文件，进行epw计算，设置`prtgkk`.注意**fsthick**的设置，会影响打印出来的电声耦合矩阵元包含的能带数和q点数。epw.in如下：  
 
    ```forrtran
@@ -587,7 +587,7 @@ make epw
    ldecoherence  = .true.
    Cdecoherence  = 0.1
    lit_gmnvkq    = 0.0    ! in unit of meV
-   lit_ephonon   = 1.0    ! in unit of meV
+   lit_ephonon   = 10.0    ! in unit of meV
    lfeedback     = .true.
    lehpairsh     = .true.
    !lelecsh       = .true.
@@ -598,7 +598,7 @@ make epw
    !ihband_max    = 2
    !lsortpes      = .false.
    !mix_thr       = 0.8
-   epwoutname    = "./QEfiles/epw40.out"
+   epwoutname    = "../../QEfiles/epw40.out"
    !nefre_sh      = 40
    !nhfre_sh      = 40
    nnode         = 10

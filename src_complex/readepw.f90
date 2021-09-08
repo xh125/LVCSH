@@ -1291,6 +1291,7 @@ module readepw
         if(wf(nu,iq)<0.0) then
           write(stdout,"(A,I5,1X,A,3(F12.6,1X),A8,I5,A1,F12.6,A3)") &
 					"Carefully!!! the energy of phonon in iq=",iq,"(coord.:",(xqf(ipol,iq),ipol=1,3),") modes=",nu,"=",wf(nu,iq),"meV"
+          write(stdout,"(A)") "The phonon calculation could need a higher threshold for relax and scf and phonon calculaiton."
 					wf(nu,iq)=0.0
 				endif
       enddo
