@@ -11,12 +11,13 @@ epw calculation of carbyne
   epwwrite    = .true.
   epwread     = .false.
   etf_mem     = 1
+
   prtgkk   = .true.
+  ephwrite = .true.
 
 !  eig_read    = .true.
 
   asr_typ     = 'simple'
-  use_ws      = .true.
 
   wannierize = .true.
   nbndsub     =  4

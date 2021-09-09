@@ -43,7 +43,7 @@ make epw
 
    计算电声耦合项的步骤如下所示。在不同的目录下面进行结构优化、自洽计算、声子谱计算和电声耦合计算  
 
-   2.1 进入relax目录，创建[vc-relax.in](http://www.quantum-espresso.org/Doc/INPUT_PW.html) 进行晶格结构优化。对于参数的设置，`etot_conv_thr`,`forc_conv_thr`,`conv_thr`和`press_conv_thr`的精度需要设置的比较高，需要用于后续计算**phonon**. 在该案例中收敛判据可能不够，在实际的计算中，应该根据需要进行设置。
+   2.1 进入relax目录，创建[vc-relax.in](http://www.quantum-espresso.org/Doc/INPUT_PW.html) 进行晶格结构优化。对于参数的设置，[**`etot_conv_thr`**](http://www.quantum-espresso.org/Doc/INPUT_PW.html#etot_conv_thr),[**`forc_conv_thr`**](http://www.quantum-espresso.org/Doc/INPUT_PW.html#forc_conv_thr),[**`conv_thr`**](http://www.quantum-espresso.org/Doc/INPUT_PW.html#conv_thr)和[**`press_conv_thr`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#press_conv_thr)的精度需要设置的比较高，需要用于后续计算**phonon**. 在该案例中收敛判据可能不够，在实际的计算中，应该根据需要进行设置。
   
    ```fortran
    vc-relax.in
@@ -137,7 +137,7 @@ make epw
       
    ```
 
-   2.2 `cp vc-relax.in relax.in` 将上面优化得到的`CELL_PARAMETERS` 和`ATOMIC_POSITIONS` 结果在relax.in中进行修改，并修改为`calculation = "relax"`, 将`&CELL /`部分注释掉。再对原子位置进行优化。计算完成后，运行下列命令得到优化后的原子位置。  
+   2.2 `cp vc-relax.in relax.in` 将上面优化得到的[**`CELL_PARAMETERS`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#CELL_PARAMETERS) 和[**`ATOMIC_POSITIONS`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#ATOMIC_POSITIONS) 结果在relax.in中进行修改，并修改为`calculation = "relax"`, 将`&CELL /`部分注释掉。再对原子位置进行优化。计算完成后，运行下列命令得到优化后的原子位置。  
 
    ```bash
    awk  '/Begin final coordinates/,/End final coordinates/{print $0}' relax.out  
@@ -203,7 +203,7 @@ make epw
 
    ![Pdos](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/Pdos.png)  
 
-   2.5 计算能带,修改`calculation='bands'`，`nbnd` 和`K_POINTS crystal_b`部分进行第一布里渊区高对称kpoint的能带计算。  
+   2.5 计算能带,修改[**`calculation='bands'`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#calculation)，[**`nbnd`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#nbnd) 和[**`K_POINTS crystal_b`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#K_POINTS)部分进行第一布里渊区高对称kpoint的能带计算。  
 
    ```bash
    cp -r scf band
@@ -329,7 +329,7 @@ make epw
 
    ```
 
-   2.7.2 进行[phonon](http://www.quantum-espresso.org/Doc/INPUT_PH.html)计算。`tr2_ph=1.0d-16`需要设置的精度高一些。必须设置`fildvscf`以输出自洽势对normal mode的导数。
+   2.7.2 进行[phonon](http://www.quantum-espresso.org/Doc/INPUT_PH.html)计算。[**`tr2_ph=1.0d-16`**](http://www.quantum-espresso.org/Doc/INPUT_PH.html#tr2_ph)需要设置的精度高一些。必须设置[**`fildvscf`**](http://www.quantum-espresso.org/Doc/INPUT_PH.html#fildvscf)以输出自洽势对normal mode的导数。
 
    ```fortran
    phonons calculation
@@ -402,14 +402,14 @@ make epw
 
    2.7.6 使用pp.py(位于目录**EPW/bin**下)收集ph.x计算得到的fildvscf相关文件到save文件夹。  
 
-   2.8 [EPW](https://docs.epw-code.org/doc/Inputs.html) 计算电声耦合强度.计算电声耦合强度需要在scf计算和phonon计算中采用较高的收敛判据。包括：`etot_conv_thr`,`forc_conv_thr`,`press_conv_thr`,`conv_thr` ,`tr2_ph`   
+   2.8 [EPW](https://docs.epw-code.org/doc/Inputs.html) 计算电声耦合强度.计算电声耦合强度需要在scf计算和phonon计算中采用较高的收敛判据。包括：`etot_conv_thr`,`forc_conv_thr`,`press_conv_thr`,`conv_thr` ,`tr2_ph`  
 
    * 第一步：进入phonon目录进行scf自洽计算  
-   * 第二步：ph.x进行DFPT计算（最费时间，需要注意设置参数`fildyn`和`fildvscf`  
+   * 第二步：ph.x进行DFPT计算（最费时间，需要注意设置参数`fildyn`和`fildvscf`)
    * 第三步：使用pp.py收集ph.x计算得到的fildvscf相关文件到save文件夹  
    * 第四步：进入epw目录，先进行scf计算（或者将phonon目录中的内容拷贝过来），再进行nscf计算,需要设置所有的k点并且修改`nbnd` 的值。scf计算和nscf计算需要使用与phonon计算时相同的参数设置和计算精度。  
    `kmesh.pl 40 1 1 >>${prefix}.nscf.in`  
-   * 第五步，设置epw.in文件，进行epw计算，设置`prtgkk`.注意**fsthick**的设置，会影响打印出来的电声耦合矩阵元包含的能带数和q点数。epw.in如下：  
+   * 第五步，设置epw.in文件，进行epw计算，设置[`prtgkk`](https://docs.epw-code.org/doc/Inputs.html#prtgkk)以及[`ephwrite`](https://docs.epw-code.org/doc/Inputs.html#ephwrite).注意[**fsthick**](https://docs.epw-code.org/doc/Inputs.html#fsthick)的设置，会影响打印出来的电声耦合矩阵元包含的能带数和q点数。EPW计算完成后需要检查插值后的phonon的频率（插值可能导致出现虚频，与wannier插值傅里叶变换有关，可能需要重新设置wannier插值参数）。epw.in如下：  
 
    ```forrtran
    epw calculation of carbyne
@@ -427,12 +427,13 @@ make epw
      epwwrite    = .true.
      epwread     = .false.
      etf_mem     = 1
+     
      prtgkk   = .true.
-   
+     ephwrite = .true.
+
    !  eig_read    = .true.
    
-     asr_typ     = 'simple'
-     use_ws      = .true.
+   !  asr_typ     = 'simple'
    
      wannierize = .true.
      nbndsub     =  4
