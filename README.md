@@ -364,10 +364,9 @@ make epw
    flfrq='phonon-freq', 
    q_in_band_form=.true.,
    /
-   3
-   0.0 0.0 -0.5 50
-   0.0 0.0 0.0  50
-   0.0 0.0 0.5 1
+   2
+   0.0 0.0 0.0 100
+   0.5 0.0 0.0 1
    ```  
 
    使用plotband.x处理声子谱数据。plotband.in
@@ -422,6 +421,8 @@ make epw
      iverbosity = 0
    
      elph        = .true.
+     ep_coupling = .true.
+
    ! epbwrite    = .true.
    ! epbread     = .false.
      epwwrite    = .true.
@@ -433,7 +434,8 @@ make epw
 
    !  eig_read    = .true.
    
-   !  asr_typ     = 'simple'
+     lifc        = .true.
+     asr_typ     = 'crystal'
    
      wannierize = .true.
      nbndsub     =  4
@@ -487,9 +489,12 @@ make epw
    /    
    ```  
 
+   * [**EPW声子谱和QE不一致**](https://www.jianshu.com/p/e5e34d576c86) (参考简书)  
+      这个问题一般是由于声子求和规则导致的，EPW中提供了读入实空间力常数来计算声子频率的方法，并且也提供了相应的声子求和规则（与matdyn.f90里面的相同）。只需要改[**`lifc = .true.`**](https://docs.epw-code.org/doc/Inputs.html#lifc)，然后再设置声子求和规则[**`asr_typ = crystal`**](https://docs.epw-code.org/doc/Inputs.html#asr-typ)（我一般都取crystal），同时需要注意的是要保证之前计算QE得到的文件通过pp.py收集起来那个必须有q2r.x产生的实空间力常数文件并且已经被命名为ifc.q2r，对于包含SOC的情况，这个文件必须叫ifc.q2r.xml并且是xml格式的文件。（这个一般不是太老的脚本pp.py都会自动帮你做这件事情。）参考[phonon bandstructure from EPW and matdyn.x don't match](http://epwforum.uk/viewtopic.php?f=3&t=137)  
+
    * In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
 
-3. 构建目录，进行LVCSH.x的串行计算（只能单核计算，程序内的并行计算待开发）,需要测试`lit_ephonon`的值，由于低频声学支声子部分可能会导致计算结果发散，（低频声学支会导致Normal mode极大）
+1. 构建目录，进行LVCSH.x的串行计算（只能单核计算，程序内的并行计算待开发）,需要测试`lit_ephonon`的值，由于低频声学支声子部分可能会导致计算结果发散，（低频声学支会导致Normal mode极大）
 
    ```bash
    mkdir LVCSH-epw40
@@ -540,7 +545,7 @@ make epw
    fwhm          = 100  ! in unit of fs   
    ```  
 
-4. 构建目录使用手动方式进行LVCSH.x的并行计算(在不同的节点和核上进行不同轨迹的计算，计算完成后使用LVCSH.x程序后处理取平均值.)  
+2. 构建目录使用手动方式进行LVCSH.x的并行计算(在不同的节点和核上进行不同轨迹的计算，计算完成后使用LVCSH.x程序后处理取平均值.)  
    make a directory **LVCSH** for lvcsh calculation。并在LVCSH目录下放入LVCSH.in输入文件，以及并行计算的脚本和任务提交脚本bsub脚本。  
 
    ```bash
