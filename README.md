@@ -316,8 +316,8 @@ make epw
 
    2.6.6 `mpirun -np $NP wannier90.x seedname` 通过wannier90计算，找到进行wannier拟合的相关参数设置，后续用于EPW计算中wannier拟合相关部分参数的设置。  
 
-   2.7 采用DFPT进行[phonon](http://www.quantum-espresso.org/Doc/INPUT_PH.html)计算。（为了后续数据处理，phonon计算需要设置的`outdir='./'`）  
-   2.7.1 `cp -r scf phonon`, 设置scf.in 输入文件.其中电子自洽收敛需要设置的高一些，这样后续采用DFPT计算声子谱和电声耦合值会有更高精度。nbnd的设置对后续电声耦合计算无影响，K_POINTS的设置需要注意，后面EPW计算中需要与DFT计算的设置相同。
+   2.7 采用DFPT进行[phonon](http://www.quantum-espresso.org/Doc/INPUT_PH.html)计算。（为了后续数据处理，phonon计算需要设置的`outdir='./'`）,为了声子谱计算的更准确，scf计算中可以使用更密的K点，更少的q点。  
+   2.7.1 `cp -r scf phonon`, 设置scf.in 输入文件.其中电子自洽收敛需要设置的高一些，这样后续采用DFPT计算声子谱和电声耦合值会有更高精度。nbnd的设置对后续电声耦合计算无影响，K_POINTS的设置需要注意，后面EPW计算中需要与DFT计算的设置相同,K_POINTS的值可以设置的高一些，以使得phonon band计算出来的声子谱收敛。
 
    ```fortran
    outdir = './'
@@ -408,7 +408,7 @@ make epw
    * 第三步：使用pp.py收集ph.x计算得到的fildvscf相关文件到save文件夹  
    * 第四步：进入epw目录，先进行scf计算（或者将phonon目录中的内容拷贝过来），再进行nscf计算,需要设置所有的k点并且修改`nbnd` 的值。scf计算和nscf计算需要使用与phonon计算时相同的参数设置和计算精度。  
    `kmesh.pl 40 1 1 >>${prefix}.nscf.in`  
-   * 第五步，设置epw.in文件，进行epw计算，设置[`prtgkk`](https://docs.epw-code.org/doc/Inputs.html#prtgkk)以及[`ephwrite`](https://docs.epw-code.org/doc/Inputs.html#ephwrite).注意[**fsthick**](https://docs.epw-code.org/doc/Inputs.html#fsthick)的设置，会影响打印出来的电声耦合矩阵元包含的能带数和q点数。EPW计算完成后需要检查插值后的phonon的频率（插值可能导致出现虚频，与wannier插值傅里叶变换有关，可能需要重新设置wannier插值参数）。epw.in如下：  
+   * 第五步，设置 **epw.in** 文件，进行epw计算，设置[`prtgkk`](https://docs.epw-code.org/doc/Inputs.html#prtgkk)以及[`ephwrite`](https://docs.epw-code.org/doc/Inputs.html#ephwrite).注意[**fsthick**](https://docs.epw-code.org/doc/Inputs.html#fsthick)的设置，会影响打印出来的电声耦合矩阵元包含的能带数和q点数。EPW计算完成后需要检查插值后的phonon的频率（插值可能导致出现虚频，与wannier插值傅里叶变换有关，可能需要重新设置wannier插值参数）。epw.in如下：  
 
    ```forrtran
    epw calculation of carbyne
@@ -427,10 +427,10 @@ make epw
    ! epbread     = .false.
      epwwrite    = .true.
      epwread     = .false.
-     etf_mem     = 1
+   ! etf_mem     = 1
      
      prtgkk   = .true.
-     ephwrite = .true.
+   ! ephwrite = .true.
 
    !  eig_read    = .true.
    
@@ -492,9 +492,40 @@ make epw
    * [**EPW声子谱和QE不一致**](https://www.jianshu.com/p/e5e34d576c86) (参考简书)  
       这个问题一般是由于声子求和规则导致的，EPW中提供了读入实空间力常数来计算声子频率的方法，并且也提供了相应的声子求和规则（与matdyn.f90里面的相同）。只需要改[**`lifc = .true.`**](https://docs.epw-code.org/doc/Inputs.html#lifc)，然后再设置声子求和规则[**`asr_typ = crystal`**](https://docs.epw-code.org/doc/Inputs.html#asr-typ)（我一般都取crystal），同时需要注意的是要保证之前计算QE得到的文件通过pp.py收集起来那个必须有q2r.x产生的实空间力常数文件并且已经被命名为 **ifc.q2r**，对于包含SOC的情况，这个文件必须叫 **ifc.q2r.xml** 并且是xml格式的文件。（这个一般不是太老的脚本pp.py都会自动帮你做这件事情。）参考[phonon bandstructure from EPW and matdyn.x don't match](http://epwforum.uk/viewtopic.php?f=3&t=137)  
 
+   * 第六步，使用第五步`epwwrite=.true.`设置输出的wannier表象下的电声耦合文件，计算不同`nqf`和`nkf`插值密度的EPW计算。使用**runepw.sh**脚本进行提交计算：  
+
+   ```bash
+   #!/bin/bash
+   for i in $(seq 20 20 240)
+           do
+           cp epw.in epw${i}.in
+           sed -i "s:epwwrite:epwwrite=.false. ! :g" epw${i}.in
+           sed -i "s:epwread:epwread=.true. !:g" epw${i}.in
+           sed -i "s:prtgkk:prtgkk=.true. !:g" epw${i}.in
+           sed -i "s:wannierize:wannierize=.false. !:g" epw${i}.in
+           sed -i "s:nkf1:nkf1=$i !:g" epw${i}.in
+           sed -i "s:nqf1:nqf1=$i !:g" epw${i}.in
+   
+           cp qe-epw.bsub qe-epw${i}.bsub
+           sed -i "2s:epw:epw${i}:g" qe-epw${i}.bsub
+           sed -i "s:epw.in:epw${i}.in:g" qe-epw${i}.bsub
+           sed -i "s:epw.out:epw${i}.out:g" qe-epw${i}.bsub
+   
+           bsub < qe-epw${i}.bsub
+           sleep 10
+           done
+   ```  
+
+   * 上述脚本，有可能由于epwread文件读取冲突，导致不能正常计算，使用下列命令，找出不能正常running的作业，重新提交。  
+
+   ```bash
+   for i in $(seq 20 20 240);do echo epw$i.out;head epw$i.out;done
+   ```
+
+
    * In directory epw to calculate the electron-phonon coupling matrix using the changed EPW code. And the output be named dependend on the kpoint: as epw40.out, epw80.out, epw120.out, epw160.out. Used to test the kpoint and qpoint convergence.  
 
-1. 构建目录，进行LVCSH.x的串行计算（只能单核计算，程序内的并行计算待开发）,需要测试`lit_ephonon`的值，由于低频声学支声子部分可能会导致计算结果发散，（低频声学支会导致Normal mode极大）
+3. 构建目录，进行LVCSH.x的串行计算（只能单核计算，程序内的并行计算待开发）,需要测试`lit_ephonon`的值，由于低频声学支声子部分可能会导致计算结果发散，（低频声学支会导致Normal mode极大）
 
    ```bash
    mkdir LVCSH-epw40
@@ -545,7 +576,7 @@ make epw
    fwhm          = 100  ! in unit of fs   
    ```  
 
-2. 构建目录使用手动方式进行LVCSH.x的并行计算(在不同的节点和核上进行不同轨迹的计算，计算完成后使用LVCSH.x程序后处理取平均值.)  
+4. 构建目录使用手动方式进行LVCSH.x的并行计算(在不同的节点和核上进行不同轨迹的计算，计算完成后使用LVCSH.x程序后处理取平均值.)  
    make a directory **LVCSH** for lvcsh calculation。并在LVCSH目录下放入LVCSH.in输入文件，以及并行计算的脚本和任务提交脚本bsub脚本。  
 
    ```bash

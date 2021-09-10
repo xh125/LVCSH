@@ -8,20 +8,25 @@ epw calculation of carbyne
   iverbosity = 0
 
   elph        = .true.
-  epwwrite    = .true.
-  epwread     = .false.
-  etf_mem     = 1
+  ep_coupling = .true.
 
+!  epbwrite    = .true.
+!  epbread     = .false.
+  epwwrite    = .false.
+  epwread     = .true.
+
+!  etf_mem     = 0
   prtgkk   = .true.
-  ephwrite = .true.
+!  ephwrite = .true.
 
 !  eig_read    = .true.
 
-  asr_typ     = 'simple'
+  lifc        = .true.
+  asr_typ     = 'crystal'
 
-  wannierize = .true.
-  nbndsub     =  4
-  bands_skipped = 'exclude_bands = 1-2'
+  wannierize = .false.
+  nbndsub     =  16
+  bands_skipped = 'exclude_bands = 1-8'
   num_iter = 10000
   iprint   = 2
 !  dis_win_max = 12
@@ -29,6 +34,7 @@ epw calculation of carbyne
 !  dis_froz_min = -11
   dis_froz_max = -0.2
   proj(1) = 'C:py;pz'
+!  proj(2) = 'C:sp-1'
   write_wfn= .true.
   wannier_plot= .true.
   wdata(1)= 'bands_plot = .true.'
@@ -45,14 +51,19 @@ epw calculation of carbyne
   wdata(12)= 'guiding_centres = .true.'
   wdata(13)= 'translate_home_cell  : true'
   wdata(14)= 'translation_centre_frac :   0.0 0.0 0.0  '
+  wdata(15)= 'search_shells = 80'
 
   elecselfen  = .false.
   phonselfen  = .false.
   a2f         = .false.
 
-  fsthick     = 5.0 ! eV
+  fsthick     = 2.0 ! eV
   temps       = 1 ! K
   degaussw    = 0.005 ! eV
+
+!  band_plot   = .true.
+!  filkf       = './LGX.txt'
+!  filqf       = './LGX.txt'
 
   nkf1 = 40
   nkf2 = 1
@@ -67,5 +78,6 @@ epw calculation of carbyne
   nq1 = 40
   nq2 = 1
   nq3 = 1
-/    
+/ 
+
 

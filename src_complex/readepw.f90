@@ -982,10 +982,10 @@ module readepw
     ef = ef /ryd2ev
 		WRITE(stdout,'(/5x,a,f10.6,a)') 'Fermi energy coarse grid = ', ef * ryd2ev, ' eV'    
 		
-    if(nelec == 0.0 .and. ieband_max==0 .and. ihband_min==0) then
-      write(stdout,"(5X,A,F8.4,A)") "WARNING! The nelec =",nelec,"and ieband_max=0 ihband_min=0"
-      write(stdout,"(5X,A)") "Need to set nelec right in LVCSH.in .OR. set lreadscfout= .true."
-    endif
+    !if(nelec == 0.0 .and. ieband_max==0 .and. ihband_min==0) then
+    !  write(stdout,"(5X,A,F8.4,A)") "WARNING! The nelec =",nelec,"and ieband_max=0 ihband_min=0"
+    !  write(stdout,"(5X,A)") "Need to set nelec right in LVCSH.in .OR. set lreadscfout= .true."
+    !endif
     
     !IF (efermi_read) THEN
     read(unitepwout,"(/5X,A)") ctmp
@@ -1092,8 +1092,8 @@ module readepw
       ENDIF      
     endif
     
-    WRITE(stdout, '(/5x," icbm(conductor band max) = ",i6)' ) icbm
-    WRITE(stdout, '(5x," ivbm(valence   band min) = ",i6)' ) icbm-1
+    WRITE(stdout, '(/5x," icbm(conductor band mim) = ",i6)' ) icbm
+    WRITE(stdout, '(5x," ivbm(valence   band max) = ",i6)' ) icbm-1
     
     
     !
@@ -1292,6 +1292,7 @@ module readepw
           write(stdout,"(A,I5,1X,A,3(F12.6,1X),A8,I5,A1,F12.6,A3)") &
 					"Carefully!!! the energy of phonon in iq=",iq,"(coord.:",(xqf(ipol,iq),ipol=1,3),") modes=",nu,"=",wf(nu,iq),"meV"
           write(stdout,"(A)") "The phonon calculation could need a higher threshold for relax and scf and phonon calculaiton."
+          write(stdout,"(A)") "Surgest to set 'lifc = .true.' in EPW calculation."
 					wf(nu,iq)=0.0
 				endif
       enddo

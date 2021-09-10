@@ -6,7 +6,7 @@ module readinput
                         methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,pre_dt,mix_thr,&
                         gamma,ld_fric,dt,temp,l_ph_quantum,&
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
-                        llaser,efield_cart,w_laser,fwhm,nelec,&
+                        llaser,efield_cart,w_laser,fwhm,&
                         lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
                         ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh,&
 												nnode,ncore,savedsnap,lsortpes
@@ -182,7 +182,6 @@ module readinput
     lreadfildyn   = .false.
     fildyn        = "prefix.dyn"
     epwoutname    = "epw.out"
-    nelec         = 0.0    !!! number of electrons
     ieband_min    = 0
     ieband_max    = 0
     ihband_min    = 0
