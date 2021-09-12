@@ -6,7 +6,7 @@ module readinput
                         methodsh,lfeedback,naver,nstep,nsnap,pre_nstep,pre_dt,mix_thr,&
                         gamma,ld_fric,dt,temp,l_ph_quantum,&
                         init_kx,init_ky,init_kz,init_hband,init_eband,&
-                        llaser,efield_cart,w_laser,fwhm,&
+                        llaser,efield_cart,w_laser,fwhm,eps_acustic,&
                         lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
                         ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh,&
 												nnode,ncore,savedsnap,lsortpes
@@ -170,6 +170,7 @@ module readinput
 		cdecoherence  = 0.1
 		lit_gmnvkq    = 1.0d-8 !meV
 		lit_ephonon   = 1.0    !meV
+    eps_acustic   = 5.d0 ! cm-1
     l_ph_quantum  = .true.
     lelecsh       = .false.
     lholesh       = .false.
@@ -248,13 +249,17 @@ module readinput
   
   subroutine param_in_atomicunits()
     ! change the input parameters into Rydberg atomic units
-    use constants,only : Ryd2V_m,ryd2eV,Ry_TO_THZ,Ry_TO_fs,ryd2mev
+    use constants,only : Ryd2V_m,mev2cmm1,ryd2eV,Ry_TO_THZ,Ry_TO_fs,ryd2mev
     use lasercom,only  : fwhm_2T2
     implicit none
     
 		cdecoherence = cdecoherence/2.0 ! Hartree to Rydberg
     lit_gmnvkq   = lit_gmnvkq/ryd2meV
-		gamma = gamma / Ry_TO_THZ ! change gamma in unit of (THZ) to (Ryd)
+    !
+    ! from cm-1 to meV
+    eps_acustic = eps_acustic / mev2cmm1
+		
+    gamma = gamma / Ry_TO_THZ ! change gamma in unit of (THZ) to (Ryd)
     dt    = dt / Ry_TO_fs     ! in Rydberg atomic units(1 a.u.=4.8378 * 10^-17 s)
     pre_dt= pre_dt/ Ry_TO_fs
     

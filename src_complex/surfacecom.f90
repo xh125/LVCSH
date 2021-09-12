@@ -12,6 +12,9 @@ module surfacecom
   real(kind=dp)   :: pre_dt
   real(kind=dp)   :: dt
   real(kind=dp)   :: temp
+
+  REAL(KIND = DP) :: eps_acustic
+  !! min. phonon frequency for e-p and NA-MD calculations (units of cm-1)
   
   real(kind=dp)   :: gamma    ! gamma is the friction coefficient,dimention is 1/t(ps-1)  THZ  
   real(kind=dp)   :: ld_fric  ! 2pi*gamma_qv/w_qv

@@ -8,7 +8,7 @@ module readepw
   use klist_epw, only : xk_all,xkg_all
   use epwcom, only : nkc1,nkc2,nkc3,nqf1,nqf2,nqf3,nkf1,nkf2,nkf3,nbndsub,kqmap,scdm_proj,vme
   use pwcom, only : ef
-  use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max
+  use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,eps_acustic
   use elph2, only : nkqf,nkqtotf,wf,wqf,xkf,wkf,etf,gmnvkq,nkf,epmatq,&
                     nktotf,nqf,nqtotf,ibndmin,ibndmax,efnew,vmef,dmef
   use cell_base,only : ibrav,alat,omega,at,bg,celldm
@@ -1273,30 +1273,41 @@ module readepw
 		
 		
 
-    !gamma 3 branch A phonon must be set to 0.
+    !Acoustic phonon at gamma q-point must be set to 0 to satisfy acoustic sum rule.
+    !when wf <= 0.0, the epc need be set to 0.0, 
+    !as do in the printing.f90(line 123) in EPW code.
     do nu=1,3
 			wf(nu,1) = 0.0
       gmnvkq(:,:,nu,:,1) = 0.0
 			epmatq(:,:,nu,:,1) = czero
     enddo
 		
+    
+    
+    ! use eps_acustic as The lower boundary for the phonon frequency in el-ph and NA-MD calculations
 		do iq=1,nqtotf
 		  do nu=1,nmodes
-				if(wf(nu,iq)<lit_ephonon) then 
-					!for the phonon with energy little than lit_ephonon meV, set the g-matrices to 0.
-					gmnvkq(:,:,nu,:,iq) = 0.0
-					epmatq(:,:,nu,:,iq) = czero
-				endif
-				
+
         if(wf(nu,iq)<0.0) then
           write(stdout,"(A,I5,1X,A,3(F12.6,1X),A8,I5,A1,F12.6,A3)") &
 					"Carefully!!! the energy of phonon in iq=",iq,"(coord.:",(xqf(ipol,iq),ipol=1,3),") modes=",nu,"=",wf(nu,iq),"meV"
           write(stdout,"(A)") "The phonon calculation could need a higher threshold for relax and scf and phonon calculaiton."
           write(stdout,"(A)") "Surgest to set 'lifc = .true.' in EPW calculation."
-					wf(nu,iq)=0.0
 				endif
+
+        !https://docs.epw-code.org/doc/Inputs.html#eps-acustic
+				if(wf(nu,iq)<eps_acustic) then 
+          !The lower boundary for the phonon frequency in el-ph and NA-MD calculations
+					!for the phonon with energy little than lit_ephonon meV, set the g-matrices to 0.
+					wf(nu,iq) = 0.0
+          gmnvkq(:,:,nu,:,iq) = 0.0
+					epmatq(:,:,nu,:,iq) = czero
+				endif
+				
       enddo
 		enddo
+
+
 
     do ibnd= ibndmin,ibndmax
       enbmax = Maxval(etf(ibnd,:))

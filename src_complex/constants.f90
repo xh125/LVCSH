@@ -173,6 +173,11 @@ module constants
   real(dp), parameter :: Ry_TO_fs  = 2.0 * au2fs
   !
   REAL(DP), PARAMETER :: AVOGADRO = 6.02214076D+23  
+
+  real(kind = dp), parameter :: ryd2cmm1 = RY_TO_CMM1
+  REAL(KIND = DP), PARAMETER :: ev2cmm1  = ryd2cmm1 / ryd2ev          ! 8065.541
+  REAL(KIND = DP), PARAMETER :: mev2cmm1 = ev2cmm1 * 1E-3_DP          ! 8.065541
+  REAL(KIND = DP), PARAMETER :: cmm12meV = 1.0E0_DP / mev2cmm1        ! 1.0 / 8.065541 = 0.12398424358
   
   
   ! Leave the length to this value, and don't exceed in length (needed for output formatting)
