@@ -63,6 +63,7 @@ module surfacecom
   
   ! phonons normal mode coordinate,and phonons P
   complex(kind=dpc),allocatable :: phQ(:,:),phP(:,:),phQ0(:,:),phP0(:,:)
+  logical :: l_dEa_dQ,l_dEa2_dQ2
   complex(kind=dpc),allocatable :: dEa_dQ(:,:),dEa_dQ_e(:,:),dEa_dQ_h(:,:)
   real(kind=dp),allocatable :: dEa2_dQ2(:,:),dEa2_dQ2_e(:,:),dEa2_dQ2_h(:,:)
   

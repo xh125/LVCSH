@@ -39,29 +39,39 @@ module dynamics
     
     integer :: iq,imode,ik,ikq,iband1,iband2
     complex(kind=dpc) :: epc
+    complex(kind=dpc) :: cmp_tmp1,cmp_tmp2
+    logical :: ltmp = .true.
     
     dEa_dQ = czero
-    !dEa_dQ(nu,q)=dEa_dQ(nu,-q)*
-    do iq=1,nq
-      !if(iminusq(iq)>=iq) then
-      ! ph_Q(v,q)=ph_Q(v,-q)*    
-        do imode=1,nmodes
-          do ik=1,nk
-            ikq = kqmap(ik,iq)
-            do iband1=1,nband
-              do iband2=1,nband
-                epc = gmnvkq(iband1,iband2,imode,ik,iq)
-                if(ABS(epc) > lit_gmnvkq) then
-                  dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
-                  epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
-                endif
-              enddo
+    do iq=1,nq   
+      do imode=1,nmodes
+        do ik=1,nk
+          ikq = kqmap(ik,iq)
+          do iband1=1,nband
+            do iband2=1,nband
+              epc = gmnvkq(iband1,iband2,imode,ik,iq)
+              if(epc /= czero) then
+                dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
+                epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
+              endif
             enddo
           enddo
         enddo
-        !if(iminusq(iq) /= iq) dEa_dQ(:,iminusq(iq)) = CONJG(dEa_dQ(:,iq))
-      !endif
+      enddo
     enddo
+    
+    !!testing if dEa_dQ(nu,q)=dEa_dQ(nu,-q)*
+    !do iq=1,nq
+    !  do imode =1,nmodes
+    !    cmp_tmp1 = dEa_dQ(imode,iq)
+    !    cmp_tmp2 = dEa_dQ(imode,iminusq(iq))
+    !    if (cmp_tmp1 /= CONJG(cmp_tmp2)) then
+    !      ltmp = .false.
+    !    endif
+    !  enddo
+    !enddo
+          
+    
     
   end subroutine get_dEa_dQ
   
@@ -100,13 +110,15 @@ module dynamics
     do iq=1,nq
       do imode=1,nmodes
         womiga = wf(imode,iq)
-        if(womiga*ryd2mev <= lit_ephonon ) then
+        if(womiga == 0.0 ) then
           xx(imode,iq) = czero
           vv(imode,iq) = czero
         endif
       enddo
     enddo
     
+    ! ph_Q(v,-q)=ph_Q(v,q)*    (2.48)
+    ! ph_P(v,-q)=ph_P(v,q)*    (2.57)
     
   endsubroutine
   
@@ -119,6 +131,7 @@ module dynamics
   ! ref : 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
   ! ref : PPT-92
   ! ref : 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
+  ! ref : "<Phonons Theory and Experiments I Lattice Dynamics and Models of Interatomic Forces by Dr. Peter Brüesch (auth.) (z-lib.org).pdf>."
   subroutine derivs_nuclei(nmodes,nq,dEa_dQ,wf,ld_gamma,xx,vv,dx,dv)
     use elph2,only : iminusq
     implicit none
@@ -131,9 +144,10 @@ module dynamics
     
     integer :: iq,imode,ik,iband1,iband2,ikq
     
-    dx = vv
+    dx = vv    ! (2.55) (2.59)
     !dv = -wf**2*xx - dEa_dQ - ld_gamma*vv
     dv = -wf**2*xx - CONJG(dEa_dQ) - ld_gamma*vv
+    !(2.60) PPT-94
     
     !do iq=1,nq
     !  do imode=1,nmodes
@@ -305,6 +319,51 @@ module dynamics
     enddo
     
   ENDSUBROUTINE  
+
+  
+  subroutine pre_md(nmodes,nqtotf,wf,ld_gamma,temp,phQ,phP,l_ph_quantum,pre_dt)
+    use surfacecom,only : dEa_dQ,dEa2_dQ2,pre_nstep
+    use constants,only  : ry_to_fs,ryd2eV
+    use io,only : stdout
+    implicit none
+    integer ,intent(in) :: nmodes,nqtotf
+    real(kind=dp),intent(in) :: pre_dt,temp
+    logical,intent(in) :: l_ph_quantum
+    real(kind=dp),intent(in) :: wf(nmodes,nqtotf),ld_gamma(nmodes,nqtotf)
+    complex(kind=dpc),intent(inout) :: phQ(nmodes,nqtotf),phP(nmodes,nqtotf)
+
+
+    integer :: istep
+    real(kind=dp) :: time
+    character(len=2) :: ctimeunit
+    
+    dEa_dQ = 0.0
+    dEa2_dQ2 = 0.0
+    do istep=1,pre_nstep
+      call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
+      call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
+    enddo
+  
+    time = pre_nstep*pre_dt*ry_to_fs
+    if(time<1.0E3) then
+      ctimeunit = 'fs'
+    elseif(time<1.0E6) then
+      time = time/1.0E3
+      ctimeunit = 'ps'
+    elseif(time<1.0E9) then
+      time = time/1.0E6
+      ctimeunit = 'ns'
+    endif
+    
+    write(stdout,"(5X,A23,F6.2,A2,A19,F11.5,A4,A9,F11.5,A4)") &
+    "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phT=",0.5*SUM(ABS(phP)**2)*ryd2eV," eV",&
+    " SUM_phU=",0.5*SUM(wf**2*ABS(phQ)**2)*ryd2eV," eV"
+    write(stdout,"(5X,A23,F6.2,A2,A19,F11.5,A4)") &
+    "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phE="&
+    ,0.5*SUM(ABS(phP)**2+wf**2*ABS(phQ)**2)*ryd2eV," eV."    
+  
+  end subroutine pre_md
+
   
   !ref : 1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
   !    : (3.24)  

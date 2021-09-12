@@ -9,7 +9,7 @@ module readinput
                         llaser,efield_cart,w_laser,fwhm,eps_acustic,&
                         lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
                         ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh,&
-												nnode,ncore,savedsnap,lsortpes
+												nnode,ncore,savedsnap,lsortpes,l_dEa_dQ,l_dEa2_dQ2
   use io,        only : io_file_unit,io_error,msg
   use utility,   only : utility_lowercase
 
@@ -211,6 +211,9 @@ module readinput
 		nnode         = 1
 		ncore         = 1
 		savedsnap     = 100
+
+    l_dEa_dQ      = .true.
+    l_dEa2_dQ2    = .true.
     
     lsetthreads   = .FALSE.
     mkl_threads   = 4    

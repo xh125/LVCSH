@@ -53,7 +53,6 @@ module readepw
   real(kind=dp) ::  wq          ,&! Phonon frequency
                     ekk         ,&! Eigenenergies at k
                     ekq           ! Eigenenergies at k+q
-  real(kind=dp) ::  max_wf
   
   
   real(kind=dp),allocatable :: epc(:,:,:,:)
@@ -1308,7 +1307,7 @@ module readepw
 		enddo
 
 
-
+    ! use fermi energy to find vbm and cbm.
     do ibnd= ibndmin,ibndmax
       enbmax = Maxval(etf(ibnd,:))
       if(enbmax>ef*ryd2eV) then
@@ -1328,8 +1327,7 @@ module readepw
     wf = wf/ryd2mev
 		gmnvkq = gmnvkq/ryd2mev
 		epmatq = epmatq/ryd2mev
-    max_wf = Maxval(wf(nmodes,:))
-		lit_gmnvkq = lit_gmnvkq*sqrt(2.0*max_wf/nqtotf)
+    eps_acustic = eps_acustic/ryd2mev
     
 		do iq=1,nqtotf
 			do nu = 1,nmodes

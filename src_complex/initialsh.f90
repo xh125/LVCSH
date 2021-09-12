@@ -233,8 +233,8 @@ module initialsh
   subroutine init_normalmode_coordinate_velocity(nmodes,nq,w,T,l_ph_quantum,ph_Q,ph_P)
     use kinds,only   : dp,dpc
     use randoms,only : gaussian_random_number
-    use parameters,only : lit_ephonon
-    use surfacecom,only : E_ph_CA_sum,E_ph_QA_sum
+    !use parameters,only : lit_ephonon
+    use surfacecom,only : E_ph_CA_sum,E_ph_QA_sum,eps_acustic
     use elph2,only : iminusq
     use io,only : stdout
     use constants,only : ryd2eV
@@ -250,8 +250,8 @@ module initialsh
     ! ph_P(v,-q)=ph_P(v,q)*    (2.57)
     ! ph_P(v,q) = d(T)/d(ph_P(v,q)*) (2.55)
     
-    real(kind=dp) :: womiga,theta
-    complex(kind=dpc) :: cplx_tmp
+    real(kind=dp) :: womiga,theta1,theta2
+    complex(kind=dpc) :: cplx_tmp1,cplx_tmp2
     real(kind=dp) :: E_ph_class,E_ph_quantum
     integer :: iq,imode
     
@@ -266,13 +266,19 @@ module initialsh
         do imode=1,nmodes
           womiga = w(imode,iq)
           
-          call random_number(theta)
-          if(iq==iminusq(iq)) theta = 0.0 
+          call random_number(theta1)
+          call random_number(theta2)
+          if(iq==iminusq(iq)) then
+            theta1 = 0.0
+            theta2 = 0.0
+          endif
           ! for q=gamma
-          theta = theta * tpi
-          cplx_tmp = cos(theta)*cone+sin(theta)*ci
+          theta1 = theta1 * tpi
+          cplx_tmp1 = cos(theta1)*cone+sin(theta1)*ci
+          theta2 = theta2 * tpi
+          cplx_tmp2 = cos(theta2)*cone+sin(theta2)*ci
           
-          if(womiga*ryd2mev <= lit_ephonon) then
+          if(womiga < eps_acustic) then
             ph_Q(imode,iq)= czero
             ph_P(imode,iq)= czero
           else
@@ -283,23 +289,18 @@ module initialsh
             E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum	
             if(iminusq(iq)/=iq) E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum
             if(l_ph_quantum) then
-              ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)*cplx_tmp
-              ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))*cplx_tmp*-1.0*ci
-              if(iminusq(iq)/=iq) then
-                ph_Q(imode,iminusq(iq)) = CONJG(ph_Q(imode,iq))
-                ph_P(imode,iminusq(iq)) = CONJG(ph_P(imode,iq))
-              endif
+              ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)*cplx_tmp1
+              ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))*cplx_tmp2
             else
-              ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class)/womiga)*cplx_tmp
-              ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class))*cplx_tmp*-1.0*ci
-              if(iminusq(iq)/=iq) then
-                ph_Q(imode,iminusq(iq)) = CONJG(ph_Q(imode,iq))
-                ph_P(imode,iminusq(iq)) = CONJG(ph_P(imode,iq))
-              endif
+              ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class)/womiga)*cplx_tmp1
+              ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class))*cplx_tmp2
             endif
           endif
           
         enddo
+      else !  ph_Q(v,-q)=ph_Q(v,q)*   ! ph_P(v,-q)=ph_P(v,q)*
+        ph_Q(:,iq) = CONJG(ph_Q(:,iminusq(iq)))
+        ph_P(:,iq) = CONJG(ph_P(:,iminusq(iq)))
       endif
     enddo
     

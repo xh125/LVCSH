@@ -49,6 +49,7 @@ program lvcsh
   use getwcvk,only        : get_Wcvk
   use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,   &
                             init_eh_KSstat,init_stat_adiabatic,init_surface
+  use write_sh_information,only : write_initial_information
   use surfacecom,only     : methodsh,lfeedback,lit_gmnvkq,naver,nsnap,nstep,dt,&
                             pre_nstep,pre_dt,l_ph_quantum,gamma,temp,iaver,    &
                             isnap,istep,ldecoherence,Cdecoherence,             &
@@ -59,7 +60,7 @@ program lvcsh
                             dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,  &
                             csit_e,wsit_e,pes_one_e,pes_e,psit_e,              &
                             csit_h,wsit_h,pes_one_h,pes_h,psit_h,              &
-                            E_ph_CA_sum,E_ph_QA_sum,ld_fric,ld_gamma
+                            E_ph_CA_sum,E_ph_QA_sum,ld_fric,ld_gamma,l_dEa_dQ,l_dEa2_dQ2
   use fssh,only           : nonadiabatic_transition_fssh
   use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
   use cc_fssh,only        : S_ai_e,S_ai_h,S_bi_e,S_bi_h,&
@@ -79,7 +80,7 @@ program lvcsh
   use date_and_times,only : get_date_and_time
   use io      ,only       : stdout,io_time,time1,time2,time_,msg,io_error
   use dynamics,only       : set_gamma,get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,&
-                            rk4_electron_diabatic,ADD_BATH_EFFECT
+                            rk4_electron_diabatic,ADD_BATH_EFFECT,pre_md
   use memory_report,only  : MB,GB,complex_size,real_size,int_size,ram,&
                             print_memory  
   use saveinf,only        : pes_e_file,pes_h_file,&
@@ -98,7 +99,7 @@ program lvcsh
   != preparation =!
   !===============!
   integer :: iq,imode,ifre,igamma,ik,iband,inode,icore,iaver_i,iaver_f,ierr
-  real(kind=8) :: t0,t1,time
+  real(kind=8) :: t0,t1
   real(kind=dp) :: flagd,xkg_(3),xk_(3)
   character(len=9) :: cdate,ctime
   character(len=2) :: ctimeunit
@@ -160,31 +161,7 @@ program lvcsh
       call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,l_ph_quantum,phQ,phP)
       
       !应该先跑平衡后，再做电子空穴动力学计算   
-      dEa_dQ = 0.0
-      dEa2_dQ2 = 0.0
-      do istep=1,pre_nstep
-        call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
-        call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
-      enddo
-  
-      time = pre_nstep*pre_dt*ry_to_fs
-      if(time<1.0E3) then
-        ctimeunit = 'fs'
-      elseif(time<1.0E6) then
-        time = time/1.0E3
-        ctimeunit = 'ps'
-      elseif(time<1.0E9) then
-        time = time/1.0E6
-        ctimeunit = 'ns'
-      endif
-      
-      write(stdout,"(5X,A23,F6.2,A2,A19,F11.5,A4,A9,F11.5,A4)") &
-      "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phT=",0.5*SUM(ABS(phP)**2)*ryd2eV," eV",&
-      " SUM_phU=",0.5*SUM(wf**2*ABS(phQ)**2)*ryd2eV," eV"
-      write(stdout,"(5X,A23,F6.2,A2,A19,F11.5,A4)") &
-      "Energy of phonon after ", time,ctimeunit," dynamica: SUM_phE="&
-      ,0.5*SUM(ABS(phP)**2+wf**2*ABS(phQ)**2)*ryd2eV," eV."    
-      
+      call pre_md(nmodes,nqtotf,wf,ld_gamma,temp,phQ,phP,l_ph_quantum,pre_dt)     
       
       
       !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband(in the diabatic states)
@@ -227,108 +204,7 @@ program lvcsh
       phQ0=phQ; phP0=phP 
       
       
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-      !% Write the elctron-hole information in adiabatic base   %!
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-      write(stdout,"(/,5X,A)") "In adiabatic base,the elctron-hole state as follow:"
-      if(lholesh) then
-        write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
-        "Init_hsurface=",ihsurface,"Initial hole Energy:",-E_h(ihsurface)*ryd2eV," eV" 
-      endif
-      if(lelecsh) then
-        write(stdout,"(5X,A14,I5,1X,A20,F12.7,A3)") &
-        "Init_esurface=",iesurface,"Initial elec Energy:",E_e(iesurface)*ryd2eV," eV"       
-      endif
-      if(lelecsh .and. lholesh) then
-        write(stdout,"(5X,A17,F12.7,A3)")  "elec-hole energy=",(E_e(iesurface)+E_h(ihsurface))*ryd2eV," eV"  
-      endif
-      
-      
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-      !% calculate phonon energy                                %!
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-      phU = 0.5*(wf**2)*(phQ*CONJG(phQ))
-      phK = 0.5*phP*CONJG(phP)        
-      SUM_phK = SUM(phK)
-      SUM_phU = SUM(phU)
-      SUM_phE = SUM_phK+SUM_phU
-      
-      SUM_phK0 = SUM_phK
-      
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-      !% Write initial non-adiabatic dynamica information        %!
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-      if(lholesh) then
-        if(lelecsh) then
-          write(stdout,"(/,A)") " time(fs)    rt(s) hsur esur&
-          &     E_h(eV)     E_e(eV)    E_eh(eV)    T_ph(eV)    U_ph(eV)    E_ph(eV)   E_tot(eV)"         
-          write(stdout,"(F9.2,F9.2,I5,I5,7(1X,F11.4))") 0.00,0.00,&
-          ihsurface,iesurface,&
-          -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
-          SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV       
-        else 
-          write(stdout,"(/,A)") " time(fs)    rt(s) hsur&
-          &     E_h(eV)    T_ph(eV)    U_ph(eV)    E_ph(eV)   E_tot(eV)"       
-          write(stdout,"(F11.2,F11.2,I5,5(1X,F11.4))") 0.00,0.00,&
-          ihsurface,-e_h(ihsurface)*ryd2eV,&
-          SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV     
-        endif
-      else
-        if(lelecsh) then
-          write(stdout,"(/,A)") " time(fs)    rt(s) esur&
-          &     E_e(eV)    T_ph(eV)    U_ph(eV)     E_ph(eV)   E_tot(eV)" 
-          write(stdout,"(F11.2,F11.2,I5,5(1X,F11.4))") 0.00,0.00,&
-          iesurface,e_e(iesurface)*ryd2eV,&
-          SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV     
-        else
-          write(stdout,"(/,A)") "Error!! lelecsh and lholesh must have one need to be set TRUE."
-        endif
-      endif
-  
-  
-  
-      !=============================!
-      != store initial information =!
-      !=============================!    
-      
-        isnap = 0
-        do iq=1,nqtotf
-          do imode=1,nmodes
-            phQsit(imode,iq,isnap) = phQsit(imode,iq,isnap)+phQ(imode,iq)
-            phPsit(imode,iq,isnap) = phPsit(imode,iq,isnap)+phP(imode,iq)
-            phKsit(imode,iq,isnap) = phKsit(imode,iq,isnap)+phK(imode,iq)
-            phUsit(imode,iq,isnap) = phUsit(imode,iq,isnap)+phU(imode,iq)
-          enddo
-        enddo
-        
-        if(lelecsh) then
-          pes_e(0,isnap) = pes_e(0,isnap)+E_e(iesurface)
-          if(iaver == 1) pes_one_e(0,isnap) = E_e(iesurface)
-          do ifre=1,nefre  
-            csit_e(ifre,isnap) = csit_e(ifre,isnap)+REAL(c_e(ifre)*CONJG(c_e(ifre)))
-            wsit_e(ifre,isnap) = wsit_e(ifre,isnap)+REAL(w_e(ifre)*CONJG(w_e(ifre)))
-            psit_e(ifre,isnap) = psit_e(ifre,isnap)+P_e(ifre,iesurface)**2
-            pes_e( ifre,isnap) = pes_e( ifre,isnap) + E_e(ifre)
-            if(iaver == 1) pes_one_e(ifre,isnap) = E_e(ifre)
-          enddo
-        endif
-        
-        if(lholesh) then
-          pes_h(0,isnap) = pes_h(0,isnap)-E_h(ihsurface)
-          if(iaver == 1) pes_one_h(0,isnap) = -E_h(ihsurface)
-          do ifre=1,nhfre
-            csit_h(ifre,isnap) = csit_h(ifre,isnap)+REAL(c_h(ifre)*CONJG(c_h(ifre)))
-            wsit_h(ifre,isnap) = wsit_h(ifre,isnap)+REAL(w_h(ifre)*CONJG(w_h(ifre)))
-            psit_h(ifre,isnap) = psit_h(ifre,isnap)+P_h(ifre,iesurface)**2
-            pes_h( ifre,isnap) = pes_h( ifre,isnap)-E_h(ifre)
-            if(iaver == 1) pes_one_h(ifre,isnap) = -E_h(ifre)
-          enddo    
-        endif
-      
-      !=================================!
-      != End store initial information =!
-      !=================================!    
-        
+      call write_initial_information(iaver,nmodes,nqtotf,wf,phQ,phP)
       
       !=======================!
       != loop over snapshots =!
@@ -344,15 +220,16 @@ program lvcsh
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
           dEa_dQ = 0.0
           !dEa_dQ in time t0
-          if(lelecsh) then
-            call get_dEa_dQ(nmodes,nqtotf,neband,nktotf,P0_e_nk,gmnvkq_e,lit_gmnvkq,iesurface,dEa_dQ_e)
-            dEa_dQ = dEa_dQ + dEa_dQ_e
+          if(l_dEa_dQ) then
+            if(lelecsh) then
+              call get_dEa_dQ(nmodes,nqtotf,neband,nktotf,P0_e_nk,gmnvkq_e,lit_gmnvkq,iesurface,dEa_dQ_e)
+              dEa_dQ = dEa_dQ + dEa_dQ_e
+            endif
+            if(lholesh) then
+              call get_dEa_dQ(nmodes,nqtotf,nhband,nktotf,P0_h_nk,gmnvkq_h,lit_gmnvkq,ihsurface,dEa_dQ_h)
+              dEa_dQ = dEa_dQ + dEa_dQ_h
+            endif
           endif
-          if(lholesh) then
-            call get_dEa_dQ(nmodes,nqtotf,nhband,nktotf,P0_h_nk,gmnvkq_h,lit_gmnvkq,ihsurface,dEa_dQ_h)
-            dEa_dQ = dEa_dQ + dEa_dQ_h
-          endif
-          
           
           !==============================!
           != update phQ,phP             =!
@@ -489,19 +366,20 @@ program lvcsh
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
           dEa2_dQ2 = 0.0
           !dEa2_dQ2 in time t0
-          if(lelecsh) then
-            call get_dEa2_dQ2(nmodes,nqtotf,nefre,nefre_sh,iesurface,E0_e,d0_e,dEa2_dQ2_e)
-            dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_e
+          if(l_dEa2_dQ2) then
+            if(lelecsh) then
+              call get_dEa2_dQ2(nmodes,nqtotf,nefre,nefre_sh,iesurface,E0_e,d0_e,dEa2_dQ2_e)
+              dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_e
+            endif
+            if(lholesh) then
+              call get_dEa2_dQ2(nmodes,nqtotf,nhfre,nhfre_sh,ihsurface,E0_h,d0_h,dEa2_dQ2_h)
+              dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_h
+            endif
           endif
-          if(lholesh) then
-            call get_dEa2_dQ2(nmodes,nqtotf,nhfre,nhfre_sh,ihsurface,E0_h,d0_h,dEa2_dQ2_h)
-            dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_h
-          endif
-  
   
           !===================!
           != add bath effect =!
-          !===================!       
+          !===================!  
           call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,dt,l_ph_quantum,phQ,phP)
   
   

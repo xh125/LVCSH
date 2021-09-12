@@ -8,7 +8,8 @@ module parameters
   use surfacecom,only   : methodsh,lfeedback,naver,nstep,nsnap,dt,pre_nstep,pre_dt,&
                           temp,gamma,ld_fric,l_ph_quantum,lit_gmnvkq,lit_ephonon,&
                           lelecsh,lholesh,lehpairsh,ldecoherence,Cdecoherence,eps_acustic,&
-                          ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh
+                          ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh,&
+                          l_dEa_dQ,l_dEa2_dQ2
   implicit none
   
   !integer,parameter :: npk = 40000 ! max number of k-points in pw.x calculation
@@ -37,7 +38,7 @@ module parameters
            llaser,efield_cart,w_laser,fwhm,eps_acustic,&
            lsetthreads,mkl_threads,lelecsh,lholesh,lehpairsh,&
            ieband_min,ieband_max,ihband_min,ihband_max,nefre_sh,nhfre_sh,&
-					 nnode,ncore,savedsnap,lsortpes
+					 nnode,ncore,savedsnap,lsortpes,l_dEa_dQ,l_dEa2_dQ2
 
   contains
   

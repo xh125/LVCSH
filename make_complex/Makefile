@@ -84,7 +84,7 @@ SRCS_F= kinds.f90 constants.f90 date_and_times.f90 version.f90 io.f90 environmen
         recvec.f90 lrcom.f90 wannierEPW.f90 errore.f90 readepw.f90 types.f90 \
         randoms.f90  getwcvk.f90 initialsh.f90 \
         hamiltonian.f90 sortting.f90 fssh.f90 sc_fssh.f90 cc_fssh.f90 surfacehopping.f90 \
-        dynamics.f90 saveinf.f90 lvcsh.f90     					 
+        dynamics.f90 saveinf.f90 write_sh_information.f90 lvcsh.f90     					 
 
 SRCS_C=
 

@@ -423,7 +423,7 @@ module surfacehopping
             do iband1=1,nband
               do iband2=1,nband
                 epc = gmnvkq(iband1,iband2,imode,ik,iq)
-                if(ABS(epc) > lit_gmnvkq) then
+                if(epc /= czero) then
                   do ifre=1,nfre
                     do jfre=1,nfre                    
                       dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
