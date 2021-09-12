@@ -229,6 +229,7 @@ module initialsh
   !ref : 1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
   !    :  (3.17) (3.20) (3.24)
   !ref : 2 HuangKun 《固体物理》 (3-44) (3-45)
+  !ref : 3 "<Phonons Theory and Experiments I Lattice Dynamics and Models of Interatomic Forces by Dr. Peter Brüesch (auth.) (z-lib.org).pdf>."
   subroutine init_normalmode_coordinate_velocity(nmodes,nq,w,T,l_ph_quantum,ph_Q,ph_P)
     use kinds,only   : dp,dpc
     use randoms,only : gaussian_random_number
@@ -243,6 +244,11 @@ module initialsh
     real(kind=dp),intent(in)     :: w(nmodes,nq)
     logical,intent(in)           :: l_ph_quantum
     complex(kind=dpc),intent(out):: ph_Q(nmodes,nq),ph_P(nmodes,nq)
+    ! complex normal coordinates ph_Q, and 
+    ! ph_Q(v,-q)=ph_Q(v,q)*    (2.48)
+    ! H = T + V =0.5*[|ph_P|^^2+w_qv^^2*|ph_Q|^^2]   (2.54)
+    ! ph_P(v,-q)=ph_P(v,q)*    (2.57)
+    ! ph_P(v,q) = d(T)/d(ph_P(v,q)*) (2.55)
     
     real(kind=dp) :: womiga,theta
     complex(kind=dpc) :: cplx_tmp
@@ -254,11 +260,15 @@ module initialsh
     E_ph_QA_sum   = 0.0
     do iq=1,nq
       if(iminusq(iq)>=iq) then
-        ! ph_Q(v,q)=ph_Q(v,-q)*
+        ! ph_Q(v,-q)=ph_Q(v,q)*
+        ! ph_P(v,-q)=ph_P(v,q)*
+        ! Ph_P(v,q) = d(ph_Q(v,q))/dt 
         do imode=1,nmodes
           womiga = w(imode,iq)
+          
           call random_number(theta)
-          if(iq==iminusq(iq)) theta = 0.0
+          if(iq==iminusq(iq)) theta = 0.0 
+          ! for q=gamma
           theta = theta * tpi
           cplx_tmp = cos(theta)*cone+sin(theta)*ci
           
@@ -274,14 +284,14 @@ module initialsh
             if(iminusq(iq)/=iq) E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum
             if(l_ph_quantum) then
               ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)*cplx_tmp
-              ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))*cplx_tmp
+              ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))*cplx_tmp*-1.0*ci
               if(iminusq(iq)/=iq) then
                 ph_Q(imode,iminusq(iq)) = CONJG(ph_Q(imode,iq))
                 ph_P(imode,iminusq(iq)) = CONJG(ph_P(imode,iq))
               endif
             else
               ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class)/womiga)*cplx_tmp
-              ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class))*cplx_tmp
+              ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_class))*cplx_tmp*-1.0*ci
               if(iminusq(iq)/=iq) then
                 ph_Q(imode,iminusq(iq)) = CONJG(ph_Q(imode,iq))
                 ph_P(imode,iminusq(iq)) = CONJG(ph_P(imode,iq))
