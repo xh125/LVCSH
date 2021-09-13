@@ -94,7 +94,7 @@ module sortting
 			P_ij(:,ifre) = P_ij(:,ifre)/SUM_Pik
 			P_ii(ifre)   = P_ij(ifre,ifre)
 		enddo
-		deallocate(S_ij)
+		
 		
 		
 		! not mixxing for different states
@@ -167,7 +167,7 @@ module sortting
 		
 		
 		
-		
+		deallocate(S_ij)
 		deallocate(P_ij,P_ii,P_i,i_mix,j_mix)
 		
 	end subroutine resort_eigen_energy_stat

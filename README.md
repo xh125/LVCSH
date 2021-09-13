@@ -541,7 +541,8 @@ make epw
    outdir        = "./"
    methodsh      = "FSSH"
    lit_gmnvkq    = 0.0    ! in unit of meV
-   lit_ephonon   = 10.0    ! in unit of meV
+   lit_ephonon   = 0.0    ! in unit of meV
+   eps_acustic   = 5.0    ! in unit of cm-1
    lfeedback     = .true.
    lehpairsh     = .true.
    !lelecsh       = .true.
@@ -552,7 +553,7 @@ make epw
    !ihband_max    = 2
    !lsortpes      = .false.
    !mix_thr       = 0.8
-   epwoutname    = "epw40.out"
+   epwoutname    = "./epw.out"
    !nefre_sh      = 40
    !nhfre_sh      = 40
    nnode         = 1
@@ -588,16 +589,19 @@ make epw
    ```bash
    lvcsh.bsub
    #!/bin/bash
-   #BSUB -J lvcsh-epw
-   #BSUB -q privateq-zw
+   #BSUB -J JOB_NAME
+   #BSUB -q QUEUE_NAME
    #BSUB -n ncore
    #BSUB -R "span[ptile=ncore]"
    #BSUB -o %J.out
    #BSUB -e %J.err
    
-   export MODULEPATH=/share/home/zw/xiehua/opt/modules-4.7.1/modulefiles
+   #source ~/xh/.bashrc
+   #export OMP_NUM_THREADS=1
+   #export MKL_NUM_THREADS=1
+   export MODULEPATH=$MODULEPATH:DIR_MODULEPATH
    
-   module load lvcsh/0.6.4
+   module load lvcsh/version
    
    CURDIR=$PWD
    #Generate nodelist
@@ -626,42 +630,43 @@ make epw
    ```bash
    mkepwdir.sh
    #!/bin/bash
-   ncore=32
-   MODULEPATH="/share/home/ZhuangW/xh/modulefiles"
-   lvcsh_version="0.6.4"
-   QUEUE_NAME="publicq-128"
-   for i in $(seq 40 40 80)
-   do
-        mkdir epw$i
+   ncore=28
+   MODULEPATH="/share/home/zw/xiehua/opt/modules-4.7.1/modulefiles"
+   lvcsh_version="0.6.6"
+   QUEUE_NAME="privateq-zw"
+   for i in $(seq 80 40 80)
+     do
+       mkdir epw$i
+       mkdir epw$i/QEfiles
+       cp ../epw/epw$i.out epw$i/QEfiles/
+       
+       cp lvcsh.bsub epw$i
+       sed -i "s/ncore/$ncore/g" epw$i/lvcsh.bsub
+       sed -i "s:JOB_NAME:lvcsh-epw${i}-n0:g" epw$i/lvcsh.bsub
+       sed -i "s:QUEUE_NAME:$QUEUE_NAME:g" epw$i/lvcsh.bsub
+       sed -i "s:DIR_MODULEPATH:$MODULEPATH:g" epw$i/lvcsh.bsub
+       sed -i "s:version:$lvcsh_version:g" epw$i/lvcsh.bsub
+       cp job.sh epw$i
+       cp LVCSH.in epw$i
+       sed -i "s:./epw.out:../../QEfiles/epw$i.out:g" epw$i/LVCSH.in
+       sed -i "s:ncore:ncore         = $ncore !:g" epw$i/LVCSH.in
+       
+       cp LVCSH.in epw$i/QEfiles
+       sed -i "s:verbosity:verbosity     = "high" !:g" epw$i/QEfiles/LVCSH.in
+       sed -i "s:./epw.out:./epw$i.out:g" epw$i/QEfiles/LVCSH.in
+       sed -i "s:naver:naver         = 10 !:g" epw$i/QEfiles/LVCSH.in
+       sed -i "s:nsnap:nsnap         = 2  !:g" epw$i/QEfiles/LVCSH.in
+       sed -i "s:savedsnap:savedsnap     = 2 !:g" epw$i/QEfiles/LVCSH.in
+       cp lvcsh-test.bsub epw$i/QEfiles
+       cd epw$i/QEfiles
+       sed -i "2s/JOB_NAME/lvcsh-epw$i-test/g" lvcsh-test.bsub
+       sed -i "s:QUEUE_NAME:$QUEUE_NAME:g" lvcsh-test.bsub
+       sed -i "s:DIR_MODULEPATH:$MODULEPATH :g" lvcsh-test.bsub
+       sed -i "s:version:$lvcsh_version:g" lvcsh-test.bsub
+       bsub < lvcsh-test.bsub
+       cd ../..    
+     done
 
-        mkdir epw$i/QEfiles
-        cp ../epw/epw$i.out epw$i/QEfiles/
-
-        cp lvcsh.bsub epw$i
-        sed -i "s/ncore/$ncore/g" epw$i/lvcsh.bsub
-        sed -i "2s:lvcsh-epw:lvcsh-epw${i}-n0:g" epw$i/lvcsh.bsub
-        sed -i "s:privateq-zw:$QUEUE_NAME:g" epw$i/lvcsh.bsub
-        sed -i "s:MODULEPATH=:MODULEPATH=$MODULEPATH #:g" epw$i/lvcsh.bsub
-        sed -i "s:0.6.4:$lvcsh_version:g" epw$i/lvcsh.bsub
-        cp job.sh epw$i
-        cp LVCSH.in epw$i
-        sed -i "s:./epw.out:../../QEfiles/epw$i.out:g" epw$i/LVCSH.in
-        sed -i "s:ncore:ncore = $ncore !:g" epw$i/LVCSH.in
-        cp LVCSH.in epw$i/QEfiles
-        sed -i "s:verbosity:verbosity="high" !:g" epw$i/QEfiles/LVCSH.in
-        sed -i "s:./epw.out:./epw$i.out:g" epw$i/QEfiles/LVCSH.in
-        sed -i "s:naver:naver = 10 !:g" epw$i/QEfiles/LVCSH.in
-        sed -i "s:nsnap:nsnap = 2 !:g" epw$i/QEfiles/LVCSH.in
-        sed -i "s:savedsnap:savedsnap = 2 !:g" epw$i/QEfiles/LVCSH.in
-        cp lvcsh-test.bsub epw$i/QEfiles
-        cd epw$i/QEfiles
-        sed -i "2s/lvcsh-epw/lvcsh-epw$i-test/g" lvcsh-test.bsub
-        sed -i "s:privateq-zw:$QUEUE_NAME:g" lvcsh-test.bsub
-        sed -i "s:MODULEPATH=:MODULEPATH=$MODULEPATH #:g" lvcsh-test.bsub
-        sed -i "s:0.6.4:$lvcsh_version:g" lvcsh-test.bsub
-        bsub < lvcsh-test.bsub
-        cd ../..
-   done   
    ```  
 
    ```bash
@@ -683,60 +688,63 @@ make epw
 
    ```fortran
    LVCSH.in
-   calculation   = "lvcsh"
-   verbosity     = "low"
+   calculation   = "lvcsh" ! "lvcsh" or "plot"
+   verbosity     = "low"   ! "low" or "high"
    outdir        = "./"
    methodsh      = "FSSH"
-   ldecoherence  = .true.
-   Cdecoherence  = 0.1
    lit_gmnvkq    = 0.0    ! in unit of meV
-   lit_ephonon   = 10.0    ! in unit of meV
+   lit_ephonon   = 0.0    ! in unit of meV
+   eps_acustic   = 5.0    ! in unit of cm-1
    lfeedback     = .true.
    lehpairsh     = .true.
    !lelecsh       = .true.
    !lholesh       = .true.
-   !ieband_min    = 3
-   !ieband_max    = 4
-   !ihband_min    = 1
-   !ihband_max    = 2
+   ieband_min    = 9
+   ieband_max    = 9
+   ihband_min    = 8
+   ihband_max    = 8
    !lsortpes      = .false.
    !mix_thr       = 0.8
-   epwoutname    = "../../QEfiles/epw40.out"
+   epwoutname    = "./epw.out"
    !nefre_sh      = 40
    !nhfre_sh      = 40
-   nnode         = 10
-   ncore         = 28
-   naver         = 100
+   nnode         = 1
+   ncore         = 1
+   naver         = 5000
    nsnap         = 1000
    nstep         = 2
    dt            = 0.5
    savedsnap     = 25
-   pre_nstep     = 50000
-   pre_dt        = 0.5
-   gamma         = 0.0   ! in unit of ps-1
-   ld_fric       = 0.01 !
-   temp          = 300
+   ldecoherence  = .true.
+   Cdecoherence  = 0.1
    l_ph_quantum  = .true.
+   temp          = 300
+   pre_nstep     = 5000
+   pre_dt        = 0.5
+   !gamma         = 0.0   ! in unit of ps-1
+   ld_fric       = 0.01   ! 
    llaser        = .true.
    efield_cart   = 1.0 1.0 1.0
    w_laser       = 2.0  ! in unit of eV
    fwhm          = 100  ! in unit of fs
+
    ```  
 
    ```bash
    lvcsh-test.bsub
    #!/bin/bash
-   #BSUB -J lvcsh-epw
-   #BSUB -q privateq-zw
+   #BSUB -J JOB_NAME
+   #BSUB -q QUEUE_NAME
    #BSUB -n 1
    #BSUB -o %J.out
    #BSUB -e %J.err
    
-   export MODULEPATH=/share/home/zw/xiehua/opt/modules-4.7.1/modulefiles
+   export MODULEPATH=$MODULEPATH:DIR_MODULEPATH
    
-   module load lvcsh/0.6.4
+   module load lvcsh/version
    
    LVCSH_complex.x
+
    ```  
 
    3.3 By look the initial adiabatic state in the QEfiles/LVCSH.out for different kpoints directory. Set the **`nefre_sh`** and **`nhfre_sh`** in the QEfiles/LVCSH.in to tests the time for one step nonadiabatic calculation. Then, subscrib the job again.  
@@ -748,14 +756,18 @@ make epw
    3.4. change the LVCSH.in file in the epw40, including the parameters for lvcsh run as following:
 
    ```fortran
+   ieband_min    = 9
+   ieband_max    = 9
+   ihband_min    = 8
+   ihband_max    = 8
    nefre_sh = 34
    nhfre_sh = 34
+   nnode    = 10
+   ncore    = 28
    naver    = 100
    nstep    = 2
    nsnap    = 1000
    dt       = 0.5
-   nnode    = 10
-   ncore    = 28
    savedsnap= 25
    ```  
 
