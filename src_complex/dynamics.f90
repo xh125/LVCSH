@@ -42,6 +42,7 @@ module dynamics
     complex(kind=dpc) :: cmp_tmp1,cmp_tmp2
     logical :: ltmp = .true.
     
+    ! F_qv = -dEa_dQ_-qv  (2.60)
     dEa_dQ = czero
     do iq=1,nq   
       do imode=1,nmodes
@@ -51,7 +52,7 @@ module dynamics
             do iband2=1,nband
               epc = gmnvkq(iband1,iband2,imode,ik,iq)
               if(epc /= czero) then
-                dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
+                dEa_dQ(imode,iminusq(iq)) = dEa_dQ(imode,iminusq(iq)) + &
                 epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
               endif
             enddo
@@ -145,10 +146,10 @@ module dynamics
     integer :: iq,imode,ik,iband1,iband2,ikq
     
     dx = vv    ! (2.55) (2.59)
-    !dv = -wf**2*xx - dEa_dQ - ld_gamma*vv
-    dv = -wf**2*xx - CONJG(dEa_dQ) - ld_gamma*vv
+    dv = -wf**2*xx - dEa_dQ - ld_gamma*vv
     !(2.60) PPT-94
     
+    ! F_qv = -dEa_dQ_-qv
     !do iq=1,nq
     !  do imode=1,nmodes
     !    dx(imode,iq) = vv(imode,iq)
@@ -227,6 +228,7 @@ module dynamics
 
 
   subroutine get_dEa2_dQ2(nmodes,nq,nfre,nfre_sh,isurface,EE,dd,dEa2_dQ2)
+    use elph2 , only : iminusq
     implicit none
     integer,intent(in) :: nmodes,nq,nfre,nfre_sh
     integer,intent(in) :: isurface
@@ -236,17 +238,20 @@ module dynamics
     
     integer :: iq,imode,ifre
     
+    ! dEa2_dQ2 = dEa2/d(Q_qv*)d(Q_qv)
+    ! ref : (2.60) PPT-95
     dEa2_dQ2 = 0.0
     do iq=1,nq
       do imode=1,nmodes
         do ifre=1,nfre_sh
           if(ifre /= isurface) then
-            dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) - (EE(ifre)-EE(isurface))*(ABS(DD(ifre,isurface,imode,iq)))**2
+            dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + &
+            (EE(isurface)-EE(ifre))*DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iminusq(iq))
           endif
         enddo
       enddo
     enddo 
-    dEa2_dQ2 = 2.0*dEa2_dQ2
+    dEa2_dQ2 = 2.0 * dEa2_dQ2
     
   end subroutine get_dEa2_dQ2
   
@@ -259,7 +264,7 @@ module dynamics
   ! ref: 1 D. M. F. M. Germana Paterlini, Chemical Physics 236 (1998) 243.
   SUBROUTINE ADD_BATH_EFFECT(nmodes,nq,wf,ld_gamma,temp,dEa2_dQ2,TT,l_ph_quantum,XX,VV)
     use kinds,only : dp,dpc
-    use parameters,only : lit_ephonon
+    use parameters,only : lit_ephonon,eps_acustic
     use elph2,only :  iminusq
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
     use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7,ryd2mev,cone,ci,tpi
@@ -282,22 +287,20 @@ module dynamics
     real(kind=dp) :: gamma,womiga,aver_E_T
     
     DO iq=1,nq
-      if(iminusq(iq)>=iq) then
+      !if(iminusq(iq)>=iq) then
       ! ph_Q(v,q)=ph_Q(v,-q)*
         do imode=1,nmodes
           womiga = wf(imode,iq)
           gamma = ld_gamma(imode,iq)
-          if(womiga*ryd2mev > lit_ephonon ) then
+          if(womiga > eps_acustic ) then
             if(l_ph_quantum) then
               aver_E_T = (bolziman(womiga,temp)+0.5)*womiga
-              !aver_E_T = KB*TEMP
             else
               aver_E_T = KB*TEMP
             endif
 
             SIGMAR=DSQRT(2.0*gamma*aver_E_T*TT)
             wwf2 = wf(imode,iq)**2+dEa2_dQ2(imode,iq)
-          
           
             cplx_tmp = VV(imode,iq)/ABS(VV(imode,iq))            
           
@@ -311,11 +314,12 @@ module dynamics
             Z4=TT**3*(R1/24.0D0+R2*SQRT3/40.0D0+R3/SQRT5/24.0D0+R4/SQRT7/120.0D0) ! V*T**3
             XX(imode,iq)=XX(imode,iq)+(Z2-GAMMA*Z3+(-wwf2+GAMMA**2)*Z4)
             VV(imode,iq)=VV(imode,iq)+(Z1-GAMMA*Z2+(-wwf2+GAMMA**2)*Z3+(2.0*gamma*wwf2-GAMMA**3)*Z4)
-            XX(imode,iminusq(iq)) = CONJG(XX(imode,iq)) 
-            VV(imode,iminusq(iq)) = CONJG(VV(imode,iq))
+            
+            !XX(imode,iminusq(iq)) = CONJG(XX(imode,iq)) 
+            !VV(imode,iminusq(iq)) = CONJG(VV(imode,iq))
           endif
         enddo
-      endif
+      !endif
     enddo
     
   ENDSUBROUTINE  

@@ -435,19 +435,17 @@ module surfacehopping
             enddo
           enddo
         enddo
-        if(iminusq(iq) /= iq) then
-          do imode = 1,nmodes
-            do ifre=1,nfre
-              do jfre=1,nfre
-                dd(ifre,jfre,imode,iminusq(iq)) = CONJG(dd(jfre,ifre,imode,iq))
-              enddo
+      else !  if(iminusq(iq) /= iq) then
+        !!dd(ifre,jfre,imode,-iq)=-1.0*CONJG(dd(jfre,ifre,imode,iq))
+        do imode = 1,nmodes
+          do ifre=1,nfre
+            do jfre=1,nfre
+              dd(ifre,jfre,imode,iminusq(iq)) = CONJG(dd(jfre,ifre,imode,iq))
             enddo
           enddo
-        endif
+        enddo
       endif
     enddo
-		
-      
     
     
 		do ifre=1,nfre
