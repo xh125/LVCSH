@@ -184,7 +184,7 @@ module grid
   integer function get_ikq(xk,xq)
     use kinds,        only : dp
     use epwcom,       only : nkf1,nkf2,nkf3
-    use constants,    only : eps5
+    use constants,    only : eps3
     use io,           only : stdout
     implicit none
     !integer :: get_ikq
@@ -200,9 +200,9 @@ module grid
     xx = xkq(1)*nkf1
     yy = xkq(2)*nkf2
     zz = xkq(3)*nkf3
-    in_the_list = ABS(xx - NINT(xx)) <= eps5 .AND. &
-                  ABS(yy - NINT(yy)) <= eps5 .AND. &
-                  ABS(zz - NINT(zz)) <= eps5      
+    in_the_list = ABS(xx - NINT(xx)) <= eps3 .AND. &
+                  ABS(yy - NINT(yy)) <= eps3 .AND. &
+                  ABS(zz - NINT(zz)) <= eps3      
     if(.not. in_the_list) then
       write(stdout,*) 'k+q does not fall on k-grid'
     endif

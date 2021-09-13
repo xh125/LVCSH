@@ -246,12 +246,12 @@ module dynamics
         do ifre=1,nfre_sh
           if(ifre /= isurface) then
             dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + &
-            (EE(isurface)-EE(ifre))*DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iminusq(iq))
+            (EE(isurface)-EE(ifre))*(DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iminusq(iq))+&
+                                    (DD(isurface,ifre,imode,iq)*DD(ifre,isurface,imode,iminusq(iq))))
           endif
         enddo
       enddo
     enddo 
-    dEa2_dQ2 = 2.0 * dEa2_dQ2
     
   end subroutine get_dEa2_dQ2
   

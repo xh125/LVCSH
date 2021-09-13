@@ -37,6 +37,8 @@ module constants
   !~~ NUMERICAL CONVERGENCE CONSTANTS ~~!
   real(kind=dp), parameter, public    :: eps2  = 1.0e-2_dp
   !! numerical convergence constant
+  real(kind=dp), parameter, public    :: eps3  = 1.0e-3_dp
+  !! numerical convergence constant
   real(kind=dp), parameter, public    :: eps5  = 1.0e-5_dp
   !! numerical convergence constant
   real(kind=dp), parameter, public    :: eps6  = 1.0e-6_dp

@@ -16,11 +16,11 @@ program lvcsh
   !============================================================================!
   != materials interaction with environment by system-bath interactions       =!     
   !============================================================================!
-  != Last updata 2021-08.31 Version:0.6.4                                     =!   
+  != Last updata 2021-09.13 Version:0.6.6                                     =!   
   != Developed by XieHua at department of physic, USTC;xh125@mail.ustc.edu.cn =!
   !============================================================================!
   !! Author: HuaXie                                                           =!
-  !! Version: v0.6.4                                                          =!
+  !! Version: v0.6.6                                                          =!
   !! License: GNU                                                             =!
   !!===========================================================================!
   use mkl_service
@@ -60,7 +60,8 @@ program lvcsh
                             dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,  &
                             csit_e,wsit_e,pes_one_e,pes_e,psit_e,              &
                             csit_h,wsit_h,pes_one_h,pes_h,psit_h,              &
-                            E_ph_CA_sum,E_ph_QA_sum,ld_fric,ld_gamma,l_dEa_dQ,l_dEa2_dQ2
+                            E_ph_CA_sum,E_ph_QA_sum,ld_fric,ld_gamma,l_dEa_dQ, &
+                            l_dEa2_dQ2
   use fssh,only           : nonadiabatic_transition_fssh
   use sc_fssh,only        : get_G_SC_FSSH,nonadiabatic_transition_scfssh
   use cc_fssh,only        : S_ai_e,S_ai_h,S_bi_e,S_bi_h,&

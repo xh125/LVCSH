@@ -360,93 +360,31 @@ module surfacehopping
 		integer :: nfre,ifre,jfre,iq,imode ,igfre
     integer :: ik,ikq,iband1,iband2
 		complex(kind=dpc) :: epc
-		logical :: larglit
     
     !nfre = nband*nk
     nfre = nfre_sh
-		
-		!version 1 原始版本时间长
-    !dd=0.0d0
-    !do ifre=1,nfre-1
-    !  do jfre=ifre+1,nfre
-    !    do iq =1, nq
-    !      do imode=1,nmodes
-    !        do ik=1,nk
-    !          ikq = kqmap(ik,iq)
-    !          do iband1=1,nband
-    !            do iband2=1,nband
-    !              dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
-    !              &p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)*gmnvkq(iband1,iband2,imode,ik,iq)
-    !            enddo
-    !          enddo
-    !        enddo
-    !        dd(ifre,jfre,imode,iq) = sqrt(2.0*wf(imode,iq)/nq)*dd(ifre,jfre,imode,iq)/(ee(jfre)-ee(ifre))
-    !      enddo
-    !    enddo
-    !    dd(jfre,ifre,:,:) = - dd(ifre,jfre,:,:)
-    !  enddo
-    !enddo
-		
-		!version 2 时间稍微变短
-    !dd=0.0d0
-		!do iq=1,nq
-		!	do imode=1,nmodes
-		!		do ifre=1,nfre-1
-		!			do jfre=ifre+1,nfre
-    !        
-		!				do ik=1,nk
-    !          ikq = kqmap(ik,iq)
-    !          do iband1=1,nband
-    !            do iband2=1,nband
-    !              dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
-    !              &gmnvkq(iband1,iband2,imode,ik,iq)*p_nk(iband1,ik,ifre)*p_nk(iband2,ikq,jfre)
-    !            enddo
-    !          enddo
-    !        enddo
-		!				dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)/(ee(jfre)-ee(ifre))
-		!				dd(jfre,ifre,imode,iq) = - dd(ifre,jfre,imode,iq)
-		!				
-    !      enddo
-    !    enddo
-		!		dd(:,:,imode,iq)=sqrt(2.0*wf(imode,iq)/nq)*dd(:,:,imode,iq)
-    !  enddo
-    !enddo
     
-		!version 3 时间变短五倍，由gmnvkg中0的个数决定缩短时间
     dd=czero
 		do iq=1,nq
-      if(iminusq(iq)>=iq) then
-        !dd(ifre,jfre,imode,-iq)=-1.0*CONJG(dd(jfre,ifre,imode,iq))
-        do ik =1 ,nk
-          ikq = kqmap(ik,iq)
-          do imode=1,nmodes
-            do iband1=1,nband
-              do iband2=1,nband
-                epc = gmnvkq(iband1,iband2,imode,ik,iq)
-                if(epc /= czero) then
-                  do ifre=1,nfre
-                    do jfre=1,nfre                    
-                      dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
-                      &epc*CONJG(p_nk(iband1,ik,ifre))*p_nk(iband2,ikq,jfre)
-                    enddo
+      do ik =1 ,nk
+        ikq = kqmap(ik,iq)
+        do imode=1,nmodes
+          do iband1=1,nband
+            do iband2=1,nband
+              epc = gmnvkq(iband1,iband2,imode,ik,iq)
+              if(epc /= czero) then
+                do ifre=1,nfre
+                  do jfre=1,nfre                    
+                    dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
+                    &epc*CONJG(p_nk(iband1,ik,ifre))*p_nk(iband2,ikq,jfre)
                   enddo
-                endif
-              enddo
+                enddo
+              endif
             enddo
           enddo
         enddo
-      else !  if(iminusq(iq) /= iq) then
-        !!dd(ifre,jfre,imode,-iq)=-1.0*CONJG(dd(jfre,ifre,imode,iq))
-        do imode = 1,nmodes
-          do ifre=1,nfre
-            do jfre=1,nfre
-              dd(ifre,jfre,imode,iminusq(iq)) = CONJG(dd(jfre,ifre,imode,iq))
-            enddo
-          enddo
-        enddo
-      endif
+      enddo
     enddo
-    
     
 		do ifre=1,nfre
 			do jfre=1,nfre
