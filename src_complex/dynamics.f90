@@ -317,6 +317,7 @@ module dynamics
             
             !XX(imode,iminusq(iq)) = CONJG(XX(imode,iq)) 
             !VV(imode,iminusq(iq)) = CONJG(VV(imode,iq))
+          
           endif
         enddo
       !endif
