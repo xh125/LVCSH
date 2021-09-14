@@ -71,7 +71,7 @@ module saveinf
     phq_unit = io_file_unit()
     call open_file(phQ_file_,phq_unit)
 		
-		do i=1,4
+		do i=1,3
       read(phq_unit,*)
 		enddo
     do isnap=0,nsnap
@@ -153,7 +153,7 @@ module saveinf
     php_unit = io_file_unit()
     call open_file(phP_file_,php_unit)
 		
-    do i=1,4
+    do i=1,3
       read(php_unit,*)
     enddo
     do isnap=0,nsnap
@@ -235,7 +235,7 @@ module saveinf
     phk_unit = io_file_unit()
     call open_file(phK_file_,phk_unit)
 		
-    do i=1,4
+    do i=1,3
       read(phK_unit,*)
 		enddo		
     do isnap=0,nsnap
@@ -318,7 +318,7 @@ module saveinf
     phu_unit = io_file_unit()
     call open_file(phU_file_,phu_unit)
 		
-    do i=1,4
+    do i=1,3
       read(phu_unit,*)
 		enddo	
     do isnap=0,nsnap
