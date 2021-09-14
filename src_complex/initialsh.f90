@@ -23,11 +23,11 @@ module initialsh
       endif
       
       if(ieband_min < ibndmin) then
-        write(stdout,"(A,I9,A3,I9)") "Error! The parameter: ieband_min need to set between ", ibndmin,"and",ibndmax
+        write(stdout,"(A,I9,1X,A3,1X,I9)") "Error! The parameter: ieband_min need to set between ", ibndmin,"and",ibndmax
         stop
       endif
       if(ieband_max > ibndmax) then
-        write(stdout,"(A,I9,A3,I9)") "Error! The parameter: ieband_max need to set between ", ibndmin,"and",ibndmax
+        write(stdout,"(A,I9,1X,A3,1X,I9)") "Error! The parameter: ieband_max need to set between ", ibndmin,"and",ibndmax
         stop
       endif
       if(ieband_max<ieband_min) then

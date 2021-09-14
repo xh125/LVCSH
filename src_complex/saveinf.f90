@@ -2,10 +2,12 @@ module saveinf
   use kinds,only : dp,dpc
   use surfacecom,only : dt,nstep
   use io,only : io_file_unit,open_file,close_file,stdout
-  use constants,only : ry_to_fs,maxlen,RYTOEV
+  use constants,only : ry_to_fs,maxlen,RYTOEV,ryd2meV
+  use elph2,only : wf
 	use parameters,only : outdir
   implicit none
   integer :: iaver,isnap,ifre,iq,imode,inode,icore
+  integer :: i
   
   character(len=maxlen) :: pes_e_file  = "pes_e.dat"
   character(len=maxlen) :: pes_h_file  = "pes_h.dat"
@@ -36,11 +38,13 @@ module saveinf
     phq_unit = io_file_unit()
     call open_file(phQ_file_,phq_unit)
 
-		write(phq_unit,"(5X,A)") "Average of Normal mode coordinate for one core sample. ((phQ(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(phq_unit,"(*(1X,A12))") "time ",(("phQ(ifre)",imode=1,nmodes),iq=1,nq)
-		write(phq_unit,"(*(1X,A12))") "fs  ",((" a.u. ",imode=1,nmodes),iq=1,nq)
+		write(phq_unit,"(A)") "Average of Normal mode coordinate for one core sample. ((phQ(imode,iq),imode=1,nmodes),iq=1,nq)"
+		write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phQ]","Im[phQ]",imode=1,nmodes),iq=1,nq)
+    write(phq_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
+    write(phq_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)
+
     do isnap=0,nsnap
-      write(phq_unit,"(*(1X,2E12.5))") dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      write(phq_unit,"(F12.5,*(2(1X,E12.5)))") dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phQ_file_,phq_unit)
@@ -67,9 +71,9 @@ module saveinf
     phq_unit = io_file_unit()
     call open_file(phQ_file_,phq_unit)
 		
-		read(phq_unit,*)
-		read(phq_unit,*)
-		read(phq_unit,*)
+		do i=1,4
+      read(phq_unit,*)
+		enddo
     do isnap=0,nsnap
       read(phq_unit,"(13X,*(1X,2E12.5))") ((phQsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
@@ -90,9 +94,10 @@ module saveinf
     phq_unit = io_file_unit()
     call open_file(phQ_file_,phq_unit)
     
-		write(phq_unit,"(5X,A)") "Average of Normal mode coordinate for all node trajecotry. ((phQ(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(phq_unit,"(*(1X,A12))") "time ",(("phQ(ifre)",imode=1,nmodes),iq=1,nq)
-		write(phq_unit,"(*(1X,A12))") "fs  ",((" a.u. ",imode=1,nmodes),iq=1,nq)
+		write(phq_unit,"(A)") "Average of Normal mode coordinate for one core sample. ((phQ(imode,iq),imode=1,nmodes),iq=1,nq)"
+		write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phQ]","Im[phQ]",imode=1,nmodes),iq=1,nq)
+    write(phq_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
+    write(phq_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
       write(phq_unit,"(*(1X,2E12.5))") dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
@@ -117,10 +122,11 @@ module saveinf
     call open_file(phP_file_,php_unit)
     
 		write(php_unit,"(5X,A)") "Average of Normal mode verlocity for one core sample.((phP(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(php_unit,"(*(1X,A12))") "time ",(("phP(ifre)",imode=1,nmodes),iq=1,nq)
-		write(php_unit,"(*(1X,A12))") "fs  ",((" a.u. ",imode=1,nmodes),iq=1,nq)
+		write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phP]","Im[phP]",imode=1,nmodes),iq=1,nq)
+    write(php_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
+    write(php_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)		
     do isnap=0,nsnap
-      write(php_unit,"(*(1X,2E12.5))") dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      write(php_unit,"(*(2(1X,E12.5)))") dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phP_file_,php_unit)
@@ -147,9 +153,9 @@ module saveinf
     php_unit = io_file_unit()
     call open_file(phP_file_,php_unit)
 		
-		read(php_unit,*)
-		read(php_unit,*)
-	  read(php_unit,*)
+    do i=1,4
+      read(php_unit,*)
+    enddo
     do isnap=0,nsnap
       read(php_unit,"(13X,*(1X,2E12.5))") ((phPsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
@@ -170,9 +176,10 @@ module saveinf
     php_unit = io_file_unit()
     call open_file(phP_file_,php_unit)
     
-		write(php_unit,"(5X,A)") "Average of Normal mode verlocity for all trajecotry.((phP(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(php_unit,"(*(1X,A12))") "time ",(("phP(ifre)",imode=1,nmodes),iq=1,nq)
-		write(php_unit,"(*(1X,A12))") "fs  ",((" a.u. ",imode=1,nmodes),iq=1,nq)
+		write(php_unit,"(5X,A)") "Average of Normal mode verlocity for one core sample.((phP(imode,iq),imode=1,nmodes),iq=1,nq)"
+		write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phP]","Im[phP]",imode=1,nmodes),iq=1,nq)
+    write(php_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
+    write(php_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)		
     do isnap=0,nsnap
       write(php_unit,"(*(1X,2E12.5))") dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
@@ -196,10 +203,11 @@ module saveinf
     call open_file(phK_file_,phK_unit)
 
 		write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy for one core sample.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
-    write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
-		write(phK_unit,"(*(1X,A12))") "fs  ","  eV   ",(("    eV     ",imode=1,nmodes),iq=1,nq)
+		write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
+		write(phK_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
+    write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
-        write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap))*RYTOEV,&
+        write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap))*ryd2meV,&
 				((phKsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
     enddo
     
@@ -227,9 +235,9 @@ module saveinf
     phk_unit = io_file_unit()
     call open_file(phK_file_,phk_unit)
 		
-		read(phK_unit,*)
-		read(phK_unit,*)
-		read(phK_unit,*)		
+    do i=1,4
+      read(phK_unit,*)
+		enddo		
     do isnap=0,nsnap
       read(phk_unit,"(26X,*(1X,E12.5))") ((phKsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
@@ -251,8 +259,9 @@ module saveinf
     call open_file(phK_file_,phK_unit)
 		
 		write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
-    write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
-		write(phK_unit,"(*(1X,A12))") "fs  ","  eV   ",(("    eV     ",imode=1,nmodes),iq=1,nq)
+		write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
+		write(phK_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
+    write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
         write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap)),&
 				((phKsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
@@ -279,9 +288,10 @@ module saveinf
 		
 		write(phU_unit,"(5X,A)") "Average of Normal mode potential energy for one core sample.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
 		write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("phU(mode,q)",imode=1,nmodes),iq=1,nq)
-		write(phU_unit,"(*(1X,A12))") "fs ","   eV  ",(("    eV     ",imode=1,nmodes),iq=1,nq)
+		write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
+    write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
-        write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap))*RYTOEV,&
+        write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap))*ryd2meV,&
 				((phUsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
     enddo
     
@@ -308,9 +318,9 @@ module saveinf
     phu_unit = io_file_unit()
     call open_file(phU_file_,phu_unit)
 		
-		read(phu_unit,*)
-		read(phu_unit,*)
-		read(phu_unit,*)		
+    do i=1,4
+      read(phu_unit,*)
+		enddo	
     do isnap=0,nsnap
       read(phu_unit,"(26X,*(1X,E12.5))") ((phUsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
@@ -333,7 +343,8 @@ module saveinf
     
 		write(phU_unit,"(5X,A)") "Average of Normal mode potential energy for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
 		write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("phU(mode,q)",imode=1,nmodes),iq=1,nq)
-		write(phU_unit,"(*(1X,A12))") "fs ","   eV  ",(("    eV     ",imode=1,nmodes),iq=1,nq)
+		write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
+    write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
         write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap)),&
 				((phUsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)

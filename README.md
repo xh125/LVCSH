@@ -673,7 +673,7 @@ make epw
    job.sh
    #!/bin/bash
        nnode=10
-       sed -i "s:nnode:nnode = $nnode !:g" LVCSH.in
+       sed -i "s:nnode:nnode         = $nnode !:g" LVCSH.in
        for i in $(seq 1 1 $nnode)
        do 
        mkdir node$i
@@ -760,6 +760,7 @@ make epw
    ieband_max    = 9
    ihband_min    = 8
    ihband_max    = 8
+   epwoutname    = "../../QEfiles/epw120.out"
    nefre_sh = 34
    nhfre_sh = 34
    nnode    = 10

@@ -1,6 +1,6 @@
 #!/bin/bash
 nnode=10
-sed -i "s:nnode:nnode = $nnode !:g" LVCSH.in
+sed -i "s:nnode:nnode         = $nnode !:g" LVCSH.in
 for i in $(seq 1 1 $nnode)
 	do 
 	mkdir node$i
