@@ -538,6 +538,8 @@ make epw
    ```fortran
    calculation   = "lvcsh" ! "lvcsh" or "plot"
    verbosity     = "low"   ! "low" or "high"
+   l_dEa_dQ      = .false.
+   l_dEa2_dQ2    = .false.
    outdir        = "./"
    methodsh      = "FSSH"
    lit_gmnvkq    = 0.0    ! in unit of meV
@@ -690,6 +692,8 @@ make epw
    LVCSH.in
    calculation   = "lvcsh" ! "lvcsh" or "plot"
    verbosity     = "low"   ! "low" or "high"
+   l_dEa_dQ      = .false.
+   l_dEa2_dQ2    = .false.
    outdir        = "./"
    methodsh      = "FSSH"
    lit_gmnvkq    = 0.0    ! in unit of meV

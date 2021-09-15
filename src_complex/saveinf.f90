@@ -75,7 +75,7 @@ module saveinf
       read(phq_unit,*)
 		enddo
     do isnap=0,nsnap
-      read(phq_unit,"(13X,*(1X,2E12.5))") ((phQsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      read(phq_unit,"(13X,*(2(1X,E12.5)))") ((phQsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
 		phQsit =phQsit + phQsit_
@@ -157,7 +157,7 @@ module saveinf
       read(php_unit,*)
     enddo
     do isnap=0,nsnap
-      read(php_unit,"(13X,*(1X,2E12.5))") ((phPsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      read(php_unit,"(13X,*(2(1X,E12.5)))") ((phPsit_(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
 		phPsit =phPsit + phPsit_
