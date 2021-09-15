@@ -536,8 +536,8 @@ program lvcsh
     write(stdout,"(A,I4)") "Number of nodes for non-adiabatic calculation:",nnode
     write(stdout,"(A,I4)") "Number of samples for each node:",ncore    
     naver_sum = naver*nnode*ncore
-    phQsit = 0.0
-    phPsit = 0.0
+    phQsit = czero
+    phPsit = czero
     phKsit = 0.0
     phUsit = 0.0
     

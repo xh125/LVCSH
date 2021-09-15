@@ -227,7 +227,8 @@ module saveinf
 		real(kind=dp),allocatable :: phKsit_(:,:,:)
 		
 		if(.not. allocated(phKsit_)) allocate(phKsit_(nmodes,nq,0:nsnap))
-		
+		phKsit_ = 0.0
+    
 		write(ctmp1,*) inode
 		write(ctmp2,*) icore
 		phK_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(phK_file))
@@ -311,14 +312,15 @@ module saveinf
 		real(kind=dp),allocatable :: phUsit_(:,:,:)
 		
 		if(.not. allocated(phUsit_)) allocate(phUsit_(nmodes,nq,0:nsnap))
-		
+		phUsit_ = 0.0
+    
 		write(ctmp1,*) inode
 		write(ctmp2,*) icore
 		phU_file_ = "./node"//trim(adjustl(ctmp1))//"/sample"//trim(adjustl(ctmp2))//"/"//trim(outdir)//trim(adjustl(phU_file))
     phu_unit = io_file_unit()
     call open_file(phU_file_,phu_unit)
 		
-    do i=1,3
+    do i=1,4
       read(phu_unit,*)
 		enddo	
     do isnap=0,nsnap
