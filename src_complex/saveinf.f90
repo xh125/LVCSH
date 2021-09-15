@@ -71,7 +71,7 @@ module saveinf
     phq_unit = io_file_unit()
     call open_file(phQ_file_,phq_unit)
 		
-		do i=1,3
+		do i=1,4
       read(phq_unit,*)
 		enddo
     do isnap=0,nsnap
@@ -153,7 +153,7 @@ module saveinf
     php_unit = io_file_unit()
     call open_file(phP_file_,php_unit)
 		
-    do i=1,3
+    do i=1,4
       read(php_unit,*)
     enddo
     do isnap=0,nsnap
@@ -208,7 +208,7 @@ module saveinf
     write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
         write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap))*ryd2meV,&
-				((phKsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
+				((phKsit(imode,iq,isnap)*ryd2meV,imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phK_file_,phK_unit)
@@ -235,7 +235,7 @@ module saveinf
     phk_unit = io_file_unit()
     call open_file(phK_file_,phk_unit)
 		
-    do i=1,3
+    do i=1,4
       read(phK_unit,*)
 		enddo		
     do isnap=0,nsnap
@@ -292,7 +292,7 @@ module saveinf
     write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
         write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap))*ryd2meV,&
-				((phUsit(imode,iq,isnap)*RYTOEV,imode=1,nmodes),iq=1,nq)
+				((phUsit(imode,iq,isnap)*ryd2meV,imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phU_file_,phU_unit)

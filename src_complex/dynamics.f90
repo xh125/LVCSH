@@ -52,8 +52,10 @@ module dynamics
             do iband2=1,nband
               epc = gmnvkq(iband1,iband2,imode,ik,iq)
               if(epc /= czero) then
-                dEa_dQ(imode,iminusq(iq)) = dEa_dQ(imode,iminusq(iq)) + &
-                epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
+                !dEa_dQ(imode,iminusq(iq)) = dEa_dQ(imode,iminusq(iq)) + &
+                !epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
+                dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
+                epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)       
               endif
             enddo
           enddo
@@ -246,8 +248,11 @@ module dynamics
         do ifre=1,nfre_sh
           if(ifre /= isurface) then
             dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + &
-            (EE(isurface)-EE(ifre))*(DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iminusq(iq))+&
-                                    (DD(isurface,ifre,imode,iq)*DD(ifre,isurface,imode,iminusq(iq))))
+            (EE(isurface)-EE(ifre))*(DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iq)+&
+                                    (DD(isurface,ifre,imode,iq)*DD(ifre,isurface,imode,iq)))            
+            !dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + &
+            !(EE(isurface)-EE(ifre))*(DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iminusq(iq))+&
+            !                        (DD(isurface,ifre,imode,iq)*DD(ifre,isurface,imode,iminusq(iq))))
           endif
         enddo
       enddo
