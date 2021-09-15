@@ -212,7 +212,7 @@ module readinput
 		ncore         = 1
 		savedsnap     = 100
 
-    l_dEa_dQ      = .true.
+    l_dEa_dQ      = .false.
     l_dEa2_dQ2    = .true.
     
     lsetthreads   = .FALSE.
