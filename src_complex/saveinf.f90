@@ -1,8 +1,8 @@
 module saveinf
   use kinds,only : dp,dpc
-  use surfacecom,only : dt,nstep
+  use surfacecom,only : dt,nstep,temp,nqv,l_ph_quantum
   use io,only : io_file_unit,open_file,close_file,stdout
-  use constants,only : ry_to_fs,maxlen,RYTOEV,ryd2meV
+  use constants,only : ry_to_fs,maxlen,RYTOEV,ryd2meV,K_B_Ryd
   use elph2,only : wf
 	use parameters,only : outdir
   implicit none
@@ -251,7 +251,7 @@ module saveinf
 	
   subroutine plot_phK(nmodes,nq,nsnap,phKsit)  
     integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap)
+    real(kind=dp),intent(inout) :: phKsit(nmodes,nq,0:nsnap)
     
     integer :: phK_unit
 		character(len=maxlen) :: phK_file_   
@@ -259,13 +259,25 @@ module saveinf
     phK_unit = io_file_unit()
     call open_file(phK_file_,phK_unit)
 		
-		write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
+    if(l_ph_quantum) then
+      do isnap =0,nsnap
+        phKsit(:,:,isnap) = phKsit(:,:,isnap) - 0.5*nqv*wf*ryd2meV
+      enddo
+    else
+      phKsit = phKsit - 0.5*temp*K_B_Ryd*ryd2meV
+    endif
+    
+    if(l_ph_quantum) then
+      write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy - 0.5*nqv*hbar*wqv for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
+		else
+      write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy - 0.5*KB*T for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
+    endif
+    write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
 		write(phK_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
     write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
-        write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap)),&
-				((phKsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap)),&
+			((phKsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phK_file_,phK_unit)
@@ -285,7 +297,6 @@ module saveinf
     phU_unit = io_file_unit()
 		phU_file_ = trim(outdir)//trim(adjustl(phU_file))
     call open_file(phU_file_,phU_unit)
-
 		
 		write(phU_unit,"(5X,A)") "Average of Normal mode potential energy for one core sample.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
 		write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("phU(mode,q)",imode=1,nmodes),iq=1,nq)
@@ -335,16 +346,28 @@ module saveinf
 
   subroutine plot_phU(nmodes,nq,nsnap,phUsit)  
     integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(in) :: phUsit(nmodes,nq,0:nsnap)
+    real(kind=dp),intent(inout) :: phUsit(nmodes,nq,0:nsnap)
     
     integer :: phU_unit
 		character(len=maxlen) :: phU_file_  
 		phU_file_ = trim(outdir)//trim(adjustl(phU_file))     
     phU_unit = io_file_unit()
     call open_file(phU_file_,phU_unit)
+
+    if(l_ph_quantum) then
+      do isnap =0,nsnap
+        phUsit(:,:,isnap) = phUsit(:,:,isnap) - 0.5*nqv*wf*ryd2meV
+      enddo
+    else
+      phUsit = phUsit - 0.5*temp*K_B_Ryd*ryd2meV
+    endif
     
-		write(phU_unit,"(5X,A)") "Average of Normal mode potential energy for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("phU(mode,q)",imode=1,nmodes),iq=1,nq)
+    if(l_ph_quantum) then
+      write(phU_unit,"(5X,A)") "Average of Normal mode potential energy - 0.5*nqv*hbar*wqv for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
+		else
+      write(phU_unit,"(5X,A)") "Average of Normal mode potential energy - 0.5*KB*T for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
+    endif
+    write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("phU(mode,q)",imode=1,nmodes),iq=1,nq)
 		write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
     write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap

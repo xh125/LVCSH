@@ -215,7 +215,7 @@ module initialsh
     implicit none
     real(kind=dp),intent(in)::womiga,temp
     real(kind=dp) :: bolziman
-    if(womiga == 0) then
+    if(womiga == 0.0) then
       write(stdout,*) "womiga == 0,phonon error"
       stop
     endif
@@ -234,7 +234,7 @@ module initialsh
     use kinds,only   : dp,dpc
     use randoms,only : gaussian_random_number
     !use parameters,only : lit_ephonon
-    use surfacecom,only : E_ph_CA_sum,E_ph_QA_sum,eps_acustic
+    use surfacecom,only : nqv,E_ph_CA_sum,E_ph_QA_sum,eps_acustic
     use elph2,only : iminusq
     use io,only : stdout
     use constants,only : ryd2eV
@@ -255,9 +255,21 @@ module initialsh
     real(kind=dp) :: E_ph_class,E_ph_quantum
     integer :: iq,imode
     
+    allocate(nqv(nmodes,nq))
+    nqv = 0.0
+
+    do iq=1,nq
+      do imode=1,nmodes
+        womiga = w(imode,iq)
+        if(womiga >= eps_acustic) then
+          nqv(imode,iq) = bolziman(womiga,T)+0.5
+        endif
+      enddo
+    enddo
     
     E_ph_CA_sum   = 0.0
     E_ph_QA_sum   = 0.0
+        
     do iq=1,nq
       if(iminusq(iq)>=iq) then
         ! ph_Q(v,-q)=ph_Q(v,q)*
@@ -285,7 +297,7 @@ module initialsh
             E_ph_class   = K_B_Ryd*T  ! IN class 
             E_ph_CA_sum  = E_ph_CA_sum + E_ph_class
             if(iminusq(iq)/=iq) E_ph_CA_sum  = E_ph_CA_sum + E_ph_class
-            E_ph_quantum = (bolziman(womiga,T)+0.5)*womiga ! In Quantum
+            E_ph_quantum = nqv(imode,iq)*womiga ! In Quantum
             E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum	
             if(iminusq(iq)/=iq) E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum
             if(l_ph_quantum) then

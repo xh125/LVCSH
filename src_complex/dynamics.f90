@@ -383,8 +383,8 @@ module dynamics
     implicit none
     real(kind=dp),intent(in)::womiga,temp
     real(kind=dp) :: bolziman
-    if(womiga == 0) then
-      write(stdout,*) "womiga == 0,phonon error"
+    if(womiga == 0.0) then
+      write(stdout,*) "womiga == 0.0,phonon error"
       stop
     endif
     bolziman=1.0/(exp(womiga/(K_B_Ryd*temp))-1.0)

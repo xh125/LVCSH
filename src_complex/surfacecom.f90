@@ -60,6 +60,9 @@ module surfacecom
   
   ! phonons normal mode Langevin dynamica friction coefficient
   real(kind=dp),allocatable :: ld_gamma(:,:)
+  ! <nqv>=1/(exp{hbar*wqv/kbT}-1)
+  real(kind=dp),allocatable :: nqv(:,:)
+  
   
   ! phonons normal mode coordinate,and phonons P
   complex(kind=dpc),allocatable :: phQ(:,:),phP(:,:),phQ0(:,:),phP0(:,:)

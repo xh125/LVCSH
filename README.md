@@ -404,7 +404,15 @@ make epw
    2.8 [EPW](https://docs.epw-code.org/doc/Inputs.html) 计算电声耦合强度.计算电声耦合强度需要在scf计算和phonon计算中采用较高的收敛判据。包括：`etot_conv_thr`,`forc_conv_thr`,`press_conv_thr`,`conv_thr` ,`tr2_ph`  
 
    * 第一步：进入phonon目录进行scf自洽计算  
-   * 第二步：ph.x进行DFPT计算（最费时间，需要注意设置参数`fildyn`和`fildvscf`)
+   * 第二步：ph.x进行DFPT计算（最费时间，需要注意设置参数`fildyn`和`fildvscf`)  
+     在phonon计算中可以使用 [`-nimage N`](http://www.quantum-espresso.org/Doc/INPUT_PH.html#idm357) 参数进行并行计算，可以在不同的节点上计算不同的q点。On parallel machines the q point and the irreps calculations can be split
+     automatically using the -nimage flag. See the phonon user guide for further
+     information.  
+
+     ```bash
+     mpirun -np $NP -machinefile ${CURDIR}/nodelist ph.x -ni 6 -npool 28 <ph.in> ph.out`
+     ```  
+
    * 第三步：使用pp.py收集ph.x计算得到的fildvscf相关文件到save文件夹  
    * 第四步：进入epw目录，先进行scf计算（或者将phonon目录中的内容拷贝过来），再进行nscf计算,需要设置所有的k点并且修改 [**`nbnd`**](http://www.quantum-espresso.org/Doc/INPUT_PW.html#nbnd) 的值。scf计算和nscf计算需要使用与phonon计算时相同的参数设置和计算精度。  
    `kmesh.pl 40 1 1 >>${prefix}.nscf.in`  

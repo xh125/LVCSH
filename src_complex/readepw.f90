@@ -8,7 +8,7 @@ module readepw
   use klist_epw, only : xk_all,xkg_all
   use epwcom, only : nkc1,nkc2,nkc3,nqf1,nqf2,nqf3,nkf1,nkf2,nkf3,nbndsub,kqmap,scdm_proj,vme
   use pwcom, only : ef
-  use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,eps_acustic
+  use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,eps_acustic,nqv
   use elph2, only : nkqf,nkqtotf,wf,wqf,xkf,wkf,etf,gmnvkq,nkf,epmatq,&
                     nktotf,nqf,nqtotf,ibndmin,ibndmax,efnew,vmef,dmef
   use cell_base,only : ibrav,alat,omega,at,bg,celldm
