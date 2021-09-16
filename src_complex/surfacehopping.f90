@@ -342,13 +342,13 @@ module surfacehopping
 		
 	end subroutine add_decoherence
   
-  !===================================!
-  != calculate nonadiabatic coupling =!
-  !===================================!
+  !==================================================================!
+  != calculate nonadiabatic coupling                                =!
+  !==================================================================!
   ! ref : PPT-91
+  ! The most time-consuming part of the program
   subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,ee,p_nk,gmnvkq,lit_gmnvkq,nfre_sh,dd)
     use kinds,only :  dp
-		use elph2,only :  iminusq
     implicit none
     integer, intent(in)          :: nmodes,nq,nband,nk,nfre_sh
     real(kind=dp),intent(in)     :: ee(nband*nk)

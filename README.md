@@ -56,8 +56,8 @@ make epw
     verbosity     = "high"
     tprnfor       = .true.  
     tstress       = .true.
-    etot_conv_thr =  1.0d-6
-    forc_conv_thr =  1.0d-5
+    etot_conv_thr =  1.0d-5
+    forc_conv_thr =  1.0d-4
    /
 
    &SYSTEM
@@ -74,7 +74,7 @@ make epw
     /
 
     &ELECTRONS
-    conv_thr         =  1.000e-9
+    conv_thr         =  1.000e-7
     electron_maxstep =  200
     mixing_beta      =  7.00000e-01
     startingpot      = "atomic"
@@ -88,11 +88,11 @@ make epw
     &CELL
     cell_dofree    = "x"
     cell_dynamics  = "bfgs"
-    press_conv_thr =  0.01
+    press_conv_thr =  0.02
     /
 
     K_POINTS {automatic}
-     40  1  1  0 0 0
+     200  1  1  0 0 0
 
     ATOMIC_SPECIES
     C      12.01070  C.pbe-n-kjpaw_psl.1.0.0.UPF
@@ -110,7 +110,7 @@ make epw
    采用下面命令查看计算过程中的受力情况已经压力张量和晶格常数变化情况  
 
    ```bash
-   cat vc-relax.out |grep -A 10 "Total force ="
+   cat vc-relax.out |grep -A 12 "Total force ="
    ```
 
    计算结束后，使用下面命令得到优化后的结果
@@ -337,7 +337,7 @@ make epw
      tr2_ph=1.0d-16,
      prefix='carbyne',
      outdir='./'
-     epsil=.true. !use for insulators
+   ! epsil=.true. !use for insulators
      ldisp=.true.
      nq1=40, nq2=1, nq3=1
    !  amass(1)=0.0
@@ -406,7 +406,7 @@ make epw
    * 第一步：进入phonon目录进行scf自洽计算  
    * 第二步：ph.x进行DFPT计算（最费时间，需要注意设置参数`fildyn`和`fildvscf`)
    * 第三步：使用pp.py收集ph.x计算得到的fildvscf相关文件到save文件夹  
-   * 第四步：进入epw目录，先进行scf计算（或者将phonon目录中的内容拷贝过来），再进行nscf计算,需要设置所有的k点并且修改`nbnd` 的值。scf计算和nscf计算需要使用与phonon计算时相同的参数设置和计算精度。  
+   * 第四步：进入epw目录，先进行scf计算（或者将phonon目录中的内容拷贝过来），再进行nscf计算,需要设置所有的k点并且修改 [**`nbnd`**](http://www.quantum-espresso.org/Doc/INPUT_PW.html#nbnd) 的值。scf计算和nscf计算需要使用与phonon计算时相同的参数设置和计算精度。  
    `kmesh.pl 40 1 1 >>${prefix}.nscf.in`  
    * 第五步，设置 **epw.in** 文件，进行epw计算，设置[`prtgkk`](https://docs.epw-code.org/doc/Inputs.html#prtgkk)以及[`ephwrite`](https://docs.epw-code.org/doc/Inputs.html#ephwrite).注意[**fsthick**](https://docs.epw-code.org/doc/Inputs.html#fsthick)的设置，会影响打印出来的电声耦合矩阵元包含的能带数和q点数。EPW计算完成后需要检查插值后的phonon的频率（插值可能导致出现虚频，与wannier插值傅里叶变换有关，可能需要重新设置wannier插值参数）。epw.in如下：  
 
@@ -652,7 +652,13 @@ make epw
        cp LVCSH.in epw$i
        sed -i "s:./epw.out:../../QEfiles/epw$i.out:g" epw$i/LVCSH.in
        sed -i "s:ncore:ncore         = $ncore !:g" epw$i/LVCSH.in
-       
+       cp lvcsh-test.bsub epw$i/lvcsh-plot.bsub
+       sed -i "2s/JOB_NAME/lvcsh-epw$i-plot/g" epw$i/lvcsh-plot.bsub
+       sed -i "s:QUEUE_NAME:$QUEUE_NAME:g" epw$i/lvcsh-plot.bsub
+       sed -i "s:DIR_MODULEPATH:$MODULEPATH :g" epw$i/lvcsh-plot.bsub
+       sed -i "s:version:$lvcsh_version:g" epw$i/lvcsh-plot.bsub
+
+
        cp LVCSH.in epw$i/QEfiles
        sed -i "s:verbosity:verbosity     = "high" !:g" epw$i/QEfiles/LVCSH.in
        sed -i "s:./epw.out:./epw$i.out:g" epw$i/QEfiles/LVCSH.in
