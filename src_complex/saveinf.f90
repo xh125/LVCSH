@@ -24,6 +24,7 @@ module saveinf
   character(len=maxlen) :: band_e_file = "band_e.dat"
   character(len=maxlen) :: band_h_file = "band_h.dat"	
 	
+  character(len=12),allocatable :: cphmode(:,:)
   contains 
 
   
@@ -255,6 +256,7 @@ module saveinf
     
     integer,intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(inout) :: phKsit(nmodes,nq,0:nsnap)
+    character(len=12) :: ctmp1,ctmp2 
     
     real(kind=dp) :: womiga
     integer :: phK_unit
@@ -263,6 +265,7 @@ module saveinf
     phK_unit = io_file_unit()
     call open_file(phK_file_,phK_unit)
 		
+    allocate(cphmode(nmodes,nq))
     allocate(nqv(nmodes,nq))
     nqv = 0.0
 
@@ -282,13 +285,21 @@ module saveinf
     else
       phKsit = phKsit - 0.5*temp*K_B_Ryd*ryd2meV
     endif
+
+    do iq=1,nq
+      do imode=1,nmodes
+        write(ctmp1,*) imode
+        write(ctmp2,*) iq
+        cphmode(imode,iq) = "("//trim(adjustl(ctmp1))//","//trim(adjustl(ctmp2))//")"
+      enddo
+    enddo
     
     if(l_ph_quantum) then
       write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy - 0.5*nqv*hbar*wqv for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
 		else
       write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy - 0.5*KB*T for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
     endif
-    write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
+    write(phK_unit,"(*(1X,A12))") "time ","phK(mode,q)",((cphmode(imode,iq),imode=1,nmodes),iq=1,nq)
 		write(phK_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
     write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
@@ -383,7 +394,7 @@ module saveinf
 		else
       write(phU_unit,"(5X,A)") "Average of Normal mode potential energy - 0.5*KB*T for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
     endif
-    write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("phU(mode,q)",imode=1,nmodes),iq=1,nq)
+    write(phU_unit,"(*(1X,A12))") "time ","phU(mode,q)",((cphmode(imode,iq),imode=1,nmodes),iq=1,nq)
 		write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
     write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
