@@ -1,6 +1,6 @@
 module saveinf
   use kinds,only : dp,dpc
-  use surfacecom,only : dt,nstep,temp,nqv,l_ph_quantum
+  use surfacecom,only : dt,nstep,temp,nqv,l_ph_quantum,eps_acustic
   use io,only : io_file_unit,open_file,close_file,stdout
   use constants,only : ry_to_fs,maxlen,RYTOEV,ryd2meV,K_B_Ryd
   use elph2,only : wf
@@ -250,15 +250,31 @@ module saveinf
   end subroutine read_phK	
 	
   subroutine plot_phK(nmodes,nq,nsnap,phKsit)  
+    use dynamics,only : bolziman
+    implicit none
+    
     integer,intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(inout) :: phKsit(nmodes,nq,0:nsnap)
     
+    real(kind=dp) :: womiga
     integer :: phK_unit
 		character(len=maxlen) :: phK_file_   
 		phK_file_ = trim(outdir)//trim(adjustl(phK_file))     
     phK_unit = io_file_unit()
     call open_file(phK_file_,phK_unit)
 		
+    allocate(nqv(nmodes,nq))
+    nqv = 0.0
+
+    do iq=1,nq
+      do imode=1,nmodes
+        womiga = wf(imode,iq)
+        if(womiga >= eps_acustic) then
+          nqv(imode,iq) = bolziman(womiga,temp)+0.5
+        endif
+      enddo
+    enddo    
+    
     if(l_ph_quantum) then
       do isnap =0,nsnap
         phKsit(:,:,isnap) = phKsit(:,:,isnap) - 0.5*nqv*wf*ryd2meV
