@@ -6,9 +6,7 @@
 #BSUB -o %J.out
 #BSUB -e %J.err
 
-#source ~/xh/.bashrc
-#export OMP_NUM_THREADS=1
-#export MKL_NUM_THREADS=1
+export PATH=$PATH:DIR_MODULECMD
 export MODULEPATH=$MODULEPATH:DIR_MODULEPATH
 
 module load lvcsh/version

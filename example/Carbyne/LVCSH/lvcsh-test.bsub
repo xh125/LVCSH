@@ -5,6 +5,7 @@
 #BSUB -o %J.out
 #BSUB -e %J.err
 
+export PATH=$PATH:DIR_MODULECMD
 export MODULEPATH=$MODULEPATH:DIR_MODULEPATH
 
 module load lvcsh/version
