@@ -93,7 +93,7 @@ program lvcsh
                             psit_e_file,psit_h_file,save_psit, read_psit,&
                             plot_csit,plot_wsit,plot_psit,&
                             band_e_file,band_h_file,&
-                            plot_band_occupatin_withtime
+                            plot_band_occupatin_withtime,plot_LOtemp
   implicit none
   
   !===============!
@@ -593,6 +593,7 @@ program lvcsh
     call plot_phP(nmodes,nqtotf,nsnap,phPsit)
     call plot_phK(nmodes,nqtotf,nsnap,phKsit)
     call plot_phU(nmodes,nqtotf,nsnap,phUsit)
+    call plot_LOtemp(nmodes,nqtotf,nsnap,phKsit,phUsit)
     deallocate(phPsit,phQsit,phKsit,phUsit)
     
     

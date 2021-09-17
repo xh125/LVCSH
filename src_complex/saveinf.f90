@@ -3,7 +3,7 @@ module saveinf
   use surfacecom,only : dt,nstep,temp,nqv,l_ph_quantum,eps_acustic
   use io,only : io_file_unit,open_file,close_file,stdout
   use constants,only : ry_to_fs,maxlen,RYTOEV,ryd2meV,K_B_Ryd
-  use elph2,only : wf
+  use elph2,only : wf,xqf
 	use parameters,only : outdir
   implicit none
   integer :: iaver,isnap,ifre,iq,imode,inode,icore
@@ -21,6 +21,7 @@ module saveinf
   character(len=maxlen) :: phP_file    = "phPsit.dat"  
   character(len=maxlen) :: phU_file    = "phUsit.dat"  
   character(len=maxlen) :: phK_file    = "phKsit.dat"
+  character(len=maxlen) :: phT_file    = "phLOtemp.dat"
   character(len=maxlen) :: band_e_file = "band_e.dat"
   character(len=maxlen) :: band_h_file = "band_h.dat"	
 	
@@ -255,15 +256,20 @@ module saveinf
     implicit none
     
     integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(inout) :: phKsit(nmodes,nq,0:nsnap)
+    real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap)
+    real(kind=dp),allocatable :: phKsit_ave(:,:,:)
     character(len=12) :: ctmp1,ctmp2 
     
     real(kind=dp) :: womiga
     integer :: phK_unit
 		character(len=maxlen) :: phK_file_   
-		phK_file_ = trim(outdir)//trim(adjustl(phK_file))     
+		
+    phK_file_ = trim(outdir)//trim(adjustl(phK_file))     
     phK_unit = io_file_unit()
     call open_file(phK_file_,phK_unit)
+
+    allocate(phKsit_ave(1:nmodes,1:nq,0:nsnap))     
+    phKsit_ave = 0.0
 		
     allocate(cphmode(nmodes,nq))
     allocate(nqv(nmodes,nq))
@@ -280,10 +286,10 @@ module saveinf
     
     if(l_ph_quantum) then
       do isnap =0,nsnap
-        phKsit(:,:,isnap) = phKsit(:,:,isnap) - 0.5*nqv*wf*ryd2meV
+        phKsit_ave(:,:,isnap) = phKsit(:,:,isnap) - 0.5*nqv*wf*ryd2meV
       enddo
     else
-      phKsit = phKsit - 0.5*temp*K_B_Ryd*ryd2meV
+      phKsit_ave = phKsit - 0.5*temp*K_B_Ryd*ryd2meV
     endif
 
     do iq=1,nq
@@ -309,9 +315,12 @@ module saveinf
     
     call close_file(phK_file_,phK_unit)
    
+    deallocate(phKsit_ave)
 		write(stdout,"(A,A)") "Write average phK infortmation to the file: ",trim(phK_file_)
 	 
   end subroutine plot_phK
+
+
 
 
 	!Write average phU infortmation to the file: phUsit.dat.gnu
@@ -373,20 +382,27 @@ module saveinf
 
   subroutine plot_phU(nmodes,nq,nsnap,phUsit)  
     integer,intent(in) :: nmodes,nq,nsnap
-    real(kind=dp),intent(inout) :: phUsit(nmodes,nq,0:nsnap)
+    real(kind=dp),intent(in) :: phUsit(nmodes,nq,0:nsnap)
     
     integer :: phU_unit
 		character(len=maxlen) :: phU_file_  
-		phU_file_ = trim(outdir)//trim(adjustl(phU_file))     
+		real(kind=dp),allocatable :: phUsit_ave(:,:,:)
+    
+    
+    
+    allocate(phUsit_ave(1:nmodes,1:nq,0:nsnap))
+    phUsit_ave = 0.0
+    
+    phU_file_ = trim(outdir)//trim(adjustl(phU_file))     
     phU_unit = io_file_unit()
     call open_file(phU_file_,phU_unit)
 
     if(l_ph_quantum) then
       do isnap =0,nsnap
-        phUsit(:,:,isnap) = phUsit(:,:,isnap) - 0.5*nqv*wf*ryd2meV
+        phUsit_ave(:,:,isnap) = phUsit(:,:,isnap) - 0.5*nqv*wf*ryd2meV
       enddo
     else
-      phUsit = phUsit - 0.5*temp*K_B_Ryd*ryd2meV
+      phUsit_ave = phUsit_ave - 0.5*temp*K_B_Ryd*ryd2meV
     endif
     
     if(l_ph_quantum) then
@@ -398,15 +414,79 @@ module saveinf
 		write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
     write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
-        write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap)),&
-				((phUsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+        write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit_ave(:,:,isnap)),&
+				((phUsit_ave(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phU_file_,phU_unit)
+    deallocate(phUsit_ave)
    
 		write(stdout,"(A,A)") "Write average phU infortmation to the file: ",trim(phU_file_)
-	 
+	  
+   
   end subroutine plot_phU  
+
+
+
+  subroutine plot_LOtemp(nmodes,nq,nsnap,phKsit,phUsit)
+    implicit none
+    integer , intent(in) :: nmodes,nq,nsnap
+    real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap),phUsit(nmodes,nq,0:nsnap)
+    
+    real(kind=dp), allocatable :: phTemp(:,:),phEsit(:,:)
+    
+    real(kind=dp) :: qx,qy,qz
+    
+    integer :: phT_unit
+    character(len=maxlen) :: phT_file_
+    phT_file_ = trim(outdir)//trim(adjustl(phT_file))     
+    phT_unit = io_file_unit()
+    call open_file(phT_file_,phT_unit)    
+    
+    
+    
+    allocate(phTemp(nq,0:nsnap))
+    allocate(phEsit(nq,0:nsnap))
+    phTemp = 0.0
+    phEsit = 0.0
+    
+    if(l_ph_quantum) then
+      do isnap=0,nsnap 
+        phEsit(:,isnap) = (phKsit(nmodes,:,isnap)+phUsit(nmodes,:,isnap))/(wf(nmodes,:)*ryd2meV)
+      enddo
+    
+      do isnap=0,nsnap
+        phTemp(:,isnap) = (wf(nmodes,:)/K_B_Ryd)*log((phEsit(:,isnap)-0.5)/(phEsit(:,isnap)+0.5))
+      enddo
+    else
+        phEsit = phKsit(nmodes,:,:)+phUsit(nmodes,:,:)
+        phTemp = phEsit/ryd2meV/K_B_Ryd     
+    endif
+    
+    if(l_ph_quantum) then
+      write(phT_unit,"(A)") "The temperature of the LO mode phonon use nqv."
+    else
+      write(phT_unit,"(A)") "The temperature of the LO mode phonon use KbT."
+    endif
+    
+    write(phT_unit,"(5(1X,A12))") "time","iq","qx","qy","qz","temperature"
+    write(phT_unit,"(5(1X,A12))") " fs ","iq","2pi/a","2pi/a","2pi/a"," K "
+    do isnap=0,nsnap
+      do iq=1,nq
+        qx=xqf(1,iq)
+        qy=xqf(2,iq)
+        qz=xqf(3,iq)
+        if(qx>0.5) qx=qx-1.0
+        if(qy>0.5) qy=qy-1.0
+        if(qz>0.5) qz=qz-1.0
+        write(phT_unit,"(1X,F12.5,1X,I12,4(1X,F12.5))") dt*nstep*isnap*ry_to_fs,iq,qx,qy,qz,phTemp(iq,isnap)
+      enddo
+    enddo
+    
+    
+    
+    
+  end subroutine
 
 
 
