@@ -24,6 +24,7 @@ done
 NP=`cat ${CURDIR}/nodelist |wc -l`
 
 
+rm -rf sample*
 for i in $(seq 1 1 $NP)
 do
 mkdir sample$i

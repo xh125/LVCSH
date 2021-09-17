@@ -25,7 +25,10 @@ module saveinf
   character(len=maxlen) :: band_e_file = "band_e.dat"
   character(len=maxlen) :: band_h_file = "band_h.dat"	
 	
+  character(len=12) :: ctmp1,ctmp2
   character(len=12),allocatable :: cphmode(:,:)
+  character(len=12),allocatable :: cefree(:)
+  
   contains 
 
   
@@ -40,8 +43,18 @@ module saveinf
     phq_unit = io_file_unit()
     call open_file(phQ_file_,phq_unit)
 
+    if(.not. allocated(cphmode)) allocate(cphmode(nmodes,nq))
+    do iq=1,nq
+      do imode=1,nmodes
+        write(ctmp1,*) imode
+        write(ctmp2,*) iq
+        cphmode(imode,iq) = "("//trim(adjustl(ctmp1))//","//trim(adjustl(ctmp2))//")"
+      enddo
+    enddo
+
 		write(phq_unit,"(A)") "Average of Normal mode coordinate for one core sample. ((phQ(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phQ]","Im[phQ]",imode=1,nmodes),iq=1,nq)
+		write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[Q"//trim(adjustl(cphmode(imode,iq)))//"]",&
+    "Im[Q"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)
     write(phq_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
     write(phq_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)
 
@@ -95,13 +108,24 @@ module saveinf
 		phQ_file_ = trim(outdir)//trim(adjustl(phQ_file)) 
     phq_unit = io_file_unit()
     call open_file(phQ_file_,phq_unit)
+
+    if(.not. allocated(cphmode)) allocate(cphmode(nmodes,nq))
+    do iq=1,nq
+      do imode=1,nmodes
+        write(ctmp1,*) imode
+        write(ctmp2,*) iq
+        cphmode(imode,iq) = "("//trim(adjustl(ctmp1))//","//trim(adjustl(ctmp2))//")"
+      enddo
+    enddo
     
 		write(phq_unit,"(A)") "Average of Normal mode coordinate for one core sample. ((phQ(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phQ]","Im[phQ]",imode=1,nmodes),iq=1,nq)
+		write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[Q"//trim(adjustl(cphmode(imode,iq)))//"]",&
+    "Im[Q"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)
+		!write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phQ]","Im[phQ]",imode=1,nmodes),iq=1,nq)
     write(phq_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
     write(phq_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
-      write(phq_unit,"(*(1X,2E12.5))") dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      write(phq_unit,"(F12.5,*(2(1X,E12.5)))") dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phQ_file_,phq_unit)
@@ -122,13 +146,25 @@ module saveinf
     php_unit = io_file_unit()
 		phP_file_ = trim(outdir)//trim(adjustl(phP_file))
     call open_file(phP_file_,php_unit)
+
+    if(.not. allocated(cphmode)) allocate(cphmode(nmodes,nq))
+    do iq=1,nq
+      do imode=1,nmodes
+        write(ctmp1,*) imode
+        write(ctmp2,*) iq
+        cphmode(imode,iq) = "("//trim(adjustl(ctmp1))//","//trim(adjustl(ctmp2))//")"
+      enddo
+    enddo
+
     
 		write(php_unit,"(5X,A)") "Average of Normal mode verlocity for one core sample.((phP(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phP]","Im[phP]",imode=1,nmodes),iq=1,nq)
+		write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[P"//trim(adjustl(cphmode(imode,iq)))//"]",&
+    "Im[P"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)
+		!write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phP]","Im[phP]",imode=1,nmodes),iq=1,nq)
     write(php_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
     write(php_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)		
     do isnap=0,nsnap
-      write(php_unit,"(*(2(1X,E12.5)))") dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      write(php_unit,"(F12.5,*(2(1X,E12.5)))") dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phP_file_,php_unit)
@@ -177,13 +213,24 @@ module saveinf
 		phP_file_ = trim(outdir)//trim(adjustl(phP_file))     
     php_unit = io_file_unit()
     call open_file(phP_file_,php_unit)
+
+    if(.not. allocated(cphmode)) allocate(cphmode(nmodes,nq))
+    do iq=1,nq
+      do imode=1,nmodes
+        write(ctmp1,*) imode
+        write(ctmp2,*) iq
+        cphmode(imode,iq) = "("//trim(adjustl(ctmp1))//","//trim(adjustl(ctmp2))//")"
+      enddo
+    enddo
     
 		write(php_unit,"(5X,A)") "Average of Normal mode verlocity for one core sample.((phP(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phP]","Im[phP]",imode=1,nmodes),iq=1,nq)
+		write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[P"//trim(adjustl(cphmode(imode,iq)))//"]",&
+    "Im[P"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)		
+    !write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phP]","Im[phP]",imode=1,nmodes),iq=1,nq)
     write(php_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
     write(php_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)		
     do isnap=0,nsnap
-      write(php_unit,"(*(1X,2E12.5))") dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
+      write(php_unit,"(F12.5,*(2(1X,E12.5)))") dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
     
     call close_file(phP_file_,php_unit)
@@ -193,6 +240,7 @@ module saveinf
   end subroutine plot_phP  	
 
 	
+  
 	!Write average phK infortmation to the file: phKsit.dat.gnu	
   subroutine save_phK(nmodes,nq,nsnap,phKsit)  
     integer,intent(in) :: nmodes,nq,nsnap
@@ -204,8 +252,18 @@ module saveinf
 		phK_file_ = trim(outdir)//trim(adjustl(phK_file))
     call open_file(phK_file_,phK_unit)
 
+    if(.not. allocated(cphmode)) allocate(cphmode(nmodes,nq))
+    do iq=1,nq
+      do imode=1,nmodes
+        write(ctmp1,*) imode
+        write(ctmp2,*) iq
+        cphmode(imode,iq) = "("//trim(adjustl(ctmp1))//","//trim(adjustl(ctmp2))//")"
+      enddo
+    enddo
+
 		write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy for one core sample.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
+		write(phK_unit,"(*(1X,A12))") "time","SUM_phK",(("K"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)			
+    !write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
 		write(phK_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
     write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
@@ -258,7 +316,7 @@ module saveinf
     integer,intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap)
     real(kind=dp),allocatable :: phKsit_ave(:,:,:)
-    character(len=12) :: ctmp1,ctmp2 
+     
     
     real(kind=dp) :: womiga
     integer :: phK_unit
@@ -268,10 +326,18 @@ module saveinf
     phK_unit = io_file_unit()
     call open_file(phK_file_,phK_unit)
 
+    if(.not. allocated(cphmode)) allocate(cphmode(nmodes,nq))
+    do iq=1,nq
+      do imode=1,nmodes
+        write(ctmp1,*) imode
+        write(ctmp2,*) iq
+        cphmode(imode,iq) = "("//trim(adjustl(ctmp1))//","//trim(adjustl(ctmp2))//")"
+      enddo
+    enddo
+
     allocate(phKsit_ave(1:nmodes,1:nq,0:nsnap))     
     phKsit_ave = 0.0
 		
-    allocate(cphmode(nmodes,nq))
     allocate(nqv(nmodes,nq))
     nqv = 0.0
 
@@ -291,21 +357,13 @@ module saveinf
     else
       phKsit_ave = phKsit - 0.5*temp*K_B_Ryd*ryd2meV
     endif
-
-    do iq=1,nq
-      do imode=1,nmodes
-        write(ctmp1,*) imode
-        write(ctmp2,*) iq
-        cphmode(imode,iq) = "("//trim(adjustl(ctmp1))//","//trim(adjustl(ctmp2))//")"
-      enddo
-    enddo
     
     if(l_ph_quantum) then
       write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy - 0.5*nqv*hbar*wqv for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
 		else
       write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy - 0.5*KB*T for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
     endif
-    write(phK_unit,"(*(1X,A12))") "time ","phK(mode,q)",((cphmode(imode,iq),imode=1,nmodes),iq=1,nq)
+    write(phK_unit,"(*(1X,A12))") "time ","phK(mode,q)",(("K"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)
 		write(phK_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
     write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
@@ -322,7 +380,6 @@ module saveinf
 
 
 
-
 	!Write average phU infortmation to the file: phUsit.dat.gnu
   subroutine save_phU(nmodes,nq,nsnap,phUsit)  
     integer,intent(in) :: nmodes,nq,nsnap
@@ -333,9 +390,18 @@ module saveinf
     phU_unit = io_file_unit()
 		phU_file_ = trim(outdir)//trim(adjustl(phU_file))
     call open_file(phU_file_,phU_unit)
+
+    if(.not. allocated(cphmode)) allocate(cphmode(nmodes,nq))
+    do iq=1,nq
+      do imode=1,nmodes
+        write(ctmp1,*) imode
+        write(ctmp2,*) iq
+        cphmode(imode,iq) = "("//trim(adjustl(ctmp1))//","//trim(adjustl(ctmp2))//")"
+      enddo
+    enddo
 		
 		write(phU_unit,"(5X,A)") "Average of Normal mode potential energy for one core sample.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
-		write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("phU(mode,q)",imode=1,nmodes),iq=1,nq)
+		write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("U"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)
 		write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
     write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
@@ -397,6 +463,15 @@ module saveinf
     phU_unit = io_file_unit()
     call open_file(phU_file_,phU_unit)
 
+    if(.not. allocated(cphmode)) allocate(cphmode(nmodes,nq))
+    do iq=1,nq
+      do imode=1,nmodes
+        write(ctmp1,*) imode
+        write(ctmp2,*) iq
+        cphmode(imode,iq) = "("//trim(adjustl(ctmp1))//","//trim(adjustl(ctmp2))//")"
+      enddo
+    enddo
+
     if(l_ph_quantum) then
       do isnap =0,nsnap
         phUsit_ave(:,:,isnap) = phUsit(:,:,isnap) - 0.5*nqv*wf*ryd2meV
@@ -410,7 +485,7 @@ module saveinf
 		else
       write(phU_unit,"(5X,A)") "Average of Normal mode potential energy - 0.5*KB*T for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
     endif
-    write(phU_unit,"(*(1X,A12))") "time ","phU(mode,q)",((cphmode(imode,iq),imode=1,nmodes),iq=1,nq)
+    write(phU_unit,"(*(1X,A12))") "time ","phU(mode,q)",(("U"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)
 		write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
     write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
@@ -428,7 +503,7 @@ module saveinf
 
 
 
-  subroutine plot_LOtemp(nmodes,nq,nsnap,phKsit,phUsit)
+  subroutine plot_ph_temp(nmodes,nq,nsnap,phKsit,phUsit)
     implicit none
     integer , intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap),phUsit(nmodes,nq,0:nsnap)
@@ -439,54 +514,76 @@ module saveinf
     
     integer :: phT_unit
     character(len=maxlen) :: phT_file_
-    phT_file_ = trim(outdir)//trim(adjustl(phT_file))     
-    phT_unit = io_file_unit()
-    call open_file(phT_file_,phT_unit)    
-    
-    
-    
+
     allocate(phTemp(nq,0:nsnap))
-    allocate(phEsit(nq,0:nsnap))
-    phTemp = 0.0
-    phEsit = 0.0
+    allocate(phEsit(nq,0:nsnap))    
+    do imode=1,nmodes
+      write(ctmp1,*) imode
+      phT_file_ = trim(outdir)//"ph_temp_mode"//trim(adjustl(ctmp1))//".dat"  
     
-    if(l_ph_quantum) then
-      do isnap=0,nsnap 
-        phEsit(:,isnap) = (phKsit(nmodes,:,isnap)+phUsit(nmodes,:,isnap))/(wf(nmodes,:)*ryd2meV)
-      enddo
     
+      phT_unit = io_file_unit()
+      call open_file(phT_file_,phT_unit)    
+
+      phTemp = 0.0
+      phEsit = 0.0
+    
+      if(l_ph_quantum) then
+        do isnap=0,nsnap
+          do iq=1,nq
+            if(wf(imode,iq)>0.0) then
+              phEsit(iq,isnap) = (phKsit(imode,iq,isnap)+phUsit(imode,iq,isnap))/(wf(imode,iq)*ryd2meV)
+            else
+              phEsit(iq,isnap) = 0.0
+            endif
+          enddo
+        enddo
+      
+        do isnap=0,nsnap
+          do iq=1,nq
+            if(phEsit(iq,isnap)<=0.5) then
+              phTemp(iq,isnap) = 0.0
+            else
+              phTemp(iq,isnap) = (wf(nmodes,iq)/K_B_Ryd)/log((phEsit(iq,isnap)+0.5)/(phEsit(iq,isnap)-0.5))
+            endif
+          enddo
+        enddo
+      else
+          phEsit = phKsit(imode,:,:)+phUsit(imode,:,:)
+          phTemp = phEsit/ryd2meV/K_B_Ryd     
+      endif
+    
+      if(l_ph_quantum) then
+        write(phT_unit,"(A29,I12,A)") "The temperature of the imode=",imode," phonon use nqv."
+      else
+        write(phT_unit,"(A29,I12,A)") "The temperature of the imode=",imode," phonon use KbT."
+      endif
+    
+      write(phT_unit,"(6(1X,A12))") "time","iq","qx","qy","qz","temperature"
+      write(phT_unit,"(6(1X,A12))") " fs ","iq","b1","b2","b3"," K "
       do isnap=0,nsnap
-        phTemp(:,isnap) = (wf(nmodes,:)/K_B_Ryd)/log((phEsit(:,isnap)+0.5)/(phEsit(:,isnap)-0.5))
+        do iq=1,nq
+          qx=xqf(1,iq)
+          qy=xqf(2,iq)
+          qz=xqf(3,iq)
+          if(qx>0.5) qx=qx-1.0
+          if(qy>0.5) qy=qy-1.0
+          if(qz>0.5) qz=qz-1.0
+          write(phT_unit,"(1X,F12.5,1X,I12,4(1X,F12.5))") dt*nstep*isnap*ry_to_fs,iq,qx,qy,qz,phTemp(iq,isnap)
+          if(qx== 0.5 .or. qy==0.5 .or. qz==0.5) then
+            if(qx==0.5) qx=qx-1.0
+            if(qy==0.5) qy=qy-1.0
+            if(qz==0.5) qz=qz-1.0
+            write(phT_unit,"(1X,F12.5,1X,I12,4(1X,F12.5))") dt*nstep*isnap*ry_to_fs,iq,qx,qy,qz,phTemp(iq,isnap)
+          endif
+        enddo
       enddo
-    else
-        phEsit = phKsit(nmodes,:,:)+phUsit(nmodes,:,:)
-        phTemp = phEsit/ryd2meV/K_B_Ryd     
-    endif
+      
+      call close_file(phT_file_,phT_unit)
     
-    if(l_ph_quantum) then
-      write(phT_unit,"(A)") "The temperature of the LO mode phonon use nqv."
-    else
-      write(phT_unit,"(A)") "The temperature of the LO mode phonon use KbT."
-    endif
-    
-    write(phT_unit,"(5(1X,A12))") "time","iq","qx","qy","qz","temperature"
-    write(phT_unit,"(5(1X,A12))") " fs ","iq","2pi/a","2pi/a","2pi/a"," K "
-    do isnap=0,nsnap
-      do iq=1,nq
-        qx=xqf(1,iq)
-        qy=xqf(2,iq)
-        qz=xqf(3,iq)
-        if(qx>0.5) qx=qx-1.0
-        if(qy>0.5) qy=qy-1.0
-        if(qz>0.5) qz=qz-1.0
-        write(phT_unit,"(1X,F12.5,1X,I12,4(1X,F12.5))") dt*nstep*isnap*ry_to_fs,iq,qx,qy,qz,phTemp(iq,isnap)
-      enddo
     enddo
     
-    
-    
-    
-  end subroutine
+  end subroutine plot_ph_temp
 
 
 
@@ -503,8 +600,14 @@ module saveinf
 		wsit_file_ = trim(outdir)//trim(adjustl(wsit_file))
     call open_file(wsit_file_,wsit_unit)
 
+    if(.not. allocated(cefree)) allocate(cefree(nfre))
+    do ifre=1,nfre
+      write(ctmp1,*) ifre
+      cefree(ifre) = "("//trim(adjustl(ctmp1))//")"
+    enddo
+
 		write(wsit_unit,"(A)") "The average electron(hole) population on different adiabatic wave function for one core sample. "    
-		write(wsit_unit,"(*(1X,A12))")          "time ",("wsit(ifre)",ifre=1,nfre)
+		write(wsit_unit,"(*(1X,A12))") "time ",("wsit"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
     write(wsit_unit,"((1X,A12),*(1X,I12))") "fs  ",(ifre,ifre=1,nfre)
 		do isnap=0,nsnap
       write(wsit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(wsit(ifre,isnap),ifre=1,nfre)  
@@ -516,7 +619,8 @@ module saveinf
 		write(stdout,"(A,A)")"Save the average electron(hole) wavefction population on &
 		          &different adiabatic wave function to file:",trim(wsit_file_)
   
-  
+    deallocate(cefree)
+    
   end subroutine save_wsit
 
   subroutine read_wsit(inode,icore,nfre,nsnap,naver,wsit,wsit_file)
@@ -563,8 +667,14 @@ module saveinf
     wsit_unit = io_file_unit()
     call open_file(wsit_file_,wsit_unit)
 
+    if(.not. allocated(cefree)) allocate(cefree(nfre))
+    do ifre=1,nfre
+      write(ctmp1,*) ifre
+      cefree(ifre) = "("//trim(adjustl(ctmp1))//")"
+    enddo
+
 		write(wsit_unit,"(A)") "The average electron(hole) population on different adiabatic wave function for all trajecotry. "    
-		write(wsit_unit,"(*(1X,A12))")          "time ",("wsit(ifre)",ifre=1,nfre)
+		write(wsit_unit,"(*(1X,A12))")          "time ",("wsit"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
     write(wsit_unit,"((1X,A12),*(1X,I12))") "fs  ",(ifre,ifre=1,nfre)
 		do isnap=0,nsnap
       write(wsit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(wsit(ifre,isnap),ifre=1,nfre)  
@@ -574,6 +684,7 @@ module saveinf
 		write(stdout,"(A,A)")"Write the average electron(hole) wavefction population on &
 		          &different adiabatic wave function to file:",trim(wsit_file_)
   
+    deallocate(cefree)
   end subroutine plot_wsit
 
 
@@ -592,8 +703,14 @@ module saveinf
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
 
+    if(.not. allocated(cefree)) allocate(cefree(nfre))
+    do ifre=1,nfre
+      write(ctmp1,*) ifre
+      cefree(ifre) = "("//trim(adjustl(ctmp1))//")"
+    enddo
+
     write(pes_unit,"(A,I8,A)") "Averager of naver=",naver, " pes(ifre,isnap),ifre=0,nfre)"
-		write(pes_unit,"(*(1X,A12))") "time ","active_pes",("pes(ifre)",ifre=1,nfre)
+		write(pes_unit,"(*(1X,A12))") "time ","active_pes",("pes"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
     write(pes_unit,"(*(1X,A12))") "fs",("eV",ifre=0,nfre)    
 		do isnap=0,nsnap
       write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(pes(ifre,isnap)*RYTOEV,ifre=0,nfre)
@@ -617,6 +734,8 @@ module saveinf
 
     call close_file(pes_file_,pes_unit)		
 		write(stdout,"(A,A)") "Save the first trajecotry active PES and PES to the file:",trim(pes_file_)
+    
+    deallocate(cefree)
     
   end subroutine save_pes
   
@@ -679,10 +798,16 @@ module saveinf
     integer :: pes_unit
 		pes_file_ = trim(outdir)//trim(adjustl(pes_file))//"_f.dat"
 
+    if(.not. allocated(cefree)) allocate(cefree(nfre))
+    do ifre=1,nfre
+      write(ctmp1,*) ifre
+      cefree(ifre) = "("//trim(adjustl(ctmp1))//")"
+    enddo
+
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
 		write(pes_unit,"(A)") "USing the first trajecotry as an example to Plotting potential Energy Surface(PES),and the active PES."
-    write(pes_unit,"(*(1X,A12))") "time ","active_fpes",("i_fpes",ifre=1,nfre)
+    write(pes_unit,"(*(1X,A12))") "time ","active_fpes",("pes"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
 		write(pes_unit,"(*(1X,A12))") "fs  ","   eV     "  ,("  eV  ",ifre=1,nfre)
     do isnap=0,nsnap
 			write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(pes_one(ifre,isnap),ifre=0,nfre)
@@ -697,15 +822,15 @@ module saveinf
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
 		write(pes_unit,"(A)") "Plotting averager of potential Energy Surface(PES),and the averager active PES and their weight."
-    write(pes_unit,"(*(1X,A12))") "time ","average_PES","wsit      ","AVE_actPES"
-		write(pes_unit,"(*(1X,A12))") "fs  ","   eV     " ,"w(ifre)**2" ," eV "
+    write(pes_unit,"(*(1X,A12))") "time ","ave_PES","wsit      ","avePES(a)","avePES(1)","avePES(nfre)"
+		write(pes_unit,"(*(1X,A12))") " fs  ","   eV  ","w(ifre)**2","    eV   ","    eV   ","     eV     "
 
 		do ifre =1 , nfre
 			!write(pes_unit,"(A,I12,1X,A12)") "#isurface=",ifre,"wsit"
 			do isnap=0,nsnap
 				if(ifre ==1 ) then
-					write(pes_unit,"(4(1X,E12.5))") dt*nstep*isnap*ry_to_fs,pes(ifre,isnap),wsit(ifre,isnap),&
-					pes(0,isnap)
+					write(pes_unit,"(6(1X,E12.5))") dt*nstep*isnap*ry_to_fs,pes(ifre,isnap),wsit(ifre,isnap),&
+					pes(0,isnap),pes(1,isnap),pes(nfre,isnap)
 				else
 					write(pes_unit,"(3(1X,E12.5))") dt*nstep*isnap*ry_to_fs,pes(ifre,isnap),wsit(ifre,isnap)
 				endif
@@ -717,8 +842,11 @@ module saveinf
 		
 		write(stdout,"(A,A)") "Write average of active PES and PES for all trajecotry to the file:",trim(pes_file_)
 		
+    deallocate(cefree)
+    
   end subroutine plot_pes
 	
+
 
 	!The electron(hole) population on different diabatic wave function.
   subroutine save_csit(nfre,nsnap,naver,csit,csit_file)
@@ -805,6 +933,7 @@ module saveinf
   end subroutine plot_csit
 
 
+
 	!The active adiabatic PES project to diabatic states. psit(ifre)=P(ifre,isurface)**2
   subroutine save_psit(nfre,nsnap,naver,psit,psit_file)
     implicit none
@@ -818,8 +947,14 @@ module saveinf
 		psit_file_ = trim(outdir)//trim(adjustl(psit_file))
     call open_file(psit_file_,psit_unit)
 
+    if(.not. allocated(cefree)) allocate(cefree(nfre))
+    do ifre=1,nfre
+      write(ctmp1,*) ifre
+      cefree(ifre) = "("//trim(adjustl(ctmp1))//")"
+    enddo
+
 		write(psit_unit,"(A)") "The average active PES project on different diabatic wave function for one core sample. psit(ifre)=P(ifre,isurface)**2 "		
-    write(psit_unit,"(*(1X,A12))") "time",("psit(ifre)",ifre=1,nfre)
+    write(psit_unit,"(*(1X,A12))") "time",("psit"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
 		write(psit_unit,"((1X,A12),*(1X,I12))") "fs ",(ifre,ifre=1,nfre)
     do isnap=0,nsnap
       write(psit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(psit(ifre,isnap),ifre=1,nfre)  
@@ -830,6 +965,7 @@ module saveinf
 	  write(stdout,"(A,A)")"Save the average electron(hole) active PES project to &
 		          &different diabatic wave function to file:",trim(psit_file_)
   
+    deallocate(cefree)
   end subroutine save_psit
 	
   subroutine read_psit(inode,icore,nfre,nsnap,naver,psit,psit_file)
@@ -876,9 +1012,15 @@ module saveinf
 		psit_file_ = trim(outdir)//trim(adjustl(psit_file))         
     psit_unit = io_file_unit()
     call open_file(psit_file_,psit_unit)
+
+    if(.not. allocated(cefree)) allocate(cefree(nfre))
+    do ifre=1,nfre
+      write(ctmp1,*) ifre
+      cefree(ifre) = "("//trim(adjustl(ctmp1))//")"
+    enddo
 		
 		write(psit_unit,"(A)") "The average active PES project on different diabatic wave function for all trajecotry. psit(ifre)=P(ifre,isurface)**2 "		
-    write(psit_unit,"(*(1X,A12))") "time",("psit(ifre)",ifre=1,nfre)
+    write(psit_unit,"(*(1X,A12))") "time",("psit"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
 		write(psit_unit,"((1X,A12),*(1X,I12))") "fs ",(ifre,ifre=1,nfre)
     do isnap=0,nsnap
       write(psit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(psit(ifre,isnap),ifre=1,nfre)  
@@ -889,6 +1031,7 @@ module saveinf
 	  write(stdout,"(A,A)")"Write the average electron(hole) active PES project to &
 		          &different diabatic wave function to file:",trim(psit_file_)
 	
+    deallocate(cefree)
   end subroutine plot_psit	
 
 
