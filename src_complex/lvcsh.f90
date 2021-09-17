@@ -93,6 +93,7 @@ program lvcsh
                             psit_e_file,psit_h_file,save_psit, read_psit,&
                             plot_csit,plot_wsit,plot_psit,&
                             band_e_file,band_h_file,&
+                            e_temp_file,h_temp_file,plot_eh_temp,&
                             plot_band_occupatin_withtime,plot_ph_temp
   implicit none
   
@@ -458,7 +459,7 @@ program lvcsh
           do ifre=1,nefre  
             csit_e(ifre,isnap) = csit_e(ifre,isnap)+REAL(c_e(ifre)*CONJG(c_e(ifre)))
             wsit_e(ifre,isnap) = wsit_e(ifre,isnap)+REAL(w_e(ifre)*CONJG(w_e(ifre)))
-            psit_e(ifre,isnap) = psit_e(ifre,isnap)+P_e(ifre,iesurface)**2
+            psit_e(ifre,isnap) = psit_e(ifre,isnap)+ABS(P_e(ifre,iesurface))**2
             pes_e( ifre,isnap) = pes_e( ifre,isnap) + E_e(ifre)
             if(iaver == 1) pes_one_e(ifre,isnap) = E_e(ifre)
           enddo
@@ -470,7 +471,7 @@ program lvcsh
           do ifre=1,nhfre
             csit_h(ifre,isnap) = csit_h(ifre,isnap)+REAL(c_h(ifre)*CONJG(c_h(ifre)))
             wsit_h(ifre,isnap) = wsit_h(ifre,isnap)+REAL(w_h(ifre)*CONJG(w_h(ifre)))
-            psit_h(ifre,isnap) = psit_h(ifre,isnap)+P_h(ifre,iesurface)**2
+            psit_h(ifre,isnap) = psit_h(ifre,isnap)+ABS(P_h(ifre,ihsurface))**2
             pes_h( ifre,isnap) = pes_h( ifre,isnap)-E_h(ifre)
             if(iaver == 1) pes_one_h(ifre,isnap) = -E_h(ifre)
           enddo    
@@ -604,6 +605,7 @@ program lvcsh
       call plot_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
       call plot_psit(nefre,nsnap,naver,psit_e,psit_e_file)
       call plot_band_occupatin_withtime(neband,nktotf,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,band_e_file)
+      call plot_eh_temp(neband,nktotf,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,e_temp_file)
       deallocate(pes_e,pes_one_e,csit_e,wsit_e,psit_e)
       
     endif
@@ -615,6 +617,7 @@ program lvcsh
       call plot_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
       call plot_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
       call plot_band_occupatin_withtime(nhband,nktotf,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,band_h_file)
+      call plot_eh_temp(nhband,nktotf,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,h_temp_file)
       deallocate(pes_h,pes_one_h,csit_h,wsit_h,psit_h)
     endif
     

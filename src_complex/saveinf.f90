@@ -22,12 +22,14 @@ module saveinf
   character(len=maxlen) :: phU_file    = "phUsit.dat"  
   character(len=maxlen) :: phK_file    = "phKsit.dat"
   character(len=maxlen) :: phT_file    = "phLOtemp.dat"
-  character(len=maxlen) :: band_e_file = "band_e.dat"
-  character(len=maxlen) :: band_h_file = "band_h.dat"	
+  character(len=maxlen) :: band_e_file = "band_e"
+  character(len=maxlen) :: band_h_file = "band_h"	
+  character(len=maxlen) :: e_temp_file = "temp_e"
+  character(len=maxlen) :: h_temp_file = "temp_h"
 	
   character(len=12) :: ctmp1,ctmp2
   character(len=12),allocatable :: cphmode(:,:)
-  character(len=12),allocatable :: cefree(:)
+  character(len=12),allocatable :: cefree(:),cnk(:,:)
   
   contains 
 
@@ -121,7 +123,6 @@ module saveinf
 		write(phq_unit,"(A)") "Average of Normal mode coordinate for one core sample. ((phQ(imode,iq),imode=1,nmodes),iq=1,nq)"
 		write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[Q"//trim(adjustl(cphmode(imode,iq)))//"]",&
     "Im[Q"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)
-		!write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phQ]","Im[phQ]",imode=1,nmodes),iq=1,nq)
     write(phq_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
     write(phq_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
@@ -157,7 +158,7 @@ module saveinf
     enddo
 
     
-		write(php_unit,"(5X,A)") "Average of Normal mode verlocity for one core sample.((phP(imode,iq),imode=1,nmodes),iq=1,nq)"
+		write(php_unit,"(A)") "Average of Normal mode verlocity for one core sample.((phP(imode,iq),imode=1,nmodes),iq=1,nq)"
 		write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[P"//trim(adjustl(cphmode(imode,iq)))//"]",&
     "Im[P"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)
 		!write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phP]","Im[phP]",imode=1,nmodes),iq=1,nq)
@@ -223,7 +224,7 @@ module saveinf
       enddo
     enddo
     
-		write(php_unit,"(5X,A)") "Average of Normal mode verlocity for one core sample.((phP(imode,iq),imode=1,nmodes),iq=1,nq)"
+		write(php_unit,"(A)") "Average of Normal mode verlocity for one core sample.((phP(imode,iq),imode=1,nmodes),iq=1,nq)"
 		write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[P"//trim(adjustl(cphmode(imode,iq)))//"]",&
     "Im[P"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)		
     !write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phP]","Im[phP]",imode=1,nmodes),iq=1,nq)
@@ -261,7 +262,7 @@ module saveinf
       enddo
     enddo
 
-		write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy for one core sample.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
+		write(phK_unit,"(A)") "Average of Normal mode kinetic energy for one core sample.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
 		write(phK_unit,"(*(1X,A12))") "time","SUM_phK",(("K"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)			
     !write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
 		write(phK_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
@@ -359,9 +360,9 @@ module saveinf
     endif
     
     if(l_ph_quantum) then
-      write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy - 0.5*nqv*hbar*wqv for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
+      write(phK_unit,"(A)") "Average of Normal mode kinetic energy - 0.5*nqv*hbar*wqv for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
 		else
-      write(phK_unit,"(5X,A)") "Average of Normal mode kinetic energy - 0.5*KB*T for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
+      write(phK_unit,"(A)") "Average of Normal mode kinetic energy - 0.5*KB*T for all trajecotry.SUM_phK,((phK(imode,iq),imode=1,nmodes),iq=1,nq)"
     endif
     write(phK_unit,"(*(1X,A12))") "time ","phK(mode,q)",(("K"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)
 		write(phK_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
@@ -400,7 +401,7 @@ module saveinf
       enddo
     enddo
 		
-		write(phU_unit,"(5X,A)") "Average of Normal mode potential energy for one core sample.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
+		write(phU_unit,"(A)") "Average of Normal mode potential energy for one core sample.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
 		write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("U"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)
 		write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
     write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
@@ -481,9 +482,9 @@ module saveinf
     endif
     
     if(l_ph_quantum) then
-      write(phU_unit,"(5X,A)") "Average of Normal mode potential energy - 0.5*nqv*hbar*wqv for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
+      write(phU_unit,"(A)") "Average of Normal mode potential energy - 0.5*nqv*hbar*wqv for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
 		else
-      write(phU_unit,"(5X,A)") "Average of Normal mode potential energy - 0.5*KB*T for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
+      write(phU_unit,"(A)") "Average of Normal mode potential energy - 0.5*KB*T for all trajecotry.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
     endif
     write(phU_unit,"(*(1X,A12))") "time ","phU(mode,q)",(("U"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)
 		write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
@@ -675,7 +676,7 @@ module saveinf
 
 		write(wsit_unit,"(A)") "The average electron(hole) population on different adiabatic wave function for all trajecotry. "    
 		write(wsit_unit,"(*(1X,A12))")          "time ",("wsit"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
-    write(wsit_unit,"((1X,A12),*(1X,I12))") "fs  ",(ifre,ifre=1,nfre)
+    write(wsit_unit,"((1X,A12),*(1X,A12))") "fs  ",("|w|2",ifre=1,nfre)
 		do isnap=0,nsnap
       write(wsit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(wsit(ifre,isnap),ifre=1,nfre)  
     enddo
@@ -860,9 +861,15 @@ module saveinf
     csit_unit = io_file_unit()
 		csit_file_ = trim(outdir)//trim(adjustl(csit_file))
     call open_file(csit_file_,csit_unit)
+
+    if(.not. allocated(cefree)) allocate(cefree(nfre))
+    do ifre=1,nfre
+      write(ctmp1,*) ifre
+      cefree(ifre) = "("//trim(adjustl(ctmp1))//")"
+    enddo
 		
 		write(csit_unit,"(A)") "The average electron(hole) population on different diabatic wave function for one core sample. "
-		write(csit_unit,"(*(1X,A12))") "time",("csit(ifre)",ifre=1,nfre)
+		write(csit_unit,"(*(1X,A12))") "time",("csit"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
     write(csit_unit,"((1X,A12),*(1X,I12))") "fs ",(ifre,ifre=1,nfre)
 		do isnap=0,nsnap
       write(csit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(csit(ifre,isnap),ifre=1,nfre)   
@@ -872,6 +879,7 @@ module saveinf
 		write(stdout,"(A,A)")"Save the average electron(hole) wavefction population on &
 		          &different diabatic wave function to file:",trim(csit_file_)
   
+    deallocate(cefree)
   end subroutine save_csit
 	
   subroutine read_csit(inode,icore,nfre,nsnap,naver,csit,csit_file)
@@ -917,10 +925,16 @@ module saveinf
 		csit_file_ = trim(outdir)//trim(adjustl(csit_file)) 
     csit_unit = io_file_unit()
     call open_file(csit_file_,csit_unit)
+
+    if(.not. allocated(cefree)) allocate(cefree(nfre))
+    do ifre=1,nfre
+      write(ctmp1,*) ifre
+      cefree(ifre) = "("//trim(adjustl(ctmp1))//")"
+    enddo
     
 		write(csit_unit,"(A)") "The electron(hole) population on different diabatic wave function. "
-		write(csit_unit,"(*(1X,A12))") "time",("csit(ifre)",ifre=1,nfre)
-    write(csit_unit,"((1X,A12),*(1X,I12))") "fs ",(ifre,ifre=1,nfre)
+		write(csit_unit,"(*(1X,A12))") "time",("csit"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
+    write(csit_unit,"((1X,A12),*(1X,A12))") "fs ",("|c|2",ifre=1,nfre)
 		do isnap=0,nsnap
       write(csit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(csit(ifre,isnap),ifre=1,nfre)   
     enddo
@@ -930,11 +944,12 @@ module saveinf
 		write(stdout,"(A,A)")"Write the average electron(hole) wavefction population on &
 		          &different diabatic wave function to file:",trim(csit_file_)
 		
+    deallocate(cefree)
   end subroutine plot_csit
 
 
 
-	!The active adiabatic PES project to diabatic states. psit(ifre)=P(ifre,isurface)**2
+	!The active adiabatic PES project to diabatic states. psit(ifre)=|P(ifre,isurface)|**2
   subroutine save_psit(nfre,nsnap,naver,psit,psit_file)
     implicit none
     integer,intent(in) :: nfre,nsnap,naver
@@ -1021,7 +1036,7 @@ module saveinf
 		
 		write(psit_unit,"(A)") "The average active PES project on different diabatic wave function for all trajecotry. psit(ifre)=P(ifre,isurface)**2 "		
     write(psit_unit,"(*(1X,A12))") "time",("psit"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
-		write(psit_unit,"((1X,A12),*(1X,I12))") "fs ",(ifre,ifre=1,nfre)
+		write(psit_unit,"((1X,A12),*(1X,A12))") "fs ",("|P|2",ifre=1,nfre)
     do isnap=0,nsnap
       write(psit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(psit(ifre,isnap),ifre=1,nfre)  
     enddo
@@ -1047,26 +1062,91 @@ module saveinf
 		character(len=maxlen) :: band_file_
 		integer :: band_unit
 		integer :: ipol,iband,ik,ifre
-		
-		band_file_=trim(outdir)//trim(adjustl(band_file))  
-		band_unit = io_file_unit()
-		call open_file(band_file_,band_unit)
-		write(band_unit,"(A)") "Carrier occupation on the band structure at different time"
-		write(band_unit,"(*(1X,A12))")    "iband","ik","kx","ky","kz","E_nk",("psit","wsit",isnap=0,nsnap,dsnap)
-		write(band_unit,"(6(1X,A12),*(1X,F12.2))") "index_band"," index_k","2pi/a0","2pi/a0", "2pi/a0", " eV" ,&
+		real(kind=dp) :: kx,ky,kz
+    
+    do iband=1,nband
+      write(ctmp1,*) iband
+      band_file_=trim(outdir)//trim(adjustl(band_file))//"_"//trim(adjustl(ctmp1))//".dat"  
+      band_unit = io_file_unit()
+      call open_file(band_file_,band_unit)
+      write(band_unit,"(A32,I12,A)") "Carrier occupation on the iband=",iband," structure at different time"
+      write(band_unit,"(*(1X,A12))")    "iband","ik","kx","ky","kz","E_nk",("psit","csit",isnap=0,nsnap,dsnap)
+      write(band_unit,"(6(1X,A12),*(1X,F12.2))") "index_band"," index_k","b1","b2", "b3", " eV" ,&
 																					(dt*nstep*isnap*ry_to_fs,dt*nstep*isnap*ry_to_fs,isnap=0,nsnap,dsnap)
-		do iband=1,nband
-			write(band_unit,"(A,I12)") "#band=",iband
 			do ik=1,nk
 				ifre = (ik-1)*nband+iband
-				write(band_unit,"(2(1X,I12),*(1X,F12.5))") iband,ik,(xk(ipol,ik),ipol=1,3),Enk(iband,ik)*RYTOEV,(psit(ifre,isnap),csit(ifre,isnap),isnap=0,nsnap,dsnap)
+        kx = xk(1,ik)
+        ky = xk(2,ik)
+        kz = xk(3,ik)
+        if(kx > 0.5) kx=kx-1.0
+        if(ky > 0.5) ky=ky-1.0
+        if(kz > 0.5) kz=kz-1.0
+				write(band_unit,"(2(1X,I12),*(1X,F12.5))") iband,ik,kx,ky,kz,Enk(iband,ik)*RYTOEV,(psit(ifre,isnap),csit(ifre,isnap),isnap=0,nsnap,dsnap)
+        if(kx == 0.5 .or. ky==0.5 .or. kz==0.5) then
+          if(kx==0.5) kx=kx-1.0
+          if(ky==0.5) ky=ky-1.0
+          if(kz==0.5) kz=kz-1.0
+          write(band_unit,"(2(1X,I12),*(1X,F12.5))") iband,ik,kx,ky,kz,Enk(iband,ik)*RYTOEV,(psit(ifre,isnap),csit(ifre,isnap),isnap=0,nsnap,dsnap)
+        endif
 			enddo
-			write(band_unit,*)
+		
+      call close_file(band_file_,band_unit)
 		enddo
-		call close_file(band_file_,band_unit)
-		write(stdout,"(A,A)") "Write Carrier occupation on the band structure at different time to file:",trim(band_file_)
+    write(stdout,"(A,A)") "Write Carrier occupation on the band structure at different time to file:",trim(band_file_)
 	
 	end subroutine plot_band_occupatin_withtime
 
 	
+  subroutine plot_eh_temp(nband,nk,Enk,xk,nsnap,psit,csit,dsnap,temp_file)
+    implicit none
+		integer , intent(in) :: nband,nk,dsnap
+		real(kind=dp),intent(in) :: Enk(nband,nk)
+		real(kind=dp),intent(in) :: xk(3,nk)
+		integer , intent(in) :: nsnap
+		real(kind=dp),intent(in) :: psit(1:nband*nk,0:nsnap),csit(1:nband*nk,0:nsnap)
+		character(len=*),intent(in) :: temp_file
+		
+		character(len=maxlen) :: temp_file_
+		integer :: temp_unit
+		integer :: ipol,iband,ik,ifre
+		real(kind=dp) :: kx,ky,kz
+    
+    do iband=1,nband
+      write(ctmp1,*) iband
+      temp_file_=trim(outdir)//trim(adjustl(temp_file))//"_"//trim(adjustl(ctmp1))//".dat"  
+      temp_unit = io_file_unit()
+      call open_file(temp_file_,temp_unit)
+      
+      write(temp_unit,"(A34,I12,A)") "Carrier occupation on the iband = ",iband," structure at different time."
+      write(temp_unit,"(9(A12,1X))") " time "," iband "," ik "," kx "," ky "," kz "," E_nk ","psit "," csit "
+      write(temp_unit,"(9(A12,1X))") " fs "," iband "," ik "," b1 "," b2 ", " b3 "," eV "," psit "," csit " 
+	
+			do isnap =0,nsnap
+        do ik=1,nk
+          ifre = (ik-1)*nband+iband
+          kx = xk(1,ik)
+          ky = xk(2,ik)
+          kz = xk(3,ik)
+          if(kx > 0.5) kx=kx-1.0
+          if(ky > 0.5) ky=ky-1.0
+          if(kz > 0.5) kz=kz-1.0
+          write(temp_unit,"(F12.5,2(1X,I12),*(1X,F12.5))") &
+          dt*nstep*isnap*ry_to_fs,iband,ik,kx,ky,kz,Enk(iband,ik)*RYTOEV,psit(ifre,isnap),csit(ifre,isnap)
+          if(kx == 0.5 .or. ky==0.5 .or. kz==0.5) then
+            if(kx==0.5) kx=kx-1.0
+            if(ky==0.5) ky=ky-1.0
+            if(kz==0.5) kz=kz-1.0
+            write(temp_unit,"(F12.5,2(1X,I12),*(1X,F12.5))") &
+            dt*nstep*isnap*ry_to_fs,iband,ik,kx,ky,kz,Enk(iband,ik)*RYTOEV,psit(ifre,isnap),csit(ifre,isnap)
+          endif
+        enddo
+        write(temp_unit,*)
+      enddo
+      call close_file(temp_file_,temp_unit)
+		enddo
+    write(stdout,"(A,A)") "Write Carrier occupation on the band structure at different time to file:",trim(temp_file_)    
+    
+  end subroutine plot_eh_temp
+  
+  
 end module saveinf
