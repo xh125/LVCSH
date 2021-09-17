@@ -456,7 +456,7 @@ module saveinf
       enddo
     
       do isnap=0,nsnap
-        phTemp(:,isnap) = (wf(nmodes,:)/K_B_Ryd)*log((phEsit(:,isnap)-0.5)/(phEsit(:,isnap)+0.5))
+        phTemp(:,isnap) = (wf(nmodes,:)/K_B_Ryd)/log((phEsit(:,isnap)+0.5)/(phEsit(:,isnap)-0.5))
       enddo
     else
         phEsit = phKsit(nmodes,:,:)+phUsit(nmodes,:,:)
