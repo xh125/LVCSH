@@ -1,6 +1,6 @@
 #!/bin/bash
 ncore=28
-MODULECMD="/usr/bin/"
+MODULEPREFIX="/share/home/zw/xiehua/opt/modules-4.7.1"
 MODULEPATH="/share/home/zw/xiehua/opt/modules-4.7.1/modulefiles"
 lvcsh_version="0.6.6"
 QUEUE_NAME="privateq-zw"
@@ -15,7 +15,7 @@ for i in $(seq 80 40 80)
     sed -i "s:JOB_NAME:lvcsh-epw${i}-n0:g" epw$i/lvcsh.bsub
     sed -i "s:QUEUE_NAME:$QUEUE_NAME:g" epw$i/lvcsh.bsub
     sed -i "s:DIR_MODULEPATH:$MODULEPATH:g" epw$i/lvcsh.bsub
-    sed -i "s:DIR_MODULECMD:$MODULECMD:g" epw$i/lvcsh.bsub
+    sed -i "s:DIR_MODULEPREFIX:$MODULEPREFIX:g" epw$i/lvcsh.bsub
     sed -i "s:version:$lvcsh_version:g" epw$i/lvcsh.bsub
     cp job.sh epw$i
     cp LVCSH.in epw$i
@@ -26,7 +26,7 @@ for i in $(seq 80 40 80)
     sed -i "2s/JOB_NAME/lvcsh-epw$i-plot/g" epw$i/lvcsh-plot.bsub
     sed -i "s:QUEUE_NAME:$QUEUE_NAME:g" epw$i/lvcsh-plot.bsub
     sed -i "s:DIR_MODULEPATH:$MODULEPATH :g" epw$i/lvcsh-plot.bsub
-    sed -i "s:DIR_MODULECMD:$MODULECMD:g" epw$i/lvcsh-plot.bsub
+    sed -i "s:DIR_MODULEPREFIX:$MODULEPREFIX:g" epw$i/lvcsh-plot.bsub
     sed -i "s:version:$lvcsh_version:g" epw$i/lvcsh-plot.bsub
     
     cp LVCSH.in epw$i/QEfiles
@@ -41,7 +41,7 @@ for i in $(seq 80 40 80)
     sed -i "2s/JOB_NAME/lvcsh-epw$i-test/g" lvcsh-test.bsub
     sed -i "s:QUEUE_NAME:$QUEUE_NAME:g" lvcsh-test.bsub
     sed -i "s:DIR_MODULEPATH:$MODULEPATH :g" lvcsh-test.bsub
-    sed -i "s:DIR_MODULECMD:$MODULECMD:g" lvcsh-test.bsub
+    sed -i "s:DIR_MODULEPREFIX:$MODULEPREFIX:g" lvcsh-test.bsub
     sed -i "s:version:$lvcsh_version:g" lvcsh-test.bsub
     bsub < lvcsh-test.bsub
     cd ../..    
