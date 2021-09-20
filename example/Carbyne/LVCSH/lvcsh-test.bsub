@@ -5,7 +5,7 @@
 #BSUB -o %J.out
 #BSUB -e %J.err
 
-source DIR_MODULEPREFIX/init/profile.sh
+source SH_MODULE
 export MODULEPATH=$MODULEPATH:DIR_MODULEPATH
 
 module load lvcsh/version

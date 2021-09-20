@@ -1,0 +1,29 @@
+#!/bin/bash
+#BSUB -J phonon
+#BSUB -q privateq-zw
+#BSUB -n 18
+#BSUB -R "span[ptile=18]"
+#BSUB -o %J.out
+#BSUB -e %J.err
+
+CURDIR=$PWD
+#Generate nodelist
+rm -f ${CURDIR}/nodelist >& /dev/null
+for i in `echo $LSB_HOSTS`
+do
+echo $i >> ${CURDIR}/nodelist
+done
+
+NP=`cat ${CURDIR}/nodelist |wc -l`
+
+#source ~/xiehua/.bashrc
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+source /share/home/zw/xiehua/opt/modules-5.0.0/init/profile.sh
+export MODULEPATH=/share/home/zw/xiehua/modulefiles
+
+module load Quantum_Espresso/6.8.0
+
+mpirun -np $NP pw.x -nk 6 <scf.in> scf.out
+#mpirun -np $NP ph.x -nk 6 <ph.in> ph.out
+

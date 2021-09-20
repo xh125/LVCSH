@@ -1,0 +1,13 @@
+phonons calculation
+&inputph
+  tr2_ph=1.0d-16,
+  prefix='carbyne',
+  outdir='./'
+!  epsil=.true. !use for insulators
+  ldisp=.true.
+  nq1=10, nq2=1, nq3=1
+!  amass(1)=0.0
+  fildyn='carbyne.dyn'
+  fildvscf='dvscf'
+/
+

@@ -1,0 +1,15 @@
+phonons calculation
+&inputph
+  tr2_ph=1.0d-10,
+  prefix='al',
+  outdir='./'
+!  epsil=.true. !use for insulators
+  ldisp=.true.
+  nq1=4, nq2=4, nq3=4
+  start_irr = 0
+  last_irr  = 0
+!  amass(1) = 0.0
+  fildyn='al.dyn'
+  fildvscf='al.dvscf'
+/
+

@@ -6,7 +6,9 @@
 #BSUB -o %J.out
 #BSUB -e %J.err
 
-source DIR_MODULEPREFIX/init/profile.sh
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+source SH_MODULE
 export MODULEPATH=$MODULEPATH:DIR_MODULEPATH
 
 module load lvcsh/version
@@ -22,7 +24,6 @@ done
 NP=`cat ${CURDIR}/nodelist |wc -l`
 
 
-rm -rf sample*
 for i in $(seq 1 1 $NP)
 do
 mkdir sample$i

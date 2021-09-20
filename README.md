@@ -332,17 +332,21 @@ make epw
    2.7.2 进行[phonon](http://www.quantum-espresso.org/Doc/INPUT_PH.html)计算。[**`tr2_ph=1.0d-16`**](http://www.quantum-espresso.org/Doc/INPUT_PH.html#tr2_ph)需要设置的精度高一些。必须设置[**`fildvscf`**](http://www.quantum-espresso.org/Doc/INPUT_PH.html#fildvscf)以输出自洽势对normal mode的导数。
 
    ```fortran
+   
    phonons calculation
    &inputph
-     tr2_ph=1.0d-16,
-     prefix='carbyne',
-     outdir='./'
-   ! epsil=.true. !use for insulators
-     ldisp=.true.
-     nq1=40, nq2=1, nq3=1
-   !  amass(1)=0.0
-     fildyn='carbyne.dyn'
-     fildvscf='dvscf'
+   ! recover  = .true.
+     tr2_ph   = 1.0d-16,
+     prefix   = 'carbyne',
+     outdir   = './'
+   ! epsil    = .true. !use for insulators
+     ldisp    = .true.
+     nq1      = 40
+     nq2      = 1
+     nq3      = 1
+   ! amass(1) = 0.0
+     fildyn   = 'carbyne.dyn'
+     fildvscf = 'dvscf'
    /
    ```
 
@@ -498,7 +502,7 @@ make epw
    ```  
 
    * [**EPW声子谱和QE不一致**](https://www.jianshu.com/p/e5e34d576c86) (参考简书)  
-      这个问题一般是由于声子求和规则导致的，EPW中提供了读入实空间力常数来计算声子频率的方法，并且也提供了相应的声子求和规则（与matdyn.f90里面的相同）。只需要改[**`lifc = .true.`**](https://docs.epw-code.org/doc/Inputs.html#lifc)，然后再设置声子求和规则[**`asr_typ = crystal`**](https://docs.epw-code.org/doc/Inputs.html#asr-typ)（我一般都取crystal），同时需要注意的是要保证之前计算QE得到的文件通过pp.py收集起来那个必须有q2r.x产生的实空间力常数文件并且已经被命名为 **ifc.q2r**，对于包含SOC的情况，这个文件必须叫 **ifc.q2r.xml** 并且是xml格式的文件。（这个一般不是太老的脚本pp.py都会自动帮你做这件事情。）参考[phonon bandstructure from EPW and matdyn.x don't match](http://epwforum.uk/viewtopic.php?f=3&t=137)  
+      这个问题一般是由于声子求和规则导致的，EPW中提供了读入实空间力常数来计算声子频率的方法，并且也提供了相应的声子求和规则（与matdyn.f90里面的相同）。只需要改[**`lifc = .true.`**](https://docs.epw-code.org/doc/Inputs.html#lifc)，然后再设置声子求和规则[**`asr_typ = crystal`**](https://docs.epw-code.org/doc/Inputs.html#asr-typ)（我一般都取crystal），同时需要注意的是要保证之前计算QE得到的文件通过pp.py收集起来那个必须有q2r.x产生的实空间力常数文件并且已经被命名为 **ifc.q2r**，对于包含SOC的情况，这个文件必须叫 **ifc.q2r.xml** 并且是xml格式的文件。（这个一般不是太老的脚本pp.py都会自动帮你做这件事情。）参考[phonon bandstructure from EPW and matdyn.x don't match](https://forum.epw-code.org/index.php?f=3&t=137)  
 
    * 第六步，使用第五步`epwwrite=.true.`设置输出的wannier表象下的电声耦合文件，计算不同`nqf`和`nkf`插值密度的EPW计算。使用**runepw.sh**脚本进行提交计算：  
 

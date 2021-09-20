@@ -1,0 +1,77 @@
+&CONTROL
+    calculation   = "nscf"  
+    restart_mode  = "from_scratch"
+    prefix        = "carbyne"
+    outdir        = "./"
+    pseudo_dir    = "./pseudo/"
+    verbosity     = "high"
+    tprnfor       = .true.  
+    tstress       = .true.
+    etot_conv_thr =  1.0d-5
+    forc_conv_thr =  1.0d-4
+/
+
+&SYSTEM
+    ibrav       = 0
+    nat         = 8
+    ntyp        = 1
+    nbnd        = 88
+    occupations = 'fixed'
+!    occupations = "smearing"
+!    smearing    = "cold"    
+!    degauss     =  1.0d-2
+    ecutwfc     =  50
+    ecutrho     =  400
+/
+
+&ELECTRONS
+    conv_thr         =  1.000e-8
+    electron_maxstep =  200
+    mixing_beta      =  7.00000e-01
+    startingpot      = "atomic"
+    startingwfc      = "atomic+random"
+/
+
+!&IONS
+!    ion_dynamics = "bfgs"
+!/
+
+!&CELL
+!    cell_dofree    = "x"
+!    cell_dynamics  = "bfgs"
+!    press_conv_thr =  0.02
+!/
+
+!K_POINTS {automatic}
+! 10  1  1  0 0 0
+
+ATOMIC_SPECIES
+C      12.01070  C.pbe-n-kjpaw_psl.1.0.0.UPF
+
+CELL_PARAMETERS (angstrom)
+  10.261965981   0.000000000   0.000000000
+   0.000000000  10.000000000   0.000000000
+   0.000000000   0.000000000  10.000000000
+
+ATOMIC_POSITIONS (angstrom)
+C             1.2640446588        5.0000000000        5.0000000000
+C            -0.0000703710        5.0000000000        5.0000000000
+C             3.8295281080        5.0000000000        5.0000000000
+C             2.5654250556        5.0000000000        5.0000000000
+C             6.3950160742        5.0000000000        5.0000000000
+C             5.1309085655        5.0000000000        5.0000000000
+C             8.9605168982        5.0000000000        5.0000000000
+C             7.6963946395        5.0000000000        5.0000000000
+
+K_POINTS crystal
+10
+  0.00000000  0.00000000  0.00000000  1.000000e-01
+  0.10000000  0.00000000  0.00000000  1.000000e-01
+  0.20000000  0.00000000  0.00000000  1.000000e-01
+  0.30000000  0.00000000  0.00000000  1.000000e-01
+  0.40000000  0.00000000  0.00000000  1.000000e-01
+  0.50000000  0.00000000  0.00000000  1.000000e-01
+  0.60000000  0.00000000  0.00000000  1.000000e-01
+  0.70000000  0.00000000  0.00000000  1.000000e-01
+  0.80000000  0.00000000  0.00000000  1.000000e-01
+  0.90000000  0.00000000  0.00000000  1.000000e-01
