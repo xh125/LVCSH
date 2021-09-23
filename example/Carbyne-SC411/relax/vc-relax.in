@@ -1,0 +1,65 @@
+&CONTROL
+    calculation   = "vc-relax"  
+    restart_mode  = "from_scratch"
+    prefix        = "carbyne"
+    outdir        = "./"
+    pseudo_dir    = "./pseudo/"
+    verbosity     = "high"
+    tprnfor       = .true.  
+    tstress       = .true.
+    etot_conv_thr =  1.0d-6
+    forc_conv_thr =  1.0d-5
+/
+
+&SYSTEM
+    ibrav       = 0
+    nat         = 8
+    ntyp        = 1
+!    nbnd        = 16
+    occupations = 'fixed'
+!    occupations = "smearing"
+!    smearing    = "cold"    
+!    degauss     =  1.0d-2
+    ecutwfc     =  50
+    ecutrho     =  400
+/
+
+&ELECTRONS
+    conv_thr         =  1.000e-8
+    electron_maxstep =  200
+    mixing_beta      =  7.00000e-01
+    startingpot      = "atomic"
+    startingwfc      = "atomic+random"
+/
+
+&IONS
+    ion_dynamics = "bfgs"
+/
+
+&CELL
+    cell_dofree    = "x"
+    cell_dynamics  = "bfgs"
+    press_conv_thr =  0.02
+/
+
+K_POINTS {automatic}
+ 50  1  1  0 0 0
+
+ATOMIC_SPECIES
+C      12.01070  C.pbe-n-kjpaw_psl.1.0.0.UPF
+
+CELL_PARAMETERS (angstrom)
+  10.261965981   0.000000000   0.000000000
+   0.000000000  10.000000000   0.000000000
+   0.000000000   0.000000000  10.000000000
+
+ATOMIC_POSITIONS (angstrom)
+C             1.2643609867        5.0000000000        5.0000000000
+C            -0.0003917006        5.0000000000        5.0000000000
+C             3.8298719497        5.0000000000        5.0000000000
+C             2.5650931987        5.0000000000        5.0000000000
+C             6.3953234361        5.0000000000        5.0000000000
+C             5.1305804616        5.0000000000        5.0000000000
+C             8.9608375173        5.0000000000        5.0000000000
+C             7.6960877793        5.0000000000        5.0000000000
+

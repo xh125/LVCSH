@@ -1,0 +1,9 @@
+#BSUB -q privateq-zw
+#BSUB -n 28
+#BSUB -R "span[ptile=28]"
+#BSUB -o %J.out
+#BSUB -e %J.err
+
+source ~/xiehua/bin/g16.sh
+
+g16 -p=28 -m=40GB CH3CN-freq-anhar2.gjf CH3CN-freq-anhar2.log

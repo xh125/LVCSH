@@ -600,9 +600,9 @@ program lvcsh
     
     if(lelecsh) then
       write(stdout,"(/,A)") "Plotting electron non-adiabatic dynamica Information."
-      call plot_pes(nefre,nsnap,pes_one_e,pes_e,wsit_e,pes_e_file)
+      call plot_pes(nefre,nefre_sh,nsnap,pes_one_e,pes_e,wsit_e,pes_e_file)
       call plot_csit(nefre,nsnap,naver,csit_e,csit_e_file)
-      call plot_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
+      call plot_wsit(nefre,nefre_sh,nsnap,naver,wsit_e,wsit_e_file)
       call plot_psit(nefre,nsnap,naver,psit_e,psit_e_file)
       call plot_band_occupatin_withtime(neband,nktotf,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,band_e_file)
       call plot_eh_temp(neband,nktotf,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,e_temp_file)
@@ -612,9 +612,9 @@ program lvcsh
     
     if(lholesh) then
       write(stdout,"(/,A)") "Plotting hole non-adiabatic dynamica Information."
-      call plot_pes(nhfre,nsnap,pes_one_h,pes_h,wsit_h,pes_h_file)
+      call plot_pes(nhfre,nhfre_sh,nsnap,pes_one_h,pes_h,wsit_h,pes_h_file)
       call plot_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
-      call plot_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
+      call plot_wsit(nhfre,nhfre_sh,nsnap,naver,wsit_h,wsit_h_file)
       call plot_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
       call plot_band_occupatin_withtime(nhband,nktotf,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,band_h_file)
       call plot_eh_temp(nhband,nktotf,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,h_temp_file)

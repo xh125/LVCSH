@@ -656,9 +656,9 @@ module saveinf
   
   end subroutine read_wsit  
 
-  subroutine plot_wsit(nfre,nsnap,naver,wsit,wsit_file)
+  subroutine plot_wsit(nfre,nfre_sh,nsnap,naver,wsit,wsit_file)
     implicit none
-    integer,intent(in) :: nfre,nsnap,naver
+    integer,intent(in) :: nfre,nfre_sh,nsnap,naver
     real(kind=dp),intent(in) :: wsit(nfre,0:nsnap)
     character(len=*),intent(in) :: wsit_file
     
@@ -675,10 +675,10 @@ module saveinf
     enddo
 
     write(wsit_unit,"(A)") "The average electron(hole) population on different adiabatic wave function for all trajecotry. "    
-    write(wsit_unit,"(*(1X,A12))")          "time ",("wsit"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
-    write(wsit_unit,"((1X,A12),*(1X,A12))") "fs  ",("|w|2",ifre=1,nfre)
+    write(wsit_unit,"(*(1X,A12))")          "time ",("wsit"//trim(adjustl(cefree(ifre))),ifre=1,nfre_sh)
+    write(wsit_unit,"((1X,A12),*(1X,A12))") "fs  ",("|w|2",ifre=1,nfre_sh)
     do isnap=0,nsnap
-      write(wsit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(wsit(ifre,isnap),ifre=1,nfre)  
+      write(wsit_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(wsit(ifre,isnap),ifre=1,nfre_sh)  
     enddo
     
     call close_file(wsit_file_,wsit_unit)
@@ -789,9 +789,9 @@ module saveinf
     
   end subroutine read_pes
   
-  subroutine plot_pes(nfre,nsnap,pes_one,pes,wsit,pes_file)
+  subroutine plot_pes(nfre,nfre_sh,nsnap,pes_one,pes,wsit,pes_file)
     implicit none
-    integer , intent(in) :: nfre,nsnap
+    integer , intent(in) :: nfre,nfre_sh,nsnap
     real(kind=dp),intent(in) :: pes_one(0:nfre,0:nsnap),pes(0:nfre,0:nsnap),wsit(1:nfre,0:nsnap)
     character(len=*),intent(in) :: pes_file
     
@@ -808,10 +808,10 @@ module saveinf
     pes_unit = io_file_unit()
     call open_file(pes_file_,pes_unit)
     write(pes_unit,"(A)") "USing the first trajecotry as an example to Plotting potential Energy Surface(PES),and the active PES."
-    write(pes_unit,"(*(1X,A12))") "time ","active_fpes",("pes"//trim(adjustl(cefree(ifre))),ifre=1,nfre)
-    write(pes_unit,"(*(1X,A12))") "fs  ","   eV     "  ,("  eV  ",ifre=1,nfre)
+    write(pes_unit,"(*(1X,A12))") "time ","active_fpes",("pes"//trim(adjustl(cefree(ifre))),ifre=1,nfre_sh)
+    write(pes_unit,"(*(1X,A12))") "fs  ","   eV     "  ,("  eV  ",ifre=1,nfre_sh)
     do isnap=0,nsnap
-      write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(pes_one(ifre,isnap),ifre=0,nfre)
+      write(pes_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,(pes_one(ifre,isnap),ifre=0,nfre_sh)
     enddo
     
     call close_file(pes_file_,pes_unit)
@@ -826,7 +826,7 @@ module saveinf
     write(pes_unit,"(*(1X,A12))") "time ","ave_PES","wsit      ","avePES(a)","avePES(1)","avePES(nfre)"
     write(pes_unit,"(*(1X,A12))") " fs  ","   eV  ","w(ifre)**2","    eV   ","    eV   ","     eV     "
 
-    do ifre =1 , nfre
+    do ifre =1 , nfre_sh
       !write(pes_unit,"(A,I12,1X,A12)") "#isurface=",ifre,"wsit"
       do isnap=0,nsnap
         if(ifre ==1 ) then

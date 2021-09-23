@@ -137,7 +137,15 @@ make epw
       
    ```
 
-   2.2 `cp vc-relax.in relax.in` 将上面优化得到的[**`CELL_PARAMETERS`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#CELL_PARAMETERS) 和[**`ATOMIC_POSITIONS`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#ATOMIC_POSITIONS) 结果在relax.in中进行修改，并修改为`calculation = "relax"`, 将`&CELL /`部分注释掉。再对原子位置进行优化。计算完成后，运行下列命令得到优化后的原子位置。  
+   2.2 `cp vc-relax.in relax.in` 将上面优化得到的[**`CELL_PARAMETERS`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#CELL_PARAMETERS) 和[**`ATOMIC_POSITIONS`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#ATOMIC_POSITIONS) 结果在relax.in中进行修改，并修改为`calculation = "relax"`, 将`&CELL /`部分注释掉。再对原子位置进行优化。计算完成后，运行下列命令查看优化过程中原子受力情况和得到优化后的原子位置。  
+
+   ```bash
+   cat relax.out |grep -A 12 "Total force ="
+   ```  
+
+   ```bash
+   grep -B 30 "Begin final coordinates" vc-relax.out
+   ```
 
    ```bash
    awk  '/Begin final coordinates/,/End final coordinates/{print $0}' relax.out  
@@ -503,6 +511,13 @@ make epw
 
    * [**EPW声子谱和QE不一致**](https://www.jianshu.com/p/e5e34d576c86) (参考简书)  
       这个问题一般是由于声子求和规则导致的，EPW中提供了读入实空间力常数来计算声子频率的方法，并且也提供了相应的声子求和规则（与matdyn.f90里面的相同）。只需要改[**`lifc = .true.`**](https://docs.epw-code.org/doc/Inputs.html#lifc)，然后再设置声子求和规则[**`asr_typ = crystal`**](https://docs.epw-code.org/doc/Inputs.html#asr-typ)（我一般都取crystal），同时需要注意的是要保证之前计算QE得到的文件通过pp.py收集起来那个必须有q2r.x产生的实空间力常数文件并且已经被命名为 **ifc.q2r**，对于包含SOC的情况，这个文件必须叫 **ifc.q2r.xml** 并且是xml格式的文件。（这个一般不是太老的脚本pp.py都会自动帮你做这件事情。）参考[phonon bandstructure from EPW and matdyn.x don't match](https://forum.epw-code.org/index.php?f=3&t=137)  
+
+       ```fortran  
+       &input  
+       fildyn='carbyne.dyn', zasr='simple', flfrc='ifc.q2r'  
+       /  
+       ```
+
 
    * 第六步，使用第五步`epwwrite=.true.`设置输出的wannier表象下的电声耦合文件，计算不同`nqf`和`nkf`插值密度的EPW计算。使用**runepw.sh**脚本进行提交计算：  
 

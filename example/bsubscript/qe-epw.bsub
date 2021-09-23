@@ -1,0 +1,29 @@
+#!/bin/bash
+#BSUB -J epw120
+##BSUB -q publicq
+#BSUB -q privateq-zw
+#BSUB -n 28
+#BSUB -R "span[ptile=28]"
+#BSUB -o %J.out
+#BSUB -e %J.err
+
+source ~/xiehua/.bashrc
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+#export MODULEPATH=/share/home/zw/xiehua/opt/modules-4.7.1/modulefiles:/share/home/zw/xiehua/opt/intel/oneapi/modulefiles
+
+module load Quantum_Espresso/6.8.0
+
+CURDIR=$PWD
+#Generate nodelist
+rm -f ${CURDIR}/nodelist >& /dev/null
+for i in `echo $LSB_HOSTS`
+do
+echo $i >> ${CURDIR}/nodelist
+done
+
+NP=`cat ${CURDIR}/nodelist |wc -l`
+
+
+mpirun -np $NP epw.x -npool $NP <epw120.in> epw120.out
+
