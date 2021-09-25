@@ -2,7 +2,7 @@ module dynamics
   use kinds,only     : dp,dpc
   use constants,only : cone,czero
   use parameters,only : temp
-  use epwcom,only         : kqmap
+  use epwcom,only         : kqmap_sub
   
   implicit none
   
@@ -28,7 +28,7 @@ module dynamics
   end subroutine
   
   subroutine get_dEa_dQ(nmodes,nq,nband,nk,P_nk,gmnvkq,lit_gmnvkq,isurface,dEa_dQ)
-    use elph2,only : iminusq
+    use elph2,only : iminusq_sub
     implicit none
     integer,intent(in) :: nmodes,nq,nband,nk
     integer,intent(in) :: isurface
@@ -47,18 +47,20 @@ module dynamics
     do iq=1,nq   
       do imode=1,nmodes
         do ik=1,nk
-          ikq = kqmap(ik,iq)
+          ikq = kqmap_sub(ik,iq)
+          if(ikq /= 0) then
           do iband1=1,nband
             do iband2=1,nband
               epc = gmnvkq(iband1,iband2,imode,ik,iq)
               if(epc /= czero) then
-                dEa_dQ(imode,iminusq(iq)) = dEa_dQ(imode,iminusq(iq)) + &
+                dEa_dQ(imode,iminusq_sub(iq)) = dEa_dQ(imode,iminusq_sub(iq)) + &
                 epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
                 !dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
                 !epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)       
               endif
             enddo
           enddo
+          endif
         enddo
       enddo
     enddo
@@ -230,7 +232,7 @@ module dynamics
 
 
   subroutine get_dEa2_dQ2(nmodes,nq,nfre,nfre_sh,isurface,EE,dd,dEa2_dQ2)
-    use elph2 , only : iminusq
+    use elph2 , only : iminusq_sub
     implicit none
     integer,intent(in) :: nmodes,nq,nfre,nfre_sh
     integer,intent(in) :: isurface
@@ -251,8 +253,8 @@ module dynamics
             !(EE(isurface)-EE(ifre))*(DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iq)+&
             !                        (DD(isurface,ifre,imode,iq)*DD(ifre,isurface,imode,iq)))            
             dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + &
-            (EE(isurface)-EE(ifre))*(DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iminusq(iq))+&
-                                    (DD(isurface,ifre,imode,iq)*DD(ifre,isurface,imode,iminusq(iq))))
+            (EE(isurface)-EE(ifre))*(DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iminusq_sub(iq))+&
+                                    (DD(isurface,ifre,imode,iq)*DD(ifre,isurface,imode,iminusq_sub(iq))))
           endif
         enddo
       enddo

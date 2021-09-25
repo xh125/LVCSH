@@ -1,9 +1,9 @@
 module saveinf
   use kinds,only : dp,dpc
-  use surfacecom,only : dt,nstep,temp,nqv,l_ph_quantum,eps_acustic
+  use surfacecom,only : dt,nstep,temp,nqv,l_ph_quantum,eps_acustic,indexk,indexq
   use io,only : io_file_unit,open_file,close_file,stdout
   use constants,only : ry_to_fs,maxlen,RYTOEV,ryd2meV,K_B_Ryd
-  use elph2,only : wf,xqf
+  use elph2,only : wf,xqf,wf_sub
   use parameters,only : outdir
   implicit none
   integer :: iaver,isnap,ifre,iq,imode,inode,icore
@@ -58,7 +58,7 @@ module saveinf
     write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[Q"//trim(adjustl(cphmode(imode,iq)))//"]",&
     "Im[Q"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)
     write(phq_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
-    write(phq_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)
+    write(phq_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf_sub(imode,iq)*ryd2meV,wf_sub(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)
 
     do isnap=0,nsnap
       write(phq_unit,"(F12.5,*(2(1X,E12.5)))") dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
@@ -124,7 +124,7 @@ module saveinf
     write(phq_unit,"(A12,*(2(1X,A12)))") "time",(("Re[Q"//trim(adjustl(cphmode(imode,iq)))//"]",&
     "Im[Q"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)
     write(phq_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
-    write(phq_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)
+    write(phq_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf_sub(imode,iq)*ryd2meV,wf_sub(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
       write(phq_unit,"(F12.5,*(2(1X,E12.5)))") dt*nstep*isnap*ry_to_fs,((phQsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
@@ -163,7 +163,7 @@ module saveinf
     "Im[P"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)
     !write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phP]","Im[phP]",imode=1,nmodes),iq=1,nq)
     write(php_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
-    write(php_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)    
+    write(php_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf_sub(imode,iq)*ryd2meV,wf_sub(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)    
     do isnap=0,nsnap
       write(php_unit,"(F12.5,*(2(1X,E12.5)))") dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
@@ -229,7 +229,7 @@ module saveinf
     "Im[P"//trim(adjustl(cphmode(imode,iq)))//"]",imode=1,nmodes),iq=1,nq)    
     !write(php_unit,"(A12,*(2(1X,A12)))") "time",(("Re[phP]","Im[phP]",imode=1,nmodes),iq=1,nq)
     write(php_unit,"(A12,*(2(1X,A12)))") "fs  ",((" a.u. "," a.u. ",imode=1,nmodes),iq=1,nq)
-    write(php_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf(imode,iq)*ryd2meV,wf(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)    
+    write(php_unit,"(A12,*(2(1X,F12.5)))") "Omega(meV)",(((wf_sub(imode,iq)*ryd2meV,wf_sub(imode,iq)*ryd2meV),imode=1,nmodes),iq=1,nq)    
     do isnap=0,nsnap
       write(php_unit,"(F12.5,*(2(1X,E12.5)))") dt*nstep*isnap*ry_to_fs,((phPsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
     enddo
@@ -266,7 +266,7 @@ module saveinf
     write(phK_unit,"(*(1X,A12))") "time","SUM_phK",(("K"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)      
     !write(phK_unit,"(*(1X,A12))") "time ","SUM_phK",(("phK(mode,q)",imode=1,nmodes),iq=1,nq)
     write(phK_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
-    write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
+    write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf_sub(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
         write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap))*ryd2meV,&
         ((phKsit(imode,iq,isnap)*ryd2meV,imode=1,nmodes),iq=1,nq)
@@ -344,7 +344,7 @@ module saveinf
 
     do iq=1,nq
       do imode=1,nmodes
-        womiga = wf(imode,iq)
+        womiga = wf_sub(imode,iq)
         if(womiga >= eps_acustic) then
           nqv(imode,iq) = bolziman(womiga,temp)+0.5
         endif
@@ -353,7 +353,7 @@ module saveinf
     
     if(l_ph_quantum) then
       do isnap =0,nsnap
-        phKsit_ave(:,:,isnap) = phKsit(:,:,isnap) - 0.5*nqv*wf*ryd2meV
+        phKsit_ave(:,:,isnap) = phKsit(:,:,isnap) - 0.5*nqv*wf_sub*ryd2meV
       enddo
     else
       phKsit_ave = phKsit - 0.5*temp*K_B_Ryd*ryd2meV
@@ -366,7 +366,7 @@ module saveinf
     endif
     write(phK_unit,"(*(1X,A12))") "time ","phK(mode,q)",(("K"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)
     write(phK_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
-    write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
+    write(phK_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phK",((wf_sub(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
       write(phK_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phKsit(:,:,isnap)),&
       ((phKsit(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
@@ -404,7 +404,7 @@ module saveinf
     write(phU_unit,"(A)") "Average of Normal mode potential energy for one core sample.SUM_phU,((phU(imode,iq),imode=1,nmodes),iq=1,nq)"
     write(phU_unit,"(*(1X,A12))") "time ","SUM_phU",(("U"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)
     write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
-    write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
+    write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf_sub(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
         write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit(:,:,isnap))*ryd2meV,&
         ((phUsit(imode,iq,isnap)*ryd2meV,imode=1,nmodes),iq=1,nq)
@@ -475,7 +475,7 @@ module saveinf
 
     if(l_ph_quantum) then
       do isnap =0,nsnap
-        phUsit_ave(:,:,isnap) = phUsit(:,:,isnap) - 0.5*nqv*wf*ryd2meV
+        phUsit_ave(:,:,isnap) = phUsit(:,:,isnap) - 0.5*nqv*wf_sub*ryd2meV
       enddo
     else
       phUsit_ave = phUsit_ave - 0.5*temp*K_B_Ryd*ryd2meV
@@ -488,7 +488,7 @@ module saveinf
     endif
     write(phU_unit,"(*(1X,A12))") "time ","phU(mode,q)",(("U"//trim(adjustl(cphmode(imode,iq))),imode=1,nmodes),iq=1,nq)
     write(phU_unit,"(*(1X,A12))") "fs ","  meV  ",(("   meV     ",imode=1,nmodes),iq=1,nq)
-    write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
+    write(phU_unit,"(2(1X,A12),*(1X,F12.5))") "Omega(meV)","SUM_phU",((wf_sub(imode,iq)*ryd2meV,imode=1,nmodes),iq=1,nq)
     do isnap=0,nsnap
         write(phU_unit,"(*(1X,E12.5))") dt*nstep*isnap*ry_to_fs,SUM(phUsit_ave(:,:,isnap)),&
         ((phUsit_ave(imode,iq,isnap),imode=1,nmodes),iq=1,nq)
@@ -532,8 +532,8 @@ module saveinf
       if(l_ph_quantum) then
         do isnap=0,nsnap
           do iq=1,nq
-            if(wf(imode,iq)>0.0) then
-              phEsit(iq,isnap) = (phKsit(imode,iq,isnap)+phUsit(imode,iq,isnap))/(wf(imode,iq)*ryd2meV)
+            if(wf_sub(imode,iq)>0.0) then
+              phEsit(iq,isnap) = (phKsit(imode,iq,isnap)+phUsit(imode,iq,isnap))/(wf_sub(imode,iq)*ryd2meV)
             else
               phEsit(iq,isnap) = 0.0
             endif
@@ -545,7 +545,7 @@ module saveinf
             if(phEsit(iq,isnap)<=0.5) then
               phTemp(iq,isnap) = 0.0
             else
-              phTemp(iq,isnap) = (wf(nmodes,iq)/K_B_Ryd)/log((phEsit(iq,isnap)+0.5)/(phEsit(iq,isnap)-0.5))
+              phTemp(iq,isnap) = (wf_sub(nmodes,iq)/K_B_Ryd)/log((phEsit(iq,isnap)+0.5)/(phEsit(iq,isnap)-0.5))
             endif
           enddo
         enddo
@@ -564,9 +564,9 @@ module saveinf
       write(phT_unit,"(6(1X,A12))") " fs ","iq","b1","b2","b3"," K "
       do isnap=0,nsnap
         do iq=1,nq
-          qx=xqf(1,iq)
-          qy=xqf(2,iq)
-          qz=xqf(3,iq)
+          qx=xqf(1,indexq(iq))
+          qy=xqf(2,indexq(iq))
+          qz=xqf(3,indexq(iq))
           if(qx>0.5) qx=qx-1.0
           if(qy>0.5) qy=qy-1.0
           if(qz>0.5) qz=qz-1.0
@@ -1075,9 +1075,9 @@ module saveinf
                                           (dt*nstep*isnap*ry_to_fs,dt*nstep*isnap*ry_to_fs,isnap=0,nsnap,dsnap)
       do ik=1,nk
         ifre = (ik-1)*nband+iband
-        kx = xk(1,ik)
-        ky = xk(2,ik)
-        kz = xk(3,ik)
+        kx = xk(1,indexk(ik))
+        ky = xk(2,indexk(ik))
+        kz = xk(3,indexk(ik))
         if(kx > 0.5) kx=kx-1.0
         if(ky > 0.5) ky=ky-1.0
         if(kz > 0.5) kz=kz-1.0
@@ -1124,9 +1124,9 @@ module saveinf
       do isnap =0,nsnap
         do ik=1,nk
           ifre = (ik-1)*nband+iband
-          kx = xk(1,ik)
-          ky = xk(2,ik)
-          kz = xk(3,ik)
+          kx = xk(1,indexk(ik))
+          ky = xk(2,indexk(ik))
+          kz = xk(3,indexk(ik))
           if(kx > 0.5) kx=kx-1.0
           if(ky > 0.5) ky=ky-1.0
           if(kz > 0.5) kz=kz-1.0

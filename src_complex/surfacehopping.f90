@@ -1,8 +1,8 @@
 module surfacehopping
   use kinds, only : dp,dpc
   use constants,only : cone,czero
-  use epwcom,only : nkf1,nkf2,nkf3,nqf1,nqf2,nqf3,kqmap
-  use elph2,only  : wf,nktotf,nbndfst,ibndmin,ibndmax
+  use epwcom,only : nkf1,nkf2,nkf3,nqf1,nqf2,nqf3,kqmap,kqmap_sub
+  use elph2,only  : wf,nbndfst,ibndmin,ibndmax
   use hamiltonian,only : nphfre,neband,nhband,nefre,nhfre,&
                          E_e,P_e,P_e_nk,E0_e,P0_e,P0_e_nk,&
                          E_h,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
@@ -26,12 +26,12 @@ module surfacehopping
   
   contains
   
-  subroutine allocatesh(methodsh,lelecsh,lholesh,nmodes,nq)
+  subroutine allocatesh(methodsh,lelecsh,lholesh,nk_sub,nmodes,nq)
 		use io,only : msg,io_error
     implicit none
     character(len=*),intent(in) :: methodsh
     logical,intent(in):: lelecsh,lholesh
-    integer,intent(in):: nmodes,nq
+    integer,intent(in):: nmodes,nq,nk_sub
     integer :: ierr
     
     
@@ -87,9 +87,9 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating E_e',1)
       allocate(P_e(nefre,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e',1)
-      allocate(P_e_nk(neband,nktotf,nefre),stat=ierr,errmsg=msg)
+      allocate(P_e_nk(neband,nk_sub,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e_nk',1)
-      allocate(P0_e_nk(neband,nktotf,nefre),stat=ierr,errmsg=msg)
+      allocate(P0_e_nk(neband,nk_sub,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_e_nk',1)			
       allocate(d_e(nefre_sh,nefre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ijk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_e',1)
@@ -98,9 +98,9 @@ module surfacehopping
       allocate(dEa_dQ_e(nmodes,nq))
       allocate(dEa2_dQ2_e(nmodes,nq))
       
-      allocate(c_e_nk(neband,nktotf),stat=ierr,errmsg=msg)
+      allocate(c_e_nk(neband,nk_sub),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)
-      allocate(c_e(neband*nktotf),stat=ierr,errmsg=msg)
+      allocate(c_e(neband*nk_sub),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e',1)      
       
       allocate(pes_one_e(0:nefre,0:nsnap),pes_e(0:nefre,0:nsnap))
@@ -164,9 +164,9 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating E_h',1)
       allocate(P_h(nhfre,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h',1)
-      allocate(P_h_nk(nhband,nktotf,nhfre),stat=ierr,errmsg=msg)
+      allocate(P_h_nk(nhband,nk_sub,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h_nk',1)
-      allocate(P0_h_nk(nhband,nktotf,nhfre),stat=ierr,errmsg=msg)
+      allocate(P0_h_nk(nhband,nk_sub,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h_nk',1)			
       allocate(d_h(nhfre_sh,nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ijk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_h',1)
@@ -175,9 +175,9 @@ module surfacehopping
       allocate(dEa_dQ_h(nmodes,nq))
       allocate(dEa2_dQ2_h(nmodes,nq))
 
-      allocate(c_h_nk(nhband,nktotf),stat=ierr,errmsg=msg)
+      allocate(c_h_nk(nhband,nk_sub),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h_nk',1)  
-      allocate(c_h(nhband*nktotf),stat=ierr,errmsg=msg)
+      allocate(c_h(nhband*nk_sub),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h',1)  
       
       allocate(pes_one_h(0:nhfre,0:nsnap),pes_h(0:nhfre,0:nsnap))
@@ -262,10 +262,10 @@ module surfacehopping
     sum_ww2 = REAL(SUM(ww*CONJG(ww)))
     
     !ww=0.0d0
-    !do ik=1,nktotf
+    !do ik=1,nk_sub
     !  do iband=1,nbndfst
     !    iefre = (ik-1)*nbndfst + iband
-    !    do jk=1,nktotf
+    !    do jk=1,nk_sub
     !      do jband=1,nbndfst
     !        ww(iefre) = ww(iefre)+pp_nk(jband,jk,iefre)*c_nk(jband,jk)
     !      enddo
@@ -369,7 +369,8 @@ module surfacehopping
     dd=czero
 		do iq=1,nq
       do ik =1 ,nk
-        ikq = kqmap(ik,iq)
+        ikq = kqmap_sub(ik,iq)
+        if(ikq /= 0) then
         do imode=1,nmodes
           do iband1=1,nband
             do iband2=1,nband
@@ -385,6 +386,7 @@ module surfacehopping
             enddo
           enddo
         enddo
+        endif
       enddo
     enddo
     

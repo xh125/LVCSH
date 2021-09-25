@@ -8,7 +8,7 @@ module hamiltonian
   use readepw,only : E_nk
 	use constants,only : ryd2mev,cone,czero
   use surfacecom,only: lelecsh,lholesh,ieband_min,ieband_max,&
-                       ihband_min,ihband_max
+                       ihband_min,ihband_max,nk_sub,nq_sub
 	use memory_report,only : MB,GB,complex_size, real_size,int_size,ram,print_memory  
   
   implicit none
@@ -40,16 +40,16 @@ module hamiltonian
     integer,intent(in) :: ieband_min,ieband_max,ihband_min,ihband_max
     if(lelecsh) then
       neband = ieband_max - ieband_min + 1
-      nefre   = neband * nk
-			allocate(Enk_e(neband,nk),stat=ierr,errmsg=msg)
+      nefre   = neband * nk_sub
+			allocate(Enk_e(neband,nk_sub),stat=ierr,errmsg=msg)
 			if(ierr /= 0) call io_error(msg)
-      allocate(gmnvkq_e(neband,neband,nmodes,nk,nq),stat=ierr,errmsg=msg)
+      allocate(gmnvkq_e(neband,neband,nmodes,nk_sub,nq_sub),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating gmnvkq_e',1)
 				call io_error(msg)
 			endif
 			gmnvkq_e = 0.0
-			ram = complex_size*neband*neband*nmodes*nk*nq
+			ram = complex_size*neband*neband*nmodes*nk_sub*nq_sub
 			call print_memory("gmnvkq_e",ram)
       allocate(H0_e(nefre,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) then
@@ -59,7 +59,7 @@ module hamiltonian
 			H0_e = 0.0
 			ram = complex_size*nefre*nefre
 			call print_memory("H0_e",ram)
-      allocate(H0_e_nk(neband,nk,neband,nk),stat=ierr,errmsg=msg)
+      allocate(H0_e_nk(neband,nk_sub,neband,nk_sub),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating H0_e_nk',1)
 				call io_error(msg)
@@ -73,7 +73,7 @@ module hamiltonian
 			endif
 			H_e = 0.0
 			call print_memory("H_e",ram)
-      allocate(H_e_nk(neband,nk,neband,nk),stat=ierr,errmsg=msg)
+      allocate(H_e_nk(neband,nk_sub,neband,nk_sub),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating H_e_nk',1)
 				call io_error(msg)
@@ -85,16 +85,16 @@ module hamiltonian
     
     if(lholesh) then
       nhband = ihband_max - ihband_min + 1
-      nhfre   = nhband * nk
-			allocate(Enk_h(nhband,nk),stat=ierr,errmsg=msg)
+      nhfre   = nhband * nk_sub
+			allocate(Enk_h(nhband,nk_sub),stat=ierr,errmsg=msg)
 			if(ierr /= 0) call io_error(msg)
-      allocate(gmnvkq_h(nhband,nhband,nmodes,nk,nq),stat=ierr,errmsg=msg)
+      allocate(gmnvkq_h(nhband,nhband,nmodes,nk_sub,nq_sub),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating gmnvkq_h',1)
 				call io_error(msg)
 		  endif
 			gmnvkq_h = 0.0
-			ram = complex_size*nhband*nhband*nmodes*nk*nq
+			ram = complex_size*nhband*nhband*nmodes*nk_sub*nq_sub
 			call print_memory("gmnvkq_h",ram)
       allocate(H0_h(nhfre,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) then
@@ -104,7 +104,7 @@ module hamiltonian
 			H0_h = 0.0
 			ram = complex_size*nhfre*nhfre
 			call print_memory("H0_h",ram)			
-      allocate(H0_h_nk(nhband,nk,nhband,nk),stat=ierr,errmsg=msg)
+      allocate(H0_h_nk(nhband,nk_sub,nhband,nk_sub),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating H0_h_nk',1)
 				call io_error(msg)
@@ -119,7 +119,7 @@ module hamiltonian
 			H_h = 0.0
 			ram = complex_size*nhfre*nhfre
 			call print_memory("H_h",ram)
-      allocate(H_h_nk(nhband,nk,nhband,nk),stat=ierr,errmsg=msg)
+      allocate(H_h_nk(nhband,nk_sub,nhband,nk_sub),stat=ierr,errmsg=msg)
       if(ierr /=0) then
 				call errore('hamiltonian','Error allocating H_h_nk',1)
 				call io_error(msg)
@@ -131,14 +131,14 @@ module hamiltonian
     
   end subroutine allocate_hamiltonian
   
-  subroutine set_H0_nk(nk,ibandmin,ibandmax,Enk,H0_nk,gmnvkq_eh)
-    use elph2, only : etf,gmnvkq
+  subroutine set_H0_nk(nk,nk_sub,indexk,nq_sub,indexq,ibandmin,ibandmax,Enk,H0_nk,gmnvkq_eh)
+    use elph2, only : etf_sub,gmnvkq
     implicit none
-    integer , intent(in) :: nk
-    integer , intent(in) :: ibandmin,ibandmax
-    real(kind=dp), intent(out) :: Enk(ibandmax-ibandmin+1,nk)
-		complex(kind=dp), intent(out) :: H0_nk(ibandmax-ibandmin+1,nk,ibandmax-ibandmin+1,nk)
-    complex(kind=dp), intent(out) :: gmnvkq_eh(ibandmax-ibandmin+1,ibandmax-ibandmin+1,nmodes,nk,nq)
+    integer , intent(in) :: nk,nk_sub,nq_sub
+    integer , intent(in) :: indexk(nk_sub),indexq(nq_sub),ibandmin,ibandmax
+    real(kind=dp), intent(out) :: Enk(ibandmax-ibandmin+1,nk_sub)
+		complex(kind=dp), intent(out) :: H0_nk(ibandmax-ibandmin+1,nk_sub,ibandmax-ibandmin+1,nk_sub)
+    complex(kind=dp), intent(out) :: gmnvkq_eh(ibandmax-ibandmin+1,ibandmax-ibandmin+1,nmodes,nk_sub,nq_sub)
 		
 		integer :: nband
     integer :: ik,iband
@@ -147,15 +147,20 @@ module hamiltonian
 		nband = ibandmax-ibandmin+1
     
     H0_nk = 0.0
-    do ik=1,nk
+    do ik=1,nk_sub
       do iband=1,nband
-				Enk(iband,ik) = etf(iband+ibandmin-1,ik)
-        H0_nk(iband,ik,iband,ik)=etf(iband+ibandmin-1,ik)*cone
+				Enk(iband,ik) = etf_sub(iband+ibandmin-1,ik)
+        H0_nk(iband,ik,iband,ik)=etf_sub(iband+ibandmin-1,ik)*cone
       enddo
     enddo  
-      
-    gmnvkq_eh = epmatq(ibandmin:ibandmax,ibandmin:ibandmax,:,:,:)    
-		
+    
+    do iq=1,nq_sub
+      do ik=1,nk_sub
+        gmnvkq_eh(:,:,:,ik,iq) = epmatq(ibandmin:ibandmax,ibandmin:ibandmax,:,indexk(ik),indexq(iq))    
+      enddo
+    enddo
+    
+    
   end subroutine set_H0_nk
   
 
@@ -164,7 +169,7 @@ module hamiltonian
   !ref: 1 F. Giustino, Reviews of Modern Physics 89 (2017) 015003.
   !     (1)  
   subroutine set_H_nk(nband,nk,nmodes,nq,ph_Q,gmnvkq_eh,H0_nk,H_nk)
-    use epwcom,only  : kqmap
+    use epwcom,only  : kqmap_sub
     implicit none
     integer , intent(in) :: nband,nk,nmodes,nq
     complex(kind=dpc),intent(in) :: ph_Q(nmodes,nq)
@@ -179,15 +184,17 @@ module hamiltonian
     
     do iq=1,nq
       do ik=1,nk
-        ikq=kqmap(ik,iq)
-				do nu=1,nmodes					
-          do iband=1,nband !|iband,ik>
-            do jband=1,nband !|jband,ikq>
-              H_nk(jband,ikq,iband,ik) = H_nk(jband,ikq,iband,ik)+&
-              gmnvkq_eh(iband,jband,nu,ik,iq)*ph_Q(nu,iq)
+        ikq=kqmap_sub(ik,iq)
+        if(ikq/=0) then
+          do nu=1,nmodes					
+            do iband=1,nband !|iband,ik>
+              do jband=1,nband !|jband,ikq>
+                H_nk(jband,ikq,iband,ik) = H_nk(jband,ikq,iband,ik)+&
+                gmnvkq_eh(iband,jband,nu,ik,iq)*ph_Q(nu,iq)
+              enddo
             enddo
           enddo
-        enddo
+        endif
       enddo
     enddo
         

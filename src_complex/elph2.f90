@@ -39,6 +39,7 @@
     igk(:),                  &!  Index for k+G vector
     igkq(:),                 &!  Index for k+q+G vector
     iminusq(:),              &!  Index for -q vector
+    iminusq_sub(:),          &!
     iminusk(:),              &!  Index for -k vector
     igk_k_all(:, :),         &!  Global index (in case of parallel)
     ngk_all(:),              &!  Global number of plane wave for each global k-point
@@ -73,9 +74,11 @@
     xqf(:, :),               &!  fine q point grid
     wqf(:),                  &!  weights on the fine q grid
     etf(:, :),               &!  interpolated eigenvalues (nbnd, nkqf)
+    etf_sub(:,:),            &!
     etf_k(:, :),             &!  Saved interpolated KS eigenenergies for later used in q-parallelization (nbnd, nkqf)
     etf_ks(:, :),            &!  interpolated eigenvalues (nbnd, nkqf) KS eigenvalues in the case of eig_read
     wf(:, :),                &!  interpolated eigenfrequencies
+    wf_sub(:,:),             &!
     gmnvkq(:,:,:,:,:),          &!  !! g vectex
     gamma_all(:, :, :, :),      &!  Gamma
     gamma_nest(:, :),        &!  Nesting function in the case of q-parallelization

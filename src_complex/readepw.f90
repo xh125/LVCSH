@@ -1165,6 +1165,7 @@ module readepw
 			call errore('readepw','Error allocating gmnvkq',1)
 			call io_error(msg)
 		endif
+    gmnvkq = 0.0
 		ram = real_size*(ibndmax-ibndmin+1)**2*nmodes*nktotf*nqtotf
 		call print_memory("gmnvkq",ram)
 
@@ -1173,6 +1174,7 @@ module readepw
 			call errore('readepw','Error allocating epmatq',1)
 			call io_error(msg)
 		endif
+    epmatq = czero
 		ram = complex_size*(ibndmax-ibndmin+1)**2*nmodes*nktotf*nqtotf
 		call print_memory("epmatq",ram)		
 		
@@ -1325,11 +1327,17 @@ module readepw
 		etf = etf/ryd2eV
     evbmax = evbmax/ryd2eV
     ecbmin = ecbmin/ryd2eV
+    
     etf = etf - evbmax
+    ecbmin = ecbmin - evbmax
+    evbmax = evbmax - evbmax
+    
     wf = wf/ryd2mev
 		gmnvkq = gmnvkq/ryd2mev
 		epmatq = epmatq/ryd2mev
     eps_acustic = eps_acustic/ryd2mev
+    
+    
     
 		do iq=1,nqtotf
 			do nu = 1,nmodes
