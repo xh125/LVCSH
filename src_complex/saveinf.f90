@@ -1050,11 +1050,11 @@ module saveinf
   end subroutine plot_psit  
 
 
-  subroutine plot_band_occupatin_withtime(nband,nk,Enk,xk,nsnap,psit,csit,dsnap,band_file)
+  subroutine plot_band_occupatin_withtime(nband,nk,Enk,nsnap,psit,csit,dsnap,band_file)
+    use elph2,only : xkf
     implicit none
     integer , intent(in) :: nband,nk,dsnap
     real(kind=dp),intent(in) :: Enk(nband,nk)
-    real(kind=dp),intent(in) :: xk(3,nk)
     integer , intent(in) :: nsnap
     real(kind=dp),intent(in) :: psit(1:nband*nk,0:nsnap),csit(1:nband*nk,0:nsnap)
     character(len=*),intent(in) :: band_file
@@ -1075,9 +1075,9 @@ module saveinf
                                           (dt*nstep*isnap*ry_to_fs,dt*nstep*isnap*ry_to_fs,isnap=0,nsnap,dsnap)
       do ik=1,nk
         ifre = (ik-1)*nband+iband
-        kx = xk(1,indexk(ik))
-        ky = xk(2,indexk(ik))
-        kz = xk(3,indexk(ik))
+        kx = xkf(1,indexk(ik))
+        ky = xkf(2,indexk(ik))
+        kz = xkf(3,indexk(ik))
         if(kx > 0.5) kx=kx-1.0
         if(ky > 0.5) ky=ky-1.0
         if(kz > 0.5) kz=kz-1.0
@@ -1097,11 +1097,11 @@ module saveinf
   end subroutine plot_band_occupatin_withtime
 
   
-  subroutine plot_eh_temp(nband,nk,Enk,xk,nsnap,psit,csit,dsnap,temp_file)
+  subroutine plot_eh_temp(nband,nk,Enk,nsnap,psit,csit,dsnap,temp_file)
+    use elph2,only : xkf
     implicit none
     integer , intent(in) :: nband,nk,dsnap
     real(kind=dp),intent(in) :: Enk(nband,nk)
-    real(kind=dp),intent(in) :: xk(3,nk)
     integer , intent(in) :: nsnap
     real(kind=dp),intent(in) :: psit(1:nband*nk,0:nsnap),csit(1:nband*nk,0:nsnap)
     character(len=*),intent(in) :: temp_file
@@ -1124,9 +1124,9 @@ module saveinf
       do isnap =0,nsnap
         do ik=1,nk
           ifre = (ik-1)*nband+iband
-          kx = xk(1,indexk(ik))
-          ky = xk(2,indexk(ik))
-          kz = xk(3,indexk(ik))
+          kx = xkf(1,indexk(ik))
+          ky = xkf(2,indexk(ik))
+          kz = xkf(3,indexk(ik))
           if(kx > 0.5) kx=kx-1.0
           if(ky > 0.5) ky=ky-1.0
           if(kz > 0.5) kz=kz-1.0

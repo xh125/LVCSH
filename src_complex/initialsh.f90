@@ -472,7 +472,8 @@ module initialsh
     do ik=1,nk_sub
       etf_sub(ibndmin:ibndmax,ik) = etf(ibndmin:ibndmax,indexk(ik))
     enddo
-  
+    
+    deallocate(etf)
   
   end subroutine set_subkspace
   
@@ -518,6 +519,8 @@ module initialsh
     do iq=1,nq_sub
       wf_sub(:,iq) = wf(:,indexq(iq))
     enddo
+    
+    deallocate(wf)
     
     allocate(iminusq_sub(nq_sub))
     iminusq_sub = 0

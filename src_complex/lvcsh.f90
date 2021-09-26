@@ -77,7 +77,7 @@ program lvcsh
                             calculate_nonadiabatic_coupling,                   &
                             calculate_hopping_probability,                     &
                             convert_adiabatic_diabatic,add_decoherence     
-  use elph2,only          : wf_sub,xkf,nqtotf,nktotf,nbndfst,gmnvkq,etf
+  use elph2,only          : wf_sub,xkf,nqtotf,nktotf,nbndfst,gmnvkq,etf,epmatq
   use modes,only          : nmodes
   use cell_base,only      : bg
   use date_and_times,only : get_date_and_time
@@ -139,6 +139,7 @@ program lvcsh
   endif
   
   deallocate(gmnvkq)
+  deallocate(epmatq)
   
   call allocatesh(methodsh,lelecsh,lholesh,nk_sub,nmodes,nq_sub)
   
@@ -147,7 +148,7 @@ program lvcsh
     ! set the friction coefficient of Langevin dynamica of all phonon modes.
     call set_gamma(nmodes,nq_sub,gamma,ld_fric,wf_sub,ld_gamma)
     
-    if(llaser) call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
+    if(llaser) call get_Wcvk(ihband_min,ieband_max,nk_sub,fwhm,w_laser)
     ! ref : https://journals.aps.org/prb/pdf/10.1103/PhysRevB.72.045314
     !get W_cvk(icband,ivband,ik)
     
@@ -527,7 +528,7 @@ program lvcsh
       call save_csit(nefre,nsnap,naver,csit_e,csit_e_file)
       call save_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
       call save_psit(nefre,nsnap,naver,psit_e,psit_e_file)
-      call plot_band_occupatin_withtime(neband,nk_sub,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,band_e_file)
+      call plot_band_occupatin_withtime(neband,nk_sub,Enk_e,nsnap,psit_e,csit_e,savedsnap,band_e_file)
     endif
     
     if(lholesh) then
@@ -535,7 +536,7 @@ program lvcsh
       call save_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
       call save_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
       call save_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
-      call plot_band_occupatin_withtime(nhband,nk_sub,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,band_h_file)
+      call plot_band_occupatin_withtime(nhband,nk_sub,Enk_h,nsnap,psit_h,csit_h,savedsnap,band_h_file)
     endif
   
   
@@ -611,8 +612,8 @@ program lvcsh
       call plot_csit(nefre,nsnap,naver,csit_e,csit_e_file)
       call plot_wsit(nefre,nefre_sh,nsnap,naver,wsit_e,wsit_e_file)
       call plot_psit(nefre,nsnap,naver,psit_e,psit_e_file)
-      call plot_band_occupatin_withtime(neband,nk_sub,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,band_e_file)
-      call plot_eh_temp(neband,nk_sub,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,e_temp_file)
+      call plot_band_occupatin_withtime(neband,nk_sub,Enk_e,nsnap,psit_e,csit_e,savedsnap,band_e_file)
+      call plot_eh_temp(neband,nk_sub,Enk_e,nsnap,psit_e,csit_e,savedsnap,e_temp_file)
       deallocate(pes_e,pes_one_e,csit_e,wsit_e,psit_e)
       
     endif
@@ -623,8 +624,8 @@ program lvcsh
       call plot_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
       call plot_wsit(nhfre,nhfre_sh,nsnap,naver,wsit_h,wsit_h_file)
       call plot_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
-      call plot_band_occupatin_withtime(nhband,nk_sub,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,band_h_file)
-      call plot_eh_temp(nhband,nk_sub,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,h_temp_file)
+      call plot_band_occupatin_withtime(nhband,nk_sub,Enk_h,nsnap,psit_h,csit_h,savedsnap,band_h_file)
+      call plot_eh_temp(nhband,nk_sub,Enk_h,nsnap,psit_h,csit_h,savedsnap,h_temp_file)
       deallocate(pes_h,pes_one_h,csit_h,wsit_h,psit_h)
     endif
     

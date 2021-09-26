@@ -6,18 +6,17 @@ module getwcvk
   contains
   !ref : 1 S. Butscher et al., Physical Review B 72 (2005) 
   !ref : 2 <固体物理> (9-29)(9-31)
-  subroutine get_Wcvk(ihband_min,ieband_max,fwhm,w_center)
+  subroutine get_Wcvk(ihband_min,ieband_max,nk_sub,fwhm,w_center)
     !得到光激发下垂直跃迁的跃迁几率
-    use elph2,only  : vmef,nkf  !vmef(3,nbndsub,nbndsub,nkf)
-    use readepw,only : etf,icbm
-    use surfacecom,only : nk_sub,indexk
+    use elph2,only  : vmef,nkf,etf_sub !vmef(3,nbndsub,nbndsub,nkf)
+    use readepw,only : icbm
+    use surfacecom,only : indexk
     use io,only : stdout
     use constants,only : ryd2eV,ry_to_fs
     implicit none
-    integer , intent(in) :: ihband_min,ieband_max
+    integer , intent(in) :: ihband_min,ieband_max,nk_sub
     real(kind=dp),intent(in) :: fwhm
     real(kind=dp),intent(in) :: w_center
-    real(kind=dp),allocatable :: W_cvk_(:,:,:)
     
     real(kind=dp) :: fwhm_2T2
     
@@ -31,37 +30,27 @@ module getwcvk
     integer :: ivbm
     
     ivbm = icbm-1
-    
-    allocate(W_cvk_(icbm:ieband_max,ihband_min:ivbm,nkf),stat=ierr)
+
+    allocate(W_cvk(icbm:ieband_max,ihband_min:ivbm,nk_sub),stat=ierr)   
     if(ierr /=0) call errore('getmcvk','Error allocating W_cvk',1)
     
     !ref : 1 S. Butscher et al., Physical Review B 72 (2005) 
     !ref : 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
     fwhm_2T2 = fwhm**2.0/4.0*log(2.0)
-    W_cvk_ = 0.0
-    do ik=1,nkf
+    W_cvk = 0.0
+    do ik=1,nk_sub
       do ibnd=ihband_min,ivbm
         do jbnd=icbm,ieband_max
           Evmef = 0.0
-          E_mnk = etf(jbnd,ik)-etf(ibnd,ik)
+          E_mnk = etf_sub(jbnd,ik)-etf_sub(ibnd,ik)
           do ipol=1,3
-            Evmef =Evmef+ (efield_cart(ipol)*(vmef(ipol,jbnd,ibnd,ik)))
+            Evmef =Evmef+ (efield_cart(ipol)*(vmef(ipol,jbnd,ibnd,indexk(ik))))
           enddo
           fcw = f_w(E_mnk,w_center,fwhm_2T2)
-          W_cvk_(jbnd,ibnd,ik) = REAL(Evmef*CONJG(Evmef))*fcw
+          W_cvk(jbnd,ibnd,ik) = REAL(Evmef*CONJG(Evmef))*fcw
         enddo
       enddo
     enddo  
-    
-    allocate(W_cvk(icbm:ieband_max,ihband_min:ivbm,nk_sub),stat=ierr)
-    W_cvk = 0.0
-    do ik=1,nk_sub
-      W_cvk(icbm:ieband_max,ihband_min:ivbm,ik)=W_cvk_(icbm:ieband_max,ihband_min:ivbm,indexk(ik))
-    enddo
-    
-    deallocate(W_cvk_)
-    
-    
     
     
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
