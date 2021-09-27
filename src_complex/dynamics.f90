@@ -1,8 +1,8 @@
 module dynamics
   use kinds,only     : dp,dpc
   use constants,only : cone,czero
-  use parameters,only : temp
-  use epwcom,only         : kqmap_sub
+  use parameters,only: temp
+  use epwcom,only    : kqmap_sub
   
   implicit none
   
@@ -27,12 +27,11 @@ module dynamics
     
   end subroutine
   
-  subroutine get_dEa_dQ(nmodes,nq,nband,nk,P_nk,gmnvkq,lit_gmnvkq,isurface,dEa_dQ)
+  subroutine get_dEa_dQ(nmodes,nq,nband,nk,P_nk,gmnvkq,isurface,dEa_dQ)
     use elph2,only : iminusq_sub
     implicit none
     integer,intent(in) :: nmodes,nq,nband,nk
     integer,intent(in) :: isurface
-    real(kind=dp),intent(in)      :: lit_gmnvkq
     complex(kind=dpc),intent(in)  :: P_nk(nband,nk,nband*nk)
     complex(kind=dpc),intent(in)  :: gmnvkq(nband,nband,nmodes,nk,nq)
     complex(kind=dpc),intent(out) :: dEa_dQ(nmodes,nq)
@@ -138,7 +137,7 @@ module dynamics
   ! ref : 1 J. Qiu, X. Bai, and L. Wang, The Journal of Physical Chemistry Letters 9 (2018) 4319.
   ! ref : "<Phonons Theory and Experiments I Lattice Dynamics and Models of Interatomic Forces by Dr. Peter Brüesch (auth.) (z-lib.org).pdf>."
   subroutine derivs_nuclei(nmodes,nq,dEa_dQ,wf,ld_gamma,xx,vv,dx,dv)
-    use elph2,only : iminusq
+    use elph2,only : iminusq_sub
     implicit none
     integer,intent(in) :: nmodes,nq
     complex(kind=dpc),intent(in) :: dEa_dQ(nmodes,nq)
@@ -272,7 +271,7 @@ module dynamics
   SUBROUTINE ADD_BATH_EFFECT(nmodes,nq,wf,ld_gamma,temp,dEa2_dQ2,TT,l_ph_quantum,XX,VV)
     use kinds,only : dp,dpc
     use parameters,only : lit_ephonon,eps_acustic
-    use elph2,only :  iminusq
+    use elph2,only :  iminusq_sub
     use randoms,only : GAUSSIAN_RANDOM_NUMBER_FAST
     use constants,only : KB=>K_B_Ryd,sqrt3,sqrt5,sqrt7,ryd2mev,cone,ci,tpi
     implicit none
@@ -333,16 +332,16 @@ module dynamics
   ENDSUBROUTINE  
 
   
-  subroutine pre_md(nmodes,nqtotf,wf,ld_gamma,temp,phQ,phP,l_ph_quantum,pre_dt)
+  subroutine pre_md(nmodes,nq,wf,ld_gamma,temp,phQ,phP,l_ph_quantum,pre_dt)
     use surfacecom,only : dEa_dQ,dEa2_dQ2,pre_nstep
     use constants,only  : ry_to_fs,ryd2eV
     use io,only : stdout
     implicit none
-    integer ,intent(in) :: nmodes,nqtotf
+    integer ,intent(in) :: nmodes,nq
     real(kind=dp),intent(in) :: pre_dt,temp
     logical,intent(in) :: l_ph_quantum
-    real(kind=dp),intent(in) :: wf(nmodes,nqtotf),ld_gamma(nmodes,nqtotf)
-    complex(kind=dpc),intent(inout) :: phQ(nmodes,nqtotf),phP(nmodes,nqtotf)
+    real(kind=dp),intent(in) :: wf(nmodes,nq),ld_gamma(nmodes,nq)
+    complex(kind=dpc),intent(inout) :: phQ(nmodes,nq),phP(nmodes,nq)
 
 
     integer :: istep
@@ -352,8 +351,8 @@ module dynamics
     dEa_dQ = 0.0
     dEa2_dQ2 = 0.0
     do istep=1,pre_nstep
-      call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
-      call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
+      call rk4_nuclei(nmodes,nq,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
+      call add_bath_effect(nmodes,nq,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
     enddo
   
     time = pre_nstep*pre_dt*ry_to_fs

@@ -118,23 +118,24 @@ program lvcsh
   call set_subband(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
   !get ieband_min,ieband_max,ihband_min,ihband_max
   call set_subkspace(lelecsh,lholesh,llaser,w_laser,nk_sub)
+  ! get nk_sub and indexk(nk_sub), etf_sub(:,nk_sub)
   call set_subqspace(nk_sub,indexk,nqtotf,nq_sub)
+  ! get nq_sub and indexq(nq_sub) wf_sub(nmodes,nq_sub) iminusq_sub(nq_sub) kqmap_sub(nk_sub,nq_sub)
   
   
-  
-  call allocate_hamiltonian(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
+  call allocate_hamiltonian(lelecsh,lholesh,nk_sub,ieband_min,ieband_max,ihband_min,ihband_max)
   
   if(lelecsh) then
-    call set_H0_nk(nktotf,nk_sub,indexk,nq_sub,indexq,ieband_min,ieband_max,Enk_e,H0_e_nk,gmnvkq_e)
-    !set H0_e_nk and gmnvkq_e
+    call set_H0_nk(nk_sub,indexk,nq_sub,indexq,ieband_min,ieband_max,Enk_e,H0_e_nk,gmnvkq_e)
+    !set Enk_e(nband,nk_sub) H0_e_nk and gmnvkq_e
     if(nefre_sh == 0 .or. nefre_sh > nefre) nefre_sh = nefre
   endif
   
   if(lholesh) then
-    call set_H0_nk(nktotf,nk_sub,indexk,nq_sub,indexq,ihband_min,ihband_max,Enk_h,H0_h_nk,gmnvkq_h)
+    call set_H0_nk(nk_sub,indexk,nq_sub,indexq,ihband_min,ihband_max,Enk_h,H0_h_nk,gmnvkq_h)
     H0_h_nk  = -1.0 * H0_h_nk
     gmnvkq_h = -1.0 * gmnvkq_h    
-    !set H0_h_nk and gmnvkq_h  
+    !set Enk_h(nband,nk_sub) H0_h_nk and gmnvkq_h(:::,nk_sub,nq_sub)  
     if(nhfre_sh == 0 .or. nhfre_sh > nhfre) nhfre_sh = nhfre
   endif
   
@@ -232,11 +233,11 @@ program lvcsh
           !dEa_dQ in time t0
           if(l_dEa_dQ) then
             if(lelecsh) then
-              call get_dEa_dQ(nmodes,nq_sub,neband,nk_sub,P0_e_nk,gmnvkq_e,lit_gmnvkq,iesurface,dEa_dQ_e)
+              call get_dEa_dQ(nmodes,nq_sub,neband,nk_sub,P0_e_nk,gmnvkq_e,iesurface,dEa_dQ_e)
               dEa_dQ = dEa_dQ + dEa_dQ_e
             endif
             if(lholesh) then
-              call get_dEa_dQ(nmodes,nq_sub,nhband,nk_sub,P0_h_nk,gmnvkq_h,lit_gmnvkq,ihsurface,dEa_dQ_h)
+              call get_dEa_dQ(nmodes,nq_sub,nhband,nk_sub,P0_h_nk,gmnvkq_h,ihsurface,dEa_dQ_h)
               dEa_dQ = dEa_dQ + dEa_dQ_h
             endif
           endif

@@ -3,7 +3,7 @@ module saveinf
   use surfacecom,only : dt,nstep,temp,nqv,l_ph_quantum,eps_acustic,indexk,indexq
   use io,only : io_file_unit,open_file,close_file,stdout
   use constants,only : ry_to_fs,maxlen,RYTOEV,ryd2meV,K_B_Ryd
-  use elph2,only : wf,xqf,wf_sub
+  use elph2,only : wf_sub
   use parameters,only : outdir
   implicit none
   integer :: iaver,isnap,ifre,iq,imode,inode,icore
@@ -505,6 +505,7 @@ module saveinf
 
 
   subroutine plot_ph_temp(nmodes,nq,nsnap,phKsit,phUsit)
+    use elph2,only : xqf
     implicit none
     integer , intent(in) :: nmodes,nq,nsnap
     real(kind=dp),intent(in) :: phKsit(nmodes,nq,0:nsnap),phUsit(nmodes,nq,0:nsnap)

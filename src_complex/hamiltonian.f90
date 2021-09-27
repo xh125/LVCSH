@@ -1,14 +1,14 @@
 module hamiltonian
   use kinds,only : dp,dpc
-	use io, only : msg,io_error,stdout
+	use io,   only : msg,io_error,stdout
 	use types
   use parameters
-  use elph2, only  : nbndfst,nk=>nktotf,epmatq,nq => nqtotf,wf
+  use elph2, only  : nbndfst,epmatq,wf
   use modes, only  : nmodes
   use readepw,only : E_nk
 	use constants,only : ryd2mev,cone,czero
   use surfacecom,only: lelecsh,lholesh,ieband_min,ieband_max,&
-                       ihband_min,ihband_max,nk_sub,nq_sub
+                       ihband_min,ihband_max,nq_sub
 	use memory_report,only : MB,GB,complex_size, real_size,int_size,ram,print_memory  
   
   implicit none
@@ -27,17 +27,17 @@ module hamiltonian
 	integer :: ngfre_e,ngfre_h
 	
   !平衡位置哈密顿量，电声耦合项，总的H和临时H
-  real(kind=dp),allocatable :: E_e(:),E0_e(:),E_h(:),E0_h(:)
+  real(kind=dp),allocatable    :: E_e(:),E0_e(:),E_h(:),E0_h(:)
   complex(kind=dp),allocatable :: P_e(:,:),P_e_nk(:,:,:),P0_e(:,:),P0_e_nk(:,:,:),&
                                   P_h(:,:),P_h_nk(:,:,:),P0_h(:,:),P0_h_nk(:,:,:)
   !哈密顿量的本征值与本征矢   
   integer :: ierr
   contains
   
-  subroutine allocate_hamiltonian(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
+  subroutine allocate_hamiltonian(lelecsh,lholesh,nk_sub,ieband_min,ieband_max,ihband_min,ihband_max)
     implicit none
     logical,intent(in) :: lelecsh,lholesh
-    integer,intent(in) :: ieband_min,ieband_max,ihband_min,ihband_max
+    integer,intent(in) :: nk_sub,ieband_min,ieband_max,ihband_min,ihband_max
     if(lelecsh) then
       neband = ieband_max - ieband_min + 1
       nefre   = neband * nk_sub
@@ -131,10 +131,10 @@ module hamiltonian
     
   end subroutine allocate_hamiltonian
   
-  subroutine set_H0_nk(nk,nk_sub,indexk,nq_sub,indexq,ibandmin,ibandmax,Enk,H0_nk,gmnvkq_eh)
+  subroutine set_H0_nk(nk_sub,indexk,nq_sub,indexq,ibandmin,ibandmax,Enk,H0_nk,gmnvkq_eh)
     use elph2, only : etf_sub,gmnvkq
     implicit none
-    integer , intent(in) :: nk,nk_sub,nq_sub
+    integer , intent(in) :: nk_sub,nq_sub
     integer , intent(in) :: indexk(nk_sub),indexq(nq_sub),ibandmin,ibandmax
     real(kind=dp), intent(out) :: Enk(ibandmax-ibandmin+1,nk_sub)
 		complex(kind=dp), intent(out) :: H0_nk(ibandmax-ibandmin+1,nk_sub,ibandmax-ibandmin+1,nk_sub)

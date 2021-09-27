@@ -83,10 +83,10 @@ module initialsh
   subroutine init_eh_KSstat(lelecsh,lholesh,llaser,nkf,init_ik,init_eband,init_hband,e_en,h_en)
     use parameters,only : init_ikx,init_iky,init_ikz,init_kx,init_ky,init_kz
     use epwcom,only : nkf1,nkf2,nkf3
-    use readepw,only : etf,icbm,xkf
-    use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,c_e_nk,c_h_nk,&
+    use readepw,only : icbm,xkf
+    use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,&
                           indexk
-    use elph2,only  : vmef,ibndmin,ibndmax,nbndfst,etf_sub !vmef(3,nbndsub,nbndsub,nkf)
+    use elph2,only  : etf_sub !vmef(3,nbndsub,nbndsub,nkf)
     use getwcvk,only: W_cvk !(W_cvk(icbm:ieband_max,ihband_min:ivbm,nkf)
     use constants,only :ryd2eV
     use io,only : stdout
