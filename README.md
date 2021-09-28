@@ -51,7 +51,7 @@ make epw
     calculation   = "vc-relax"  
     restart_mode  = "from_scratch"
     prefix        = "carbyne"
-    outdir        = "./outdir/"
+    outdir        = "./"
     pseudo_dir    = "./pseudo/"
     verbosity     = "high"
     tprnfor       = .true.  
