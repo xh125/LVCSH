@@ -116,6 +116,10 @@ make epw
    计算结束后，使用下面命令得到优化后的结果
 
    ```bash
+   grep -B 30 "Begin final coordinates" vc-relax.out
+   ```
+
+   ```bash
    awk  '/Begin final coordinates/,/End final coordinates/{print $0}' vc-relax.out
    ```
 
