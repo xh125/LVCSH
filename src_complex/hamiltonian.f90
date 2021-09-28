@@ -3,7 +3,7 @@ module hamiltonian
 	use io,   only : msg,io_error,stdout
 	use types
   use parameters
-  use elph2, only  : nbndfst,epmatq,wf
+  use elph2, only  : nbndfst,epmatq,wf,wf_sub,nqtotf
   use modes, only  : nmodes
   use readepw,only : E_nk
 	use constants,only : ryd2mev,cone,czero
@@ -24,6 +24,10 @@ module hamiltonian
   complex(kind=dp),allocatable :: gmnvkq_e(:,:,:,:,:)
   complex(kind=dp),allocatable :: gmnvkq_h(:,:,:,:,:)
 	
+  type(gmnvkq_n0),allocatable :: gijk_e(:),gijk_h(:)
+  
+  integer :: gnzfree_e,gnzfree_h
+  
 	integer :: ngfre_e,ngfre_h
 	
   !平衡位置哈密顿量，电声耦合项，总的H和临时H
@@ -131,18 +135,21 @@ module hamiltonian
     
   end subroutine allocate_hamiltonian
   
-  subroutine set_H0_nk(nk_sub,indexk,nq_sub,indexq,ibandmin,ibandmax,Enk,H0_nk,gmnvkq_eh)
+  subroutine set_H0_nk(nk_sub,indexk,nq_sub,indexq,ibandmin,ibandmax,Enk,H0_nk,gmnvkq_eh,lit_g,gnzfree)
     use elph2, only : etf_sub,gmnvkq
+    use epwcom,only : kqmap_sub
     implicit none
     integer , intent(in) :: nk_sub,nq_sub
     integer , intent(in) :: indexk(nk_sub),indexq(nq_sub),ibandmin,ibandmax
     real(kind=dp), intent(out) :: Enk(ibandmax-ibandmin+1,nk_sub)
 		complex(kind=dp), intent(out) :: H0_nk(ibandmax-ibandmin+1,nk_sub,ibandmax-ibandmin+1,nk_sub)
     complex(kind=dp), intent(out) :: gmnvkq_eh(ibandmax-ibandmin+1,ibandmax-ibandmin+1,nmodes,nk_sub,nq_sub)
-		
+		integer , intent(out) :: gnzfree
+    real(kind=dp) , intent(in) :: lit_g
+    
 		integer :: nband
-    integer :: ik,iband
-    integer :: m,n,nu,iq
+    integer :: ik,iband,jband
+    integer :: m,n,nu,iq,ikq
 		
 		nband = ibandmax-ibandmin+1
     
@@ -160,9 +167,61 @@ module hamiltonian
       enddo
     enddo
     
+    gnzfree = 0
+    do iq=1,nq_sub
+      do ik=1,nk_sub
+        ikq = kqmap_sub(ik,iq)
+        if(ikq /= 0) then
+          do nu=1,nmodes
+            do iband=1,nband
+              do jband=1,nband
+                if(ABS(gmnvkq_eh(jband,iband,nu,ik,iq)) > sqrt(2.0*wf_sub(nu,iq)/nqtotf)*lit_g) gnzfree = gnzfree +1
+              enddo
+            enddo
+          enddo
+        endif
+      enddo
+    enddo
+    
     
   end subroutine set_H0_nk
   
+  subroutine set_gijk(nband,nmodes,nk_sub,nq_sub,gmnvkq,lit_g,gnzfree,gijk)
+    use epwcom,only : kqmap_sub
+    implicit none
+    integer, intent(in) :: nband,nmodes,nk_sub,nq_sub,gnzfree
+    complex(kind=dpc),intent(in) :: gmnvkq(nband,nband,nmodes,nk_sub,nq_sub)
+    real(kind=dp) , intent(in)   :: lit_g
+    type(gmnvkq_n0),intent(out)  :: gijk(gnzfree)
+    
+    integer :: iq,ik,ikq,nu,iband,jband,ink,iqv,imkq
+    integer :: ig
+    
+    ig = 0
+    do iq=1,nq_sub
+      do ik=1,nk_sub
+        ikq = kqmap_sub(ik,iq)
+        if(ikq /= 0) then
+          do nu=1,nmodes
+            do iband=1,nband
+              do jband=1,nband
+                if(ABS(gmnvkq(jband,iband,nu,ik,iq)) > sqrt(2.0*wf_sub(nu,iq)/nqtotf)*lit_g) then
+                  ig = ig +1
+                  gijk(ig)% iqv = (iq-1)*nmodes + nu
+                  gijk(ig)% ink = (ik-1)*nband  + iband
+                  gijk(ig)% imkq= (ikq-1)*nband + jband
+                  gijk(ig)% g   = gmnvkq(jband,iband,nu,ik,iq)
+                endif  
+              enddo
+            enddo
+          enddo
+        endif
+      enddo
+    enddo
+    
+    
+    
+  end subroutine
 
   !ref: 1 G. GRIMvall, <The electron-phonon interaction in metals by Goran Grimvall (z-lib.org).pdf> 1981),  
   !     (3.20) (6.4)

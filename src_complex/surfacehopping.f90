@@ -349,19 +349,18 @@ module surfacehopping
   !==================================================================!
   ! ref : PPT-91
   ! The most time-consuming part of the program
-  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,ee,p_nk,gmnvkq,lit_gmnvkq,nfre_sh,dd)
+  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,ee,p_nk,gmnvkq,nfre_sh,dd)
     use kinds,only :  dp
     implicit none
     integer, intent(in)          :: nmodes,nq,nband,nk,nfre_sh
     real(kind=dp),intent(in)     :: ee(nband*nk)
     complex(kind=dpc),intent(in) :: p_nk(nband,nk,nband*nk)
-		real(kind=dp),intent(in)     :: lit_gmnvkq
     complex(kind=dpc),intent(in) :: gmnvkq(nband,nband,nmodes,nk,nq)    
     complex(kind=dpc),intent(out):: dd(nfre_sh,nfre_sh,nmodes,nq)
     
 		integer :: nfre,ifre,jfre,iq,imode ,igfre
     integer :: ik,ikq,iband1,iband2
-		complex(kind=dpc) :: epc
+		complex(kind=dpc) :: epc,pnk12
     
     !nfre = nband*nk
     nfre = nfre_sh
@@ -379,7 +378,7 @@ module surfacehopping
                 do ifre=1,nfre
                   do jfre=1,nfre                    
                     dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
-                    &epc*CONJG(p_nk(iband1,ik,ifre))*p_nk(iband2,ikq,jfre)
+                    epc*CONJG(p_nk(iband1,ik,ifre))*p_nk(iband2,ikq,jfre)
                   enddo
                 enddo
               endif
@@ -389,7 +388,7 @@ module surfacehopping
         endif
       enddo
     enddo
-    
+ 
 		do ifre=1,nfre
 			do jfre=1,nfre
         if(jfre/= ifre) then
@@ -402,6 +401,51 @@ module surfacehopping
     
   end subroutine calculate_nonadiabatic_coupling
   
+  subroutine calculate_nonadiabatic_coupling_(nmodes,nq,nband,nk,ee,p_nk,gnzfree,gijk,nfre_sh,dd)
+    use types
+    use kinds,only :  dp
+    implicit none
+    integer, intent(in)          :: nmodes,nq,nband,nk,nfre_sh,gnzfree
+    real(kind=dp),intent(in)     :: ee(nband*nk)
+    complex(kind=dpc),intent(in) :: p_nk(nband*nk,nband*nk)
+    type(gmnvkq_n0),intent(in)   :: gijk(gnzfree) 
+    complex(kind=dpc),intent(out):: dd(nfre_sh,nfre_sh,nmodes*nq)
+    
+		integer :: nfre,ifre,jfre,iq,imode ,ig
+    integer :: ik,ikq,iband1,iband2 ,iqv,ink,imkq
+		complex(kind=dpc) :: epc,pnk12,g
+    
+    nfre = nfre_sh
+    
+    dd=czero
+    do ig=1,gnzfree
+      iqv =  gijk(ig) % iqv 
+      ink =  gijk(ig) % ink
+      imkq=  gijk(ig) % imkq
+      epc =  gijk(ig) % g   
+      do ifre=1,nfre
+        do jfre=1,nfre                    
+          dd(ifre,jfre,iqv) = dd(ifre,jfre,iqv)+&
+          epc*CONJG(p_nk(ink,ifre))*p_nk(imkq,jfre)
+        enddo
+      enddo      
+      
+    enddo
+    
+    
+    
+		do ifre=1,nfre
+			do jfre=1,nfre
+        if(jfre/= ifre) then
+          dd(ifre,jfre,:) = dd(ifre,jfre,:)/(ee(jfre)-ee(ifre))
+        else
+          !dd(ifre,jfre,:,:) = czero
+        endif
+			enddo
+		enddo
+    
+  end subroutine calculate_nonadiabatic_coupling_
+
   
   function bolziman(womiga,temp)
     use kinds ,only : dp
