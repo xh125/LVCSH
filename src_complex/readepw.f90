@@ -126,7 +126,7 @@ module readepw
     !logical :: eig_read,epbread,epbwrite,efermi_read
     LOGICAL :: already_skipped
     !! Skipping band during the Wannierization
-    integer :: nbndskip
+    integer :: nbndskip = 0
     logical :: wannierize
 		
     integer :: itmp,count_piv_spin
@@ -981,14 +981,11 @@ module readepw
     ef = ef /ryd2ev
 		WRITE(stdout,'(/5x,a,f10.6,a)') 'Fermi energy coarse grid = ', ef * ryd2ev, ' eV'    
 		
-    !if(nelec == 0.0 .and. ieband_max==0 .and. ihband_min==0) then
-    !  write(stdout,"(5X,A,F8.4,A)") "WARNING! The nelec =",nelec,"and ieband_max=0 ihband_min=0"
-    !  write(stdout,"(5X,A)") "Need to set nelec right in LVCSH.in .OR. set lreadscfout= .true."
-    !endif
     
     !IF (efermi_read) THEN
     read(unitepwout,"(/5X,A)") ctmp
     read(unitepwout,"(/5X,A)") ctmp
+    write(stdout,"(/5X,A)") ctmp
     if(ctmp(1:47)=="Fermi energy is read from the input file: Ef = ") then
       efermi_read = .true.
       backspace(unitepwout)
@@ -1084,11 +1081,11 @@ module readepw
       read(unitepwout,"(5X,28X,f9.5,14X,i6)") scissor,icbm
       scissor = scissor/ryd2eV
     else
-      !IF (noncolin) THEN
-      !  icbm = FLOOR(nelec / 1.0d0) + 1
-      !ELSE
-      !  icbm = FLOOR(nelec / 2.0d0) + 1
-      !ENDIF      
+      IF (noncolin) THEN
+        icbm = FLOOR(nelec / 1.0d0) + 1
+      ELSE
+        icbm = FLOOR(nelec / 2.0d0) + 1
+      ENDIF      
     endif
     
     !WRITE(stdout, '(/5x," icbm(conductor band mim) = ",i6)' ) icbm
