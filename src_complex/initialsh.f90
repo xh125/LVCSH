@@ -80,13 +80,12 @@ module initialsh
   
   ! ref: 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
   ! ref: 2. HuangKun <固体物理> (9-29) (9-31)
-  subroutine init_eh_KSstat(lelecsh,lholesh,llaser,nkf,init_ik,init_eband,init_hband,e_en,h_en)
+  subroutine init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband,e_en,h_en)
     use parameters,only : init_ikx,init_iky,init_ikz,init_kx,init_ky,init_kz
     use epwcom,only : nkf1,nkf2,nkf3
-    use readepw,only : icbm,xkf
-    use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,&
-                          indexk
-    use elph2,only  : etf_sub !vmef(3,nbndsub,nbndsub,nkf)
+    use readepw,only : etf,icbm,xkf
+    use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,c_e_nk,c_h_nk
+    use elph2,only  : vmef,ibndmin,ibndmax,nbndfst,nkf  !vmef(3,nbndsub,nbndsub,nkf)
     use getwcvk,only: W_cvk !(W_cvk(icbm:ieband_max,ihband_min:ivbm,nkf)
     use constants,only :ryd2eV
     use io,only : stdout
@@ -94,8 +93,7 @@ module initialsh
     
     logical , intent(in)  :: lelecsh
     logical , intent(in)  :: lholesh    
-    logical ,intent(in)   :: llaser
-    integer , intent(in)  :: nkf
+    logical,intent(in)    :: llaser
     integer,intent(out)   :: init_ik
     integer,intent(inout) :: init_eband,init_hband
     real(kind=dp),intent(out) :: e_en,h_en
@@ -129,13 +127,7 @@ module initialsh
       init_ikx = get_ik(init_kx,nkf1)
       init_iky = get_ik(init_ky,nkf2)
       init_ikz = get_ik(init_kz,nkf3)
-      init_ik  =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz
-      sub:do ik=1,nkf
-        if(init_ik == indexk(ik)) then
-          init_ik = ik
-          exit sub
-        endif
-      enddo sub
+      init_ik  =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz     
       if(init_eband < icbm .or. init_eband > ieband_max) then
         write(stdout,"(/5X,A29,I5)") "Wrong! The init_eband set as:",init_eband
         write(stdout,"(5X,A29,I5,A16,I5)") "The init_eband need to set : ",icbm,"<= init_eband <=",ieband_max
@@ -146,15 +138,15 @@ module initialsh
       endif      
     endif
 
-    obsorbEn = (etf_sub(init_eband,init_ik)-etf_sub(init_hband,init_ik))*ryd2eV
-    e_en = etf_sub(init_eband,init_ik)
-    h_en = -1.0*etf_sub(init_hband,init_ik)
+    obsorbEn = (etf(init_eband,init_ik)-etf(init_hband,init_ik))*ryd2eV
+    e_en = etf(init_eband,init_ik)
+    h_en = -1.0*etf(init_hband,init_ik)
     write(stdout,"(/5X,A)") "Initial eh_KSstate:  "
-    write(stdout,"(5X,A3,I5,1X,A10,3(F12.6,1X),A2)") "ik=",init_ik, "coord.: ( ",(xkf(ipol,indexk(init_ik)),ipol=1,3)," )"
+    write(stdout,"(5X,A3,I5,1X,A10,3(F12.6,1X),A2)") "ik=",init_ik, "coord.: ( ",(xkf(ipol,init_ik),ipol=1,3)," )"
     write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_hband=",init_hband," Initial hole Energy:",&
-                                              etf_sub(init_hband,init_ik)*ryd2eV," eV"
+                                              etf(init_hband,init_ik)*ryd2eV," eV"
     write(stdout,"(5X,A11,I5,A21,F12.5,A3)") "init_eband=",init_eband," Initial elec Energy:",&
-                                              etf_sub(init_eband,init_ik)*ryd2eV," eV"      
+                                              etf(init_eband,init_ik)*ryd2eV," eV"      
     write(stdout,"(5X,A18,F12.5,A3)")"elec-hole energy= ",obsorbEn," eV"
     
   end subroutine init_eh_KSstat
@@ -243,7 +235,7 @@ module initialsh
     use randoms,only : gaussian_random_number
     !use parameters,only : lit_ephonon
     use surfacecom,only : nqv,E_ph_CA_sum,E_ph_QA_sum,eps_acustic
-    use elph2,only : iminusq_sub
+    use elph2,only : iminusq
     use io,only : stdout
     use constants,only : ryd2eV
     implicit none
@@ -263,6 +255,7 @@ module initialsh
     real(kind=dp) :: E_ph_class,E_ph_quantum
     integer :: iq,imode
     
+    allocate(nqv(nmodes,nq))
     nqv = 0.0
 
     do iq=1,nq
@@ -278,7 +271,7 @@ module initialsh
     E_ph_QA_sum   = 0.0
         
     do iq=1,nq
-      if(iminusq_sub(iq)>=iq) then
+      if(iminusq(iq)>=iq) then
         ! ph_Q(v,-q)=ph_Q(v,q)*
         ! ph_P(v,-q)=ph_P(v,q)*
         ! Ph_P(v,q) = d(ph_Q(v,q))/dt 
@@ -287,7 +280,7 @@ module initialsh
           
           call random_number(theta1)
           call random_number(theta2)
-          if(iq==iminusq_sub(iq)) then
+          if(iq==iminusq(iq)) then
             theta1 = 0.0
             theta2 = 0.0
           endif
@@ -303,10 +296,10 @@ module initialsh
           else
             E_ph_class   = K_B_Ryd*T  ! IN class 
             E_ph_CA_sum  = E_ph_CA_sum + E_ph_class
-            if(iminusq_sub(iq)/=iq) E_ph_CA_sum  = E_ph_CA_sum + E_ph_class
+            if(iminusq(iq)/=iq) E_ph_CA_sum  = E_ph_CA_sum + E_ph_class
             E_ph_quantum = nqv(imode,iq)*womiga ! In Quantum
             E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum	
-            if(iminusq_sub(iq)/=iq) E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum
+            if(iminusq(iq)/=iq) E_ph_QA_sum  = E_ph_QA_sum + E_ph_quantum
             if(l_ph_quantum) then
               ph_Q(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum)/womiga)*cplx_tmp1
               ph_P(imode,iq) = gaussian_random_number(0.0d0,dsqrt(E_ph_quantum))*cplx_tmp2
@@ -318,8 +311,8 @@ module initialsh
           
         enddo
       else !  ph_Q(v,-q)=ph_Q(v,q)*   ! ph_P(v,-q)=ph_P(v,q)*
-        ph_Q(:,iq) = CONJG(ph_Q(:,iminusq_sub(iq)))
-        ph_P(:,iq) = CONJG(ph_P(:,iminusq_sub(iq)))
+        ph_Q(:,iq) = CONJG(ph_Q(:,iminusq(iq)))
+        ph_P(:,iq) = CONJG(ph_P(:,iminusq(iq)))
       endif
     enddo
     
@@ -378,194 +371,6 @@ module initialsh
     enddo
     
   end subroutine init_surface 
-  
-  !==========================================================!
-  != get the subspace for non-adiabatic molecular dynamica  =!
-  !==========================================================!
-  subroutine set_subspace(lelecsh,lholesh,llaser)
-    use parameters,only : init_ikx,init_iky,init_ikz,init_kx,init_ky,init_kz
-    use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max
-    use elph2,only      : nktotf,etf
-    implicit none
-    logical, intent(in) :: lelecsh,lholesh
-    logical, intent(in) :: llaser
-    
-    
-    
-  end subroutine
-  
-  !==========================================================!
-  != get the subkspace for electron diaganization           =!
-  !==========================================================!
-  subroutine set_subkspace(lelecsh,lholesh,llaser,w_laser,nk_sub)
-    use parameters,only : init_ikx,init_iky,init_ikz,init_kx,init_ky,init_kz,&
-                          init_eband,init_hband
-    use surfacecom,only : ieband_min,ieband_max,ihband_min,ihband_max,indexk
-    use epwcom,only     : nkf1,nkf2,nkf3
-    use readepw   ,only : nvbmax,ncbmin,evbmax,ecbmin
-    use elph2,only      : nktotf,etf,etf_sub,wf,wf_sub,ibndmin,ibndmax
-    implicit none
-    logical, intent(in) :: lelecsh,lholesh
-    logical, intent(in) :: llaser
-    real(kind=dp),intent(in) :: w_laser
-    integer, intent(out):: nk_sub
-    
-    integer :: ik,cband,vband,init_ik
-    real(kind=dp) :: initE_e,initE_h,maxwf
-    integer,allocatable :: indexk_(:)
-    
-    
-    allocate(indexk_(nktotf))
-    
-    nk_sub = 0
-    indexk_ = 0
-    if(llaser) then
-      do ik=1,nktotf
-        if((etf(ncbmin,ik)-evbmax)<=w_laser .or. (ecbmin-etf(nvbmax,ik))<=w_laser) then
-          nk_sub = nk_sub + 1
-          indexk_(nk_sub) = ik
-        endif
-      enddo
-    else
-      init_ikx = get_ik(init_kx,nkf1)
-      init_iky = get_ik(init_ky,nkf2)
-      init_ikz = get_ik(init_kz,nkf3)
-      init_ik  =  (init_ikx - 1) * nkf2 * nkf3 + (init_iky - 1) * nkf3 + init_ikz    
-      maxwf = maxval(wf)
-      if(lelecsh .and. .not. lholesh) then
-        initE_e = etf(init_eband,init_ik)
-        do ik=1,nktotf
-          if(etf(ncbmin,ik)<=initE_e+maxwf) then
-            nk_sub = nk_sub + 1
-            indexk_(nk_sub) = ik
-          endif
-        enddo
-        
-      elseif(.not. lelecsh .and. lholesh) then
-        initE_h = etf(init_hband,init_ik)
-        do ik=1,nktotf
-          if(etf(nvbmax,ik)>=initE_h-maxwf) then
-            nk_sub = nk_sub + 1
-            indexk_(nk_sub) = ik
-          endif
-        enddo
-      elseif(lelecsh .and. lholesh) then
-        initE_e = etf(init_eband,init_ik)
-        initE_h = etf(init_hband,init_ik)
-        do ik=1,nktotf
-          if(etf(ncbmin,ik)<=initE_e+maxwf .or. etf(nvbmax,ik)>=initE_h-maxwf) then
-            nk_sub = nk_sub + 1
-            indexk_(nk_sub) = ik
-          endif
-        enddo        
-      endif
-    endif
-  
-    allocate(indexk(nk_sub))
-    indexk = 0
-    indexk = indexk_(1:nk_sub)
-    deallocate(indexk_)
-  
-    allocate(etf_sub(ibndmin:ibndmax,1:nk_sub))
-		etf_sub = 0.0d0
-    
-    do ik=1,nk_sub
-      etf_sub(ibndmin:ibndmax,ik) = etf(ibndmin:ibndmax,indexk(ik))
-    enddo
-    
-    deallocate(etf)
-  
-  end subroutine set_subkspace
-  
-  subroutine set_subqspace(nk_sub,indexk,nq,nq_sub)
-    use epwcom,only  : kqmap,kqmap_sub
-    use modes,only   : nmodes
-    use elph2,only   : wf,wf_sub,iminusq,iminusq_sub
-    use surfacecom,only : indexq
-    implicit none
-    integer,intent(in) :: nk_sub
-    integer,intent(in) :: indexk(nk_sub)
-    integer,intent(in) :: nq
-    integer,intent(out):: nq_sub
-    
-    integer :: iq,iq_,ik,ik_,ikq
-    
-    integer,allocatable :: indexq_(:)
-    
-    allocate(indexq_(nq))
-    indexq_ = 0
-    
-    
-    nq_sub = 0
-    do iq=1,nq
-      KSUB:do ik=1,nk_sub
-        ikq=kqmap(indexk(ik),iq)
-        do ik_=1,nk_sub
-          if(ikq==indexk(ik_)) then
-            nq_sub = nq_sub + 1
-            indexq_(nq_sub) = iq
-            exit KSUB
-          endif
-        enddo
-      enddo KSUB
-    enddo
-    
-    allocate(indexq(nq_sub))
-    indexq = 0
-    indexq = indexq_(1:nq_sub)
-    allocate(wf_sub(nmodes,nq_sub))
-    wf_sub = 0.0
-    
-    do iq=1,nq_sub
-      wf_sub(:,iq) = wf(:,indexq(iq))
-    enddo
-    
-    deallocate(wf)
-    
-    allocate(iminusq_sub(nq_sub))
-    iminusq_sub = 0
-    do iq=1,nq_sub
-      sub :do iq_=1,nq_sub
-        if(iminusq(indexq(iq)) == indexq(iq_)) then
-          iminusq_sub(iq) = iq_
-          exit sub
-        endif
-      enddo sub
-    enddo
-    deallocate(indexq_)
-
-    allocate(kqmap_sub(nk_sub,nq_sub))
-    kqmap_sub = 0
-    do iq=1,nq_sub
-      do ik=1,nk_sub
-        ikq=kqmap(indexk(ik),indexq(iq))
-        sub1 : do ik_=1,nk_sub
-          if(ikq==indexk(ik_)) then
-            kqmap_sub(ik,iq) = ik_
-            exit sub1
-          endif
-        enddo sub1
-      enddo
-    enddo
-  end subroutine set_subqspace
-  
-  !==========================================================!
-  != get the subkspace of gmnvkq to build the hamiltoian    =!
-  !==========================================================!
-  subroutine set_subgmnvkq()
-  
-  end subroutine
-  
-  !==========================================================!
-  != get the phonon subkspace for phonon dynamica           =!
-  !==========================================================!
-  subroutine set_subphonon()
-  
-  end subroutine
-  
-  
-  
-  
   
   
 end module initialsh 

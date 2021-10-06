@@ -1,15 +1,15 @@
 module surfacehopping
   use kinds, only : dp,dpc
   use constants,only : cone,czero
-  use epwcom,only : nkf1,nkf2,nkf3,nqf1,nqf2,nqf3,kqmap,kqmap_sub
-  use elph2,only  : wf,nbndfst,ibndmin,ibndmax
+  use epwcom,only : nkf1,nkf2,nkf3,nqf1,nqf2,nqf3,kqmap
+  use elph2,only  : wf,nktotf,nbndfst,ibndmin,ibndmax
   use hamiltonian,only : nphfre,neband,nhband,nefre,nhfre,&
                          E_e,P_e,P_e_nk,E0_e,P0_e,P0_e_nk,&
                          E_h,P_h,P_h_nk,E0_h,P0_h,P0_h_nk
   use parameters, only : nsnap,naver,ncore,nnode
   use surfacecom, only : iesurface,ihsurface,esurface_type,hsurface_type,&
                          phQ,phP,phQ0,phP0,phK,phU,SUM_phU,SUM_phK,SUM_phK0,SUM_phE,&
-                         phQsit,phPsit,phKsit,phUsit,ld_gamma,nqv,&
+                         phQsit,phPsit,phKsit,phUsit,ld_gamma,&
                          dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
                          d_e,g_e,g1_e,c_e,c_e_nk,w_e,w0_e,d0_e,nefre_sh,&
                          d_h,g_h,g1_h,c_h,c_h_nk,w_h,w0_h,d0_h,nhfre_sh,&
@@ -26,19 +26,17 @@ module surfacehopping
   
   contains
   
-  subroutine allocatesh(methodsh,lelecsh,lholesh,nk_sub,nmodes,nq)
+  subroutine allocatesh(methodsh,lelecsh,lholesh,nmodes,nq)
 		use io,only : msg,io_error
     implicit none
     character(len=*),intent(in) :: methodsh
     logical,intent(in):: lelecsh,lholesh
-    integer,intent(in):: nmodes,nq,nk_sub
+    integer,intent(in):: nmodes,nq
     integer :: ierr
     
     
     allocate(ld_gamma(nmodes,nq))
     ld_gamma = 0.0
-    allocate(nqv(nmodes,nq))
-    nqv = 0.0
     allocate(phQ(nmodes,nq),stat=ierr,errmsg=msg)  ! x(1:nphfre)
     if(ierr /=0) then
 			call errore('surfacehopping','Error allocating phQ',1)
@@ -87,9 +85,9 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating E_e',1)
       allocate(P_e(nefre,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e',1)
-      allocate(P_e_nk(neband,nk_sub,nefre),stat=ierr,errmsg=msg)
+      allocate(P_e_nk(neband,nktotf,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e_nk',1)
-      allocate(P0_e_nk(neband,nk_sub,nefre),stat=ierr,errmsg=msg)
+      allocate(P0_e_nk(neband,nktotf,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_e_nk',1)			
       allocate(d_e(nefre_sh,nefre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ijk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_e',1)
@@ -98,9 +96,9 @@ module surfacehopping
       allocate(dEa_dQ_e(nmodes,nq))
       allocate(dEa2_dQ2_e(nmodes,nq))
       
-      allocate(c_e_nk(neband,nk_sub),stat=ierr,errmsg=msg)
+      allocate(c_e_nk(neband,nktotf),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e_nk',1)
-      allocate(c_e(neband*nk_sub),stat=ierr,errmsg=msg)
+      allocate(c_e(neband*nktotf),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_e',1)      
       
       allocate(pes_one_e(0:nefre,0:nsnap),pes_e(0:nefre,0:nsnap))
@@ -164,9 +162,9 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating E_h',1)
       allocate(P_h(nhfre,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h',1)
-      allocate(P_h_nk(nhband,nk_sub,nhfre),stat=ierr,errmsg=msg)
+      allocate(P_h_nk(nhband,nktotf,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h_nk',1)
-      allocate(P0_h_nk(nhband,nk_sub,nhfre),stat=ierr,errmsg=msg)
+      allocate(P0_h_nk(nhband,nktotf,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h_nk',1)			
       allocate(d_h(nhfre_sh,nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ijk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_h',1)
@@ -175,9 +173,9 @@ module surfacehopping
       allocate(dEa_dQ_h(nmodes,nq))
       allocate(dEa2_dQ2_h(nmodes,nq))
 
-      allocate(c_h_nk(nhband,nk_sub),stat=ierr,errmsg=msg)
+      allocate(c_h_nk(nhband,nktotf),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h_nk',1)  
-      allocate(c_h(nhband*nk_sub),stat=ierr,errmsg=msg)
+      allocate(c_h(nhband*nktotf),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating c_h',1)  
       
       allocate(pes_one_h(0:nhfre,0:nsnap),pes_h(0:nhfre,0:nsnap))
@@ -262,10 +260,10 @@ module surfacehopping
     sum_ww2 = REAL(SUM(ww*CONJG(ww)))
     
     !ww=0.0d0
-    !do ik=1,nk_sub
+    !do ik=1,nktotf
     !  do iband=1,nbndfst
     !    iefre = (ik-1)*nbndfst + iband
-    !    do jk=1,nk_sub
+    !    do jk=1,nktotf
     !      do jband=1,nbndfst
     !        ww(iefre) = ww(iefre)+pp_nk(jband,jk,iefre)*c_nk(jband,jk)
     !      enddo
@@ -349,18 +347,19 @@ module surfacehopping
   !==================================================================!
   ! ref : PPT-91
   ! The most time-consuming part of the program
-  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,ee,p_nk,gmnvkq,nfre_sh,dd)
+  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,ee,p_nk,gmnvkq,lit_gmnvkq,nfre_sh,dd)
     use kinds,only :  dp
     implicit none
     integer, intent(in)          :: nmodes,nq,nband,nk,nfre_sh
     real(kind=dp),intent(in)     :: ee(nband*nk)
     complex(kind=dpc),intent(in) :: p_nk(nband,nk,nband*nk)
+		real(kind=dp),intent(in)     :: lit_gmnvkq
     complex(kind=dpc),intent(in) :: gmnvkq(nband,nband,nmodes,nk,nq)    
     complex(kind=dpc),intent(out):: dd(nfre_sh,nfre_sh,nmodes,nq)
     
 		integer :: nfre,ifre,jfre,iq,imode ,igfre
     integer :: ik,ikq,iband1,iband2
-		complex(kind=dpc) :: epc,pnk12
+		complex(kind=dpc) :: epc
     
     !nfre = nband*nk
     nfre = nfre_sh
@@ -368,8 +367,7 @@ module surfacehopping
     dd=czero
 		do iq=1,nq
       do ik =1 ,nk
-        ikq = kqmap_sub(ik,iq)
-        if(ikq /= 0) then
+        ikq = kqmap(ik,iq)
         do imode=1,nmodes
           do iband1=1,nband
             do iband2=1,nband
@@ -378,17 +376,16 @@ module surfacehopping
                 do ifre=1,nfre
                   do jfre=1,nfre                    
                     dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
-                    epc*CONJG(p_nk(iband1,ik,ifre))*p_nk(iband2,ikq,jfre)
+                    &epc*CONJG(p_nk(iband1,ik,ifre))*p_nk(iband2,ikq,jfre)
                   enddo
                 enddo
               endif
             enddo
           enddo
         enddo
-        endif
       enddo
     enddo
- 
+    
 		do ifre=1,nfre
 			do jfre=1,nfre
         if(jfre/= ifre) then
@@ -401,51 +398,6 @@ module surfacehopping
     
   end subroutine calculate_nonadiabatic_coupling
   
-  subroutine calculate_nonadiabatic_coupling_(nmodes,nq,nband,nk,ee,p_nk,gnzfree,gijk,nfre_sh,dd)
-    use types
-    use kinds,only :  dp
-    implicit none
-    integer, intent(in)          :: nmodes,nq,nband,nk,nfre_sh,gnzfree
-    real(kind=dp),intent(in)     :: ee(nband*nk)
-    complex(kind=dpc),intent(in) :: p_nk(nband*nk,nband*nk)
-    type(gmnvkq_n0),intent(in)   :: gijk(gnzfree) 
-    complex(kind=dpc),intent(out):: dd(nfre_sh,nfre_sh,nmodes*nq)
-    
-		integer :: nfre,ifre,jfre,iq,imode ,ig
-    integer :: ik,ikq,iband1,iband2 ,iqv,ink,imkq
-		complex(kind=dpc) :: epc,pnk12,g
-    
-    nfre = nfre_sh
-    
-    dd=czero
-    do ig=1,gnzfree
-      iqv =  gijk(ig) % iqv 
-      ink =  gijk(ig) % ink
-      imkq=  gijk(ig) % imkq
-      epc =  gijk(ig) % g   
-      do ifre=1,nfre
-        do jfre=1,nfre                    
-          dd(ifre,jfre,iqv) = dd(ifre,jfre,iqv)+&
-          epc*CONJG(p_nk(ink,ifre))*p_nk(imkq,jfre)
-        enddo
-      enddo      
-      
-    enddo
-    
-    
-    
-		do ifre=1,nfre
-			do jfre=1,nfre
-        if(jfre/= ifre) then
-          dd(ifre,jfre,:) = dd(ifre,jfre,:)/(ee(jfre)-ee(ifre))
-        else
-          !dd(ifre,jfre,:,:) = czero
-        endif
-			enddo
-		enddo
-    
-  end subroutine calculate_nonadiabatic_coupling_
-
   
   function bolziman(womiga,temp)
     use kinds ,only : dp

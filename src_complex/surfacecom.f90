@@ -51,12 +51,6 @@ module surfacecom
   integer :: ieband_min,ieband_max,ihband_min,ihband_max
 	integer :: nefre_sh,nhfre_sh
   
-  ! get a subspace of k-points to reduce the calcution resume.
-  integer ::nk_sub
-  integer,allocatable :: indexk(:)
-  integer :: nq_sub
-  integer,allocatable :: indexq(:)
-  
   !method of surface hopping
   character(len=8) :: MethodSH
   ! FSSH, SC-FSSH, CC-FSSH

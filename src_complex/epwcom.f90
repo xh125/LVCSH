@@ -420,9 +420,7 @@
     use kinds, only :dp  
     implicit none
     integer, allocatable :: kqmap(:,:)
-    !! map of k+q grid into k grid
-    integer, allocatable :: kqmap_sub(:,:)
-    !! 
+    !!!! map of k+q grid into k grid
     integer, allocatable :: isk_all(:)
     !! Spin index of each k-point (used in LSDA calculations only)
     INTEGER, ALLOCATABLE :: isk_loc(:)

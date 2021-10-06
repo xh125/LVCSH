@@ -63,7 +63,7 @@ module write_sh_information
         else 
           write(stdout,"(/,A)") " time(fs)    rt(s) hsur&
           &     E_h(eV)    T_ph(eV)    U_ph(eV)    E_ph(eV)   E_tot(eV)"       
-          write(stdout,"(F9.2,F9.2,I5,5(1X,F11.4))") 0.00,0.00,&
+          write(stdout,"(F11.2,F11.2,I5,5(1X,F11.4))") 0.00,0.00,&
           ihsurface,-e_h(ihsurface)*ryd2eV,&
           SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV     
         endif
@@ -71,7 +71,7 @@ module write_sh_information
         if(lelecsh) then
           write(stdout,"(/,A)") " time(fs)    rt(s) esur&
           &     E_e(eV)    T_ph(eV)    U_ph(eV)     E_ph(eV)   E_tot(eV)" 
-          write(stdout,"(F9.2,F9.2,I5,5(1X,F11.4))") 0.00,0.00,&
+          write(stdout,"(F11.2,F11.2,I5,5(1X,F11.4))") 0.00,0.00,&
           iesurface,e_e(iesurface)*ryd2eV,&
           SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV     
         else

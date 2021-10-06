@@ -6,15 +6,14 @@ module getwcvk
   contains
   !ref : 1 S. Butscher et al., Physical Review B 72 (2005) 
   !ref : 2 <固体物理> (9-29)(9-31)
-  subroutine get_Wcvk(ihband_min,ieband_max,nk_sub,fwhm,w_center)
+  subroutine get_Wcvk(ihband_min,ieband_max,fwhm,w_center)
     !得到光激发下垂直跃迁的跃迁几率
-    use elph2,only  : vmef,nkf,etf_sub !vmef(3,nbndsub,nbndsub,nkf)
-    use readepw,only : icbm
-    use surfacecom,only : indexk
+    use elph2,only  : vmef,nkf  !vmef(3,nbndsub,nbndsub,nkf)
+    use readepw,only : etf,icbm
     use io,only : stdout
     use constants,only : ryd2eV,ry_to_fs
     implicit none
-    integer , intent(in) :: ihband_min,ieband_max,nk_sub
+    integer , intent(in) :: ihband_min,ieband_max
     real(kind=dp),intent(in) :: fwhm
     real(kind=dp),intent(in) :: w_center
     
@@ -30,28 +29,27 @@ module getwcvk
     integer :: ivbm
     
     ivbm = icbm-1
-
-    allocate(W_cvk(icbm:ieband_max,ihband_min:ivbm,nk_sub),stat=ierr)   
+    
+    allocate(W_cvk(icbm:ieband_max,ihband_min:ivbm,nkf),stat=ierr)
     if(ierr /=0) call errore('getmcvk','Error allocating W_cvk',1)
     
     !ref : 1 S. Butscher et al., Physical Review B 72 (2005) 
     !ref : 1 S. Fernandez-Alberti et al., The Journal of Chemical Physics 137 (2012) 
     fwhm_2T2 = fwhm**2.0/4.0*log(2.0)
     W_cvk = 0.0
-    do ik=1,nk_sub
+    do ik=1,nkf
       do ibnd=ihband_min,ivbm
         do jbnd=icbm,ieband_max
           Evmef = 0.0
-          E_mnk = etf_sub(jbnd,ik)-etf_sub(ibnd,ik)
+          E_mnk = etf(jbnd,ik)-etf(ibnd,ik)
           do ipol=1,3
-            Evmef =Evmef+ (efield_cart(ipol)*(vmef(ipol,jbnd,ibnd,indexk(ik))))
+            Evmef =Evmef+ (efield_cart(ipol)*(vmef(ipol,jbnd,ibnd,ik)))
           enddo
           fcw = f_w(E_mnk,w_center,fwhm_2T2)
           W_cvk(jbnd,ibnd,ik) = REAL(Evmef*CONJG(Evmef))*fcw
         enddo
       enddo
     enddo  
-    
     
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     !% Write laser information            %!

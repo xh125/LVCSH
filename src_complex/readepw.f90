@@ -126,7 +126,7 @@ module readepw
     !logical :: eig_read,epbread,epbwrite,efermi_read
     LOGICAL :: already_skipped
     !! Skipping band during the Wannierization
-    integer :: nbndskip = 0
+    integer :: nbndskip
     logical :: wannierize
 		
     integer :: itmp,count_piv_spin
@@ -981,11 +981,14 @@ module readepw
     ef = ef /ryd2ev
 		WRITE(stdout,'(/5x,a,f10.6,a)') 'Fermi energy coarse grid = ', ef * ryd2ev, ' eV'    
 		
+    !if(nelec == 0.0 .and. ieband_max==0 .and. ihband_min==0) then
+    !  write(stdout,"(5X,A,F8.4,A)") "WARNING! The nelec =",nelec,"and ieband_max=0 ihband_min=0"
+    !  write(stdout,"(5X,A)") "Need to set nelec right in LVCSH.in .OR. set lreadscfout= .true."
+    !endif
     
     !IF (efermi_read) THEN
     read(unitepwout,"(/5X,A)") ctmp
     read(unitepwout,"(/5X,A)") ctmp
-    write(stdout,"(/5X,A)") ctmp
     if(ctmp(1:47)=="Fermi energy is read from the input file: Ef = ") then
       efermi_read = .true.
       backspace(unitepwout)
@@ -1088,8 +1091,8 @@ module readepw
       ENDIF      
     endif
     
-    !WRITE(stdout, '(/5x," icbm(conductor band mim) = ",i6)' ) icbm
-    !WRITE(stdout, '(5x," ivbm(valence   band max) = ",i6)' ) icbm-1
+    WRITE(stdout, '(/5x," icbm(conductor band mim) = ",i6)' ) icbm
+    WRITE(stdout, '(5x," ivbm(valence   band max) = ",i6)' ) icbm-1
     
     
     !
@@ -1162,7 +1165,6 @@ module readepw
 			call errore('readepw','Error allocating gmnvkq',1)
 			call io_error(msg)
 		endif
-    gmnvkq = 0.0
 		ram = real_size*(ibndmax-ibndmin+1)**2*nmodes*nktotf*nqtotf
 		call print_memory("gmnvkq",ram)
 
@@ -1171,7 +1173,6 @@ module readepw
 			call errore('readepw','Error allocating epmatq',1)
 			call io_error(msg)
 		endif
-    epmatq = czero
 		ram = complex_size*(ibndmax-ibndmin+1)**2*nmodes*nktotf*nqtotf
 		call print_memory("epmatq",ram)		
 		
@@ -1319,23 +1320,16 @@ module readepw
     ecbmin = Minval(etf(ncbmin,:))
     WRITE(stdout,'(/14x,a,i5,2x,a,f9.3,a)') 'Valence band max   = ', nvbmax, 'evbmax = ', evbmax , ' eV'
     WRITE(stdout,'(14x,a,i5,2x,a,f9.3,a/)') 'Conductor band min = ', ncbmin, 'ecbmin = ', ecbmin , ' eV'    
-    icbm = ncbmin
-    !if(icbm /= ncbmin) write(stdout,"(5X,A)") "Warning! The nelec need to be set right."
+    if(icbm /= ncbmin) write(stdout,"(5X,A)") "Warning! The nelec need to be set right."
     
 		etf = etf/ryd2eV
     evbmax = evbmax/ryd2eV
     ecbmin = ecbmin/ryd2eV
-    
     etf = etf - evbmax
-    ecbmin = ecbmin - evbmax
-    evbmax = evbmax - evbmax
-    
     wf = wf/ryd2mev
 		gmnvkq = gmnvkq/ryd2mev
 		epmatq = epmatq/ryd2mev
     eps_acustic = eps_acustic/ryd2mev
-    
-    
     
 		do iq=1,nqtotf
 			do nu = 1,nmodes

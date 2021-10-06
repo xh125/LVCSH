@@ -39,25 +39,21 @@ program lvcsh
                             init_hband,init_e_en,init_h_en,mix_thr,lsortpes,   &
                             calculation,verbosity,naver_sum,savedsnap,ncore
   use hamiltonian,only    : nefre,neband,H_e,H_e_nk,E_e,P_e,P_e_nk,P0_e_nk,    &
-                            gmnvkq_e,gnzfree_e,gijk_e,Enk_e,H0_e_nk,E0_e,P0_e, &
-                            nhfre,nhband,H_h,H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,    &
-                            gmnvkq_h,gnzfree_h,gijk_h,Enk_h,H0_h_nk,E0_h,P0_h, &
-                            allocate_hamiltonian,set_H_nk, set_gijk,           &
-                            set_H0_nk,calculate_eigen_energy_state
-                                
+                            gmnvkq_e,Enk_e,H0_e_nk,E0_e,P0_e,nhfre,nhband,H_h, &
+                            H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,gmnvkq_h,Enk_h,      &
+                            H0_h_nk,E0_h,P0_h,allocate_hamiltonian,set_H_nk,   &
+                            set_H0_nk,calculate_eigen_energy_state    
   use sortting,only       : resort_eigen_energy_stat
   use randoms,only        : init_random_seed
   use lasercom,only       : fwhm,w_laser
   use getwcvk,only        : get_Wcvk
   use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,   &
-                            init_eh_KSstat,init_stat_adiabatic,init_surface,   &
-                            set_subkspace,set_subqspace
+                            init_eh_KSstat,init_stat_adiabatic,init_surface
   use write_sh_information,only : write_initial_information
   use surfacecom,only     : methodsh,lfeedback,lit_gmnvkq,naver,nsnap,nstep,dt,&
                             pre_nstep,pre_dt,l_ph_quantum,gamma,temp,iaver,    &
                             isnap,istep,ldecoherence,Cdecoherence,             &
-                            lelecsh,lholesh,ieband_min,ieband_max,nk_sub,      &
-                            indexk,nq_sub,indexq,&
+                            lelecsh,lholesh,ieband_min,ieband_max,             &
                             ihband_min,ihband_max,nefre_sh,nhfre_sh,iesurface, &
                             ihsurface,iesurface_j,ihsurface_j,c_e,c_e_nk,d_e,  &
                             d0_e,c_h,c_h_nk,d_h,d0_h,dEa_dQ,                   &
@@ -76,11 +72,10 @@ program lvcsh
                             dc3_e,dc4_e,&
                             w_h,w0_h,g_h,g1_h,hsurface_type,cc0_h,dc1_h,dc2_h, &
                             dc3_h,dc4_h,allocatesh,convert_diabatic_adiabatic, &
-                            calculate_nonadiabatic_coupling, &
-                            calculate_nonadiabatic_coupling_,&
+                            calculate_nonadiabatic_coupling,                   &
                             calculate_hopping_probability,                     &
                             convert_adiabatic_diabatic,add_decoherence     
-  use elph2,only          : wf_sub,xkf,nqtotf,nktotf,nbndfst,gmnvkq,etf,epmatq
+  use elph2,only          : wf,xkf,nqtotf,nktotf,nbndfst,gmnvkq,etf
   use modes,only          : nmodes
   use cell_base,only      : bg
   use date_and_times,only : get_date_and_time
@@ -120,42 +115,32 @@ program lvcsh
   call readepwout(epwoutname)
   call set_subband(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
   !get ieband_min,ieband_max,ihband_min,ihband_max
-  call set_subkspace(lelecsh,lholesh,llaser,w_laser,nk_sub)
-  ! get nk_sub and indexk(nk_sub), etf_sub(:,nk_sub)
-  call set_subqspace(nk_sub,indexk,nqtotf,nq_sub)
-  ! get nq_sub and indexq(nq_sub) wf_sub(nmodes,nq_sub) iminusq_sub(nq_sub) kqmap_sub(nk_sub,nq_sub)
-  
-  
-  call allocate_hamiltonian(lelecsh,lholesh,nk_sub,ieband_min,ieband_max,ihband_min,ihband_max)
+  call allocate_hamiltonian(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
   
   if(lelecsh) then
-    call set_H0_nk(nk_sub,indexk,nq_sub,indexq,ieband_min,ieband_max,Enk_e,H0_e_nk,gmnvkq_e,lit_gmnvkq,gnzfree_e)
-    !set Enk_e(nband,nk_sub) H0_e_nk and gmnvkq_e
-    allocate(gijk_e(gnzfree_e))
-    call set_gijk(neband,nmodes,nk_sub,nq_sub,gmnvkq_e,lit_gmnvkq,gnzfree_e,gijk_e)
+    call set_H0_nk(nktotf,ieband_min,ieband_max,Enk_e,H0_e_nk,gmnvkq_e)
+    !set H0_e_nk and gmnvkq_e
     if(nefre_sh == 0 .or. nefre_sh > nefre) nefre_sh = nefre
   endif
   
   if(lholesh) then
-    call set_H0_nk(nk_sub,indexk,nq_sub,indexq,ihband_min,ihband_max,Enk_h,H0_h_nk,gmnvkq_h,lit_gmnvkq,gnzfree_h)
+    call set_H0_nk(nktotf,ihband_min,ihband_max,Enk_h,H0_h_nk,gmnvkq_h)
     H0_h_nk  = -1.0 * H0_h_nk
     gmnvkq_h = -1.0 * gmnvkq_h    
-    !set Enk_h(nband,nk_sub) H0_h_nk and gmnvkq_h(:::,nk_sub,nq_sub) 
-    allocate(gijk_h(gnzfree_h))
+    !set H0_h_nk and gmnvkq_h  
     if(nhfre_sh == 0 .or. nhfre_sh > nhfre) nhfre_sh = nhfre
   endif
   
   deallocate(gmnvkq)
-  deallocate(epmatq)
   
-  call allocatesh(methodsh,lelecsh,lholesh,nk_sub,nmodes,nq_sub)
+  call allocatesh(methodsh,lelecsh,lholesh,nmodes,nqtotf)
   
   if(trim(calculation) == "lvcsh") then
   
     ! set the friction coefficient of Langevin dynamica of all phonon modes.
-    call set_gamma(nmodes,nq_sub,gamma,ld_fric,wf_sub,ld_gamma)
+    call set_gamma(nmodes,nqtotf,gamma,ld_fric,wf,ld_gamma)
     
-    if(llaser) call get_Wcvk(ihband_min,ieband_max,nk_sub,fwhm,w_laser)
+    if(llaser) call get_Wcvk(ihband_min,ieband_max,fwhm,w_laser)
     ! ref : https://journals.aps.org/prb/pdf/10.1103/PhysRevB.72.045314
     !get W_cvk(icband,ivband,ik)
     
@@ -175,46 +160,45 @@ program lvcsh
       !==================!
       
       !!Get the initial normal mode coordinate phQ and versity phP
-      call init_normalmode_coordinate_velocity(nmodes,nq_sub,wf_sub,temp,l_ph_quantum,phQ,phP)
+      call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,l_ph_quantum,phQ,phP)
       
       !应该先跑平衡后，再做电子空穴动力学计算   
-      call pre_md(nmodes,nq_sub,wf_sub,ld_gamma,temp,phQ,phP,l_ph_quantum,pre_dt)     
+      call pre_md(nmodes,nqtotf,wf,ld_gamma,temp,phQ,phP,l_ph_quantum,pre_dt)     
       
       
       !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband(in the diabatic states)
-      call init_eh_KSstat(lelecsh,lholesh,llaser,nk_sub,init_ik,init_eband,init_hband,init_e_en,init_h_en)
+      call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband,init_e_en,init_h_en)
       
       
       if(lelecsh) then
-        call set_H_nk(neband,nk_sub,nmodes,nq_sub,phQ,gmnvkq_e,H0_e_nk,H_e_nk)
+        call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ,gmnvkq_e,H0_e_nk,H_e_nk)
         H_e = reshape(H_e_nk,(/ nefre,nefre /))
         call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
-        P_e_nk = reshape(P_e,(/ neband,nk_sub,nefre /))
+        P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
         
         call init_stat_adiabatic(nefre,E_e,nefre_sh,init_e_en,iesurface)
         w_e = czero
         w_e(iesurface) = cone
         call convert_adiabatic_diabatic(nefre,P_e,w_e,c_e)
-        c_e_nk = reshape(c_e,(/ neband,nk_sub /))
+        c_e_nk = reshape(c_e,(/ neband,nktotf /))
   
-        call calculate_nonadiabatic_coupling(nmodes,nq_sub,neband,nk_sub,E_e,P_e_nk,gmnvkq_e,nefre_sh,d_e)
-        !call calculate_nonadiabatic_coupling_(nmodes,nq_sub,neband,nk_sub,E_e,P_e_nk,gnzfree_e,gijk_e,nefre_sh,d_e)
+        call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,E_e,P_e_nk,gmnvkq_e,lit_gmnvkq,nefre_sh,d_e)
         E0_e = E_e;P0_e=P_e;P0_e_nk=P_e_nk;d0_e=d_e;w0_e=w_e
       endif
       
       if(lholesh) then
-        call set_H_nk(nhband,nk_sub,nmodes,nq_sub,phQ,gmnvkq_h,H0_h_nk,H_h_nk)
+        call set_H_nk(nhband,nktotf,nmodes,nqtotf,phQ,gmnvkq_h,H0_h_nk,H_h_nk)
         H_h = reshape(H_h_nk,(/ nhfre,nhfre /))    
         call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
-        P_h_nk = reshape(P_h,(/ nhband,nk_sub,nhfre /))
+        P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
         
         call init_stat_adiabatic(nhfre,E_h,nhfre_sh,init_h_en,ihsurface)
         w_h = czero
         w_h(ihsurface) = cone
         call convert_adiabatic_diabatic(nefre,P_h,w_h,c_h)      
-        c_h_nk = reshape(c_h,(/ nhband,nk_sub /))
+        c_h_nk = reshape(c_h,(/ nhband,nktotf /))
         
-        call calculate_nonadiabatic_coupling(nmodes,nq_sub,nhband,nk_sub,E_h,P_h_nk,gmnvkq_h,nhfre_sh,d_h)
+        call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,E_h,P_h_nk,gmnvkq_h,lit_gmnvkq,nhfre_sh,d_h)
         E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
       endif
   
@@ -222,7 +206,7 @@ program lvcsh
       phQ0=phQ; phP0=phP 
       
       
-      call write_initial_information(iaver,nmodes,nq_sub,wf_sub,phQ,phP)
+      call write_initial_information(iaver,nmodes,nqtotf,wf,phQ,phP)
       
       !=======================!
       != loop over snapshots =!
@@ -240,11 +224,11 @@ program lvcsh
           !dEa_dQ in time t0
           if(l_dEa_dQ) then
             if(lelecsh) then
-              call get_dEa_dQ(nmodes,nq_sub,neband,nk_sub,P0_e_nk,gmnvkq_e,iesurface,dEa_dQ_e)
+              call get_dEa_dQ(nmodes,nqtotf,neband,nktotf,P0_e_nk,gmnvkq_e,lit_gmnvkq,iesurface,dEa_dQ_e)
               dEa_dQ = dEa_dQ + dEa_dQ_e
             endif
             if(lholesh) then
-              call get_dEa_dQ(nmodes,nq_sub,nhband,nk_sub,P0_h_nk,gmnvkq_h,ihsurface,dEa_dQ_h)
+              call get_dEa_dQ(nmodes,nqtotf,nhband,nktotf,P0_h_nk,gmnvkq_h,lit_gmnvkq,ihsurface,dEa_dQ_h)
               dEa_dQ = dEa_dQ + dEa_dQ_h
             endif
           endif
@@ -254,7 +238,7 @@ program lvcsh
           !==============================!        
           !use rk4 to calculate the dynamical of phonon normal modes
           !update phQ,phP to time t0+dt
-          call rk4_nuclei(nmodes,nq_sub,dEa_dQ,ld_gamma,wf_sub,phQ,phP,dt)
+          call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,dt)
           
           
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
@@ -264,24 +248,24 @@ program lvcsh
         
             !electron wave function is propagated in diabatic representation
             !hamiltonian in time t0
-            call set_H_nk(neband,nk_sub,nmodes,nq_sub,phQ0,gmnvkq_e,H0_e_nk,H_e_nk)
+            call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ0,gmnvkq_e,H0_e_nk,H_e_nk)
             H_e = reshape(H_e_nk,(/ nefre,nefre /))
             !update c_e to time t0+dt
             call rk4_electron_diabatic(nefre,H_e,c_e,cc0_e,dc1_e,dc2_e,dc3_e,dc4_e,dt)
           
             
             ! update H_nk in time t0+dt
-            call set_H_nk(neband,nk_sub,nmodes,nq_sub,phQ,gmnvkq_e,H0_e_nk,H_e_nk)
+            call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ,gmnvkq_e,H0_e_nk,H_e_nk)
             H_e = reshape(H_e_nk,(/ nefre,nefre /))          
             ! update E_e,P_e to time t0+dt
             call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
             !call resort_eigen_energy_stat(nefre,E_e,P_e,E_e_eq,P_e_eq)
             if(lsortpes) call resort_eigen_energy_stat(nefre,E_e,P_e,E0_e,P0_e,mix_thr)
-            P_e_nk = reshape(P_e,(/ neband,nk_sub,nefre /))
+            P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
             
             ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
             ! update d_e in time t0+dt
-            call calculate_nonadiabatic_coupling(nmodes,nq_sub,neband,nk_sub,E_e,p_e,gmnvkq_e,nefre_sh,d_e)
+            call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,E_e,p_e,gmnvkq_e,lit_gmnvkq,nefre_sh,d_e)
             
     
             ! use p_e in time t0+dt, to convert c_e(t0+dt) to w_e(t0+dt) 
@@ -295,7 +279,7 @@ program lvcsh
               
               
             ! use FSSH calculation hopping probability in adiabatic representation,get g_e,g1_e
-            call calculate_hopping_probability(iesurface,nefre,nefre_sh,nmodes,nq_sub,w0_e,phP0,d0_e,dt,g_e,g1_e)          
+            call calculate_hopping_probability(iesurface,nefre,nefre_sh,nmodes,nqtotf,w0_e,phP0,d0_e,dt,g_e,g1_e)          
             
             !dealwith trilvial crossing,by fixed ge
             if(methodsh == "SC-FSSH") then
@@ -310,11 +294,11 @@ program lvcsh
             !% change potential energy surface %!
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!          
             if(methodsh == "FSSH") then
-              call nonadiabatic_transition_fssh(lfeedback,nefre,nefre_sh,nq_sub,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)
+              call nonadiabatic_transition_fssh(lfeedback,nefre,nefre_sh,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)
             elseif( methodsh == "SC-FSSH") then
-              call nonadiabatic_transition_scfssh(lfeedback,nefre,nefre_sh,nq_sub,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)              
+              call nonadiabatic_transition_scfssh(lfeedback,nefre,nefre_sh,nqtotf,nmodes,iesurface,E0_e,P0_e,d0_e,g_e,phP)              
             elseif(methodsh == "CC-FSSH") then
-              call nonadiabatic_transition_ccfssh(lfeedback,nefre,nefre_sh,nq_sub,nmodes,iesurface,iesurface_j,&
+              call nonadiabatic_transition_ccfssh(lfeedback,nefre,nefre_sh,nqtotf,nmodes,iesurface,iesurface_j,&
                   &esurface_type,E0_e,P0_e,P_e,d0_e,S_bi_e,g_e,phP)
             endif
             
@@ -324,24 +308,24 @@ program lvcsh
             
             !hole wave function is propagated in diabatic representation
             !hamiltonian in time t0
-            call set_H_nk(nhband,nk_sub,nmodes,nq_sub,phQ0,gmnvkq_h,H0_h_nk,H_h_nk)
+            call set_H_nk(nhband,nktotf,nmodes,nqtotf,phQ0,gmnvkq_h,H0_h_nk,H_h_nk)
             H_h = reshape(H_h_nk,(/ nhfre,nhfre /))
             !update c_h to time t0+dt
             call rk4_electron_diabatic(nhfre,H_h,c_h,cc0_h,dc1_h,dc2_h,dc3_h,dc4_h,dt)        
             
             
             ! update H_nk in time t0+dt
-            call set_H_nk(nhband,nk_sub,nmodes,nq_sub,phQ,gmnvkq_h,H0_h_nk,H_h_nk)
+            call set_H_nk(nhband,nktotf,nmodes,nqtotf,phQ,gmnvkq_h,H0_h_nk,H_h_nk)
             H_h = reshape(H_h_nk,(/ nhfre,nhfre /))          
             ! update E_h,P_h in time t0+dt
             call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
             !call resort_eigen_energy_stat(nhfre,E_h,P_h,E_h_eq,P_h_eq)
             if(lsortpes) call resort_eigen_energy_stat(nhfre,E_h,P_h,E0_h,P0_h,mix_thr)
-            P_h_nk = reshape(P_h,(/ nhband,nk_sub,nhfre /))
+            P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
             
             ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
             ! update d_h in time t0+dt
-            call calculate_nonadiabatic_coupling(nmodes,nq_sub,nhband,nk_sub,E_h,p_h,gmnvkq_h,nhfre_sh,d_h)          
+            call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,E_h,p_h,gmnvkq_h,lit_gmnvkq,nhfre_sh,d_h)          
   
             
             ! use p_h in time t0+dt, to convert c_h(t0+dt) to w_h(t0+dt) 
@@ -353,7 +337,7 @@ program lvcsh
               
   
             ! use FSSH calculation hopping probability in adiabatic representation
-            call calculate_hopping_probability(ihsurface,nhfre,nhfre_sh,nmodes,nq_sub,w0_h,phP0,d0_h,dt,g_h,g1_h)          
+            call calculate_hopping_probability(ihsurface,nhfre,nhfre_sh,nmodes,nqtotf,w0_h,phP0,d0_h,dt,g_h,g1_h)          
             
             !dealwith trilvial crossing,fixed ge
             if(methodsh == "SC-FSSH") then
@@ -368,11 +352,11 @@ program lvcsh
             !% change potential energy surface %!
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!          
             if(methodsh == "FSSH") then
-              call nonadiabatic_transition_fssh(lfeedback,nhfre,nhfre_sh,nq_sub,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)
+              call nonadiabatic_transition_fssh(lfeedback,nhfre,nhfre_sh,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)
             elseif( methodsh == "SC-FSSH") then
-              call nonadiabatic_transition_scfssh(lfeedback,nhfre,nhfre_sh,nq_sub,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)              
+              call nonadiabatic_transition_scfssh(lfeedback,nhfre,nhfre_sh,nqtotf,nmodes,ihsurface,E0_h,P0_h,d0_h,g_h,phP)              
             elseif(methodsh == "CC-FSSH") then
-              call nonadiabatic_transition_ccfssh(lfeedback,nhfre,nhfre_sh,nq_sub,nmodes,ihsurface,ihsurface_j,&
+              call nonadiabatic_transition_ccfssh(lfeedback,nhfre,nhfre_sh,nqtotf,nmodes,ihsurface,ihsurface_j,&
                   &hsurface_type,E0_h,P0_h,P_h,d0_h,S_bi_h,g_h,phP)
             endif          
             
@@ -386,11 +370,11 @@ program lvcsh
           !dEa2_dQ2 in time t0
           if(l_dEa2_dQ2) then
             if(lelecsh) then
-              call get_dEa2_dQ2(nmodes,nq_sub,nefre,nefre_sh,iesurface,E0_e,d0_e,dEa2_dQ2_e)
+              call get_dEa2_dQ2(nmodes,nqtotf,nefre,nefre_sh,iesurface,E0_e,d0_e,dEa2_dQ2_e)
               dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_e
             endif
             if(lholesh) then
-              call get_dEa2_dQ2(nmodes,nq_sub,nhfre,nhfre_sh,ihsurface,E0_h,d0_h,dEa2_dQ2_h)
+              call get_dEa2_dQ2(nmodes,nqtotf,nhfre,nhfre_sh,ihsurface,E0_h,d0_h,dEa2_dQ2_h)
               dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_h
             endif
           endif
@@ -398,7 +382,7 @@ program lvcsh
           !===================!
           != add bath effect =!
           !===================!  
-          call add_bath_effect(nmodes,nq_sub,wf_sub,ld_gamma,temp,dEa2_dQ2,dt,l_ph_quantum,phQ,phP)
+          call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,dt,l_ph_quantum,phQ,phP)
   
   
           !============================!
@@ -417,7 +401,7 @@ program lvcsh
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
           !% Write non-adiabatic dynamica energy information every step       %!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-          phU = 0.5*(wf_sub**2)*(phQ*CONJG(phQ))
+          phU = 0.5*(wf**2)*(phQ*CONJG(phQ))
           phK = 0.5*phP*CONJG(phP)        
           SUM_phK = SUM(phK)
           SUM_phU = SUM(phU)
@@ -460,7 +444,7 @@ program lvcsh
         !=====================!
         != store information =!
         !=====================!    
-        do iq=1,nq_sub
+        do iq=1,nqtotf
           do imode=1,nmodes
             phQsit(imode,iq,isnap) = phQsit(imode,iq,isnap)+phQ(imode,iq)
             phPsit(imode,iq,isnap) = phPsit(imode,iq,isnap)+phP(imode,iq)
@@ -526,17 +510,17 @@ program lvcsh
     !====================!
     != save information =!
     !====================!
-    call save_phQ(nmodes,nq_sub,nsnap,phQsit)
-    call save_phP(nmodes,nq_sub,nsnap,phPsit)
-    call save_phK(nmodes,nq_sub,nsnap,phKsit)
-    call save_phU(nmodes,nq_sub,nsnap,phUsit)
+    call save_phQ(nmodes,nqtotf,nsnap,phQsit)
+    call save_phP(nmodes,nqtotf,nsnap,phPsit)
+    call save_phK(nmodes,nqtotf,nsnap,phKsit)
+    call save_phU(nmodes,nqtotf,nsnap,phUsit)
     
     if(lelecsh) then
       call save_pes(nefre,nsnap,naver,pes_one_e,pes_e,pes_e_file)
       call save_csit(nefre,nsnap,naver,csit_e,csit_e_file)
       call save_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
       call save_psit(nefre,nsnap,naver,psit_e,psit_e_file)
-      call plot_band_occupatin_withtime(neband,nk_sub,Enk_e,nsnap,psit_e,csit_e,savedsnap,band_e_file)
+      call plot_band_occupatin_withtime(neband,nktotf,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,band_e_file)
     endif
     
     if(lholesh) then
@@ -544,7 +528,7 @@ program lvcsh
       call save_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
       call save_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
       call save_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
-      call plot_band_occupatin_withtime(nhband,nk_sub,Enk_h,nsnap,psit_h,csit_h,savedsnap,band_h_file)
+      call plot_band_occupatin_withtime(nhband,nktotf,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,band_h_file)
     endif
   
   
@@ -561,10 +545,10 @@ program lvcsh
     do inode=1,nnode
       write(stdout,"(A,I4)") "Read information in node:",inode
       do icore=1,ncore
-        call read_phQ(inode,icore,nmodes,nq_sub,nsnap,phQsit)
-        call read_phP(inode,icore,nmodes,nq_sub,nsnap,phPsit)
-        call read_phK(inode,icore,nmodes,nq_sub,nsnap,phKsit)
-        call read_phU(inode,icore,nmodes,nq_sub,nsnap,phUsit)
+        call read_phQ(inode,icore,nmodes,nqtotf,nsnap,phQsit)
+        call read_phP(inode,icore,nmodes,nqtotf,nsnap,phPsit)
+        call read_phK(inode,icore,nmodes,nqtotf,nsnap,phKsit)
+        call read_phU(inode,icore,nmodes,nqtotf,nsnap,phUsit)
         
         if(lelecsh) then
           call read_pes( inode,icore,nefre,nsnap,naver,pes_one_e,pes_e,pes_e_file)
@@ -606,34 +590,34 @@ program lvcsh
   
 
     !!plot !!!!  
-    call plot_phQ(nmodes,nq_sub,nsnap,phQsit)
-    call plot_phP(nmodes,nq_sub,nsnap,phPsit)
-    call plot_phK(nmodes,nq_sub,nsnap,phKsit)
-    call plot_phU(nmodes,nq_sub,nsnap,phUsit)
-    call plot_ph_temp(nmodes,nq_sub,nsnap,phKsit,phUsit)
+    call plot_phQ(nmodes,nqtotf,nsnap,phQsit)
+    call plot_phP(nmodes,nqtotf,nsnap,phPsit)
+    call plot_phK(nmodes,nqtotf,nsnap,phKsit)
+    call plot_phU(nmodes,nqtotf,nsnap,phUsit)
+    call plot_ph_temp(nmodes,nqtotf,nsnap,phKsit,phUsit)
     deallocate(phPsit,phQsit,phKsit,phUsit)
     
     
     if(lelecsh) then
       write(stdout,"(/,A)") "Plotting electron non-adiabatic dynamica Information."
-      call plot_pes(nefre,nefre_sh,nsnap,pes_one_e,pes_e,wsit_e,pes_e_file)
+      call plot_pes(nefre,nsnap,pes_one_e,pes_e,wsit_e,pes_e_file)
       call plot_csit(nefre,nsnap,naver,csit_e,csit_e_file)
-      call plot_wsit(nefre,nefre_sh,nsnap,naver,wsit_e,wsit_e_file)
+      call plot_wsit(nefre,nsnap,naver,wsit_e,wsit_e_file)
       call plot_psit(nefre,nsnap,naver,psit_e,psit_e_file)
-      call plot_band_occupatin_withtime(neband,nk_sub,Enk_e,nsnap,psit_e,csit_e,savedsnap,band_e_file)
-      call plot_eh_temp(neband,nk_sub,Enk_e,nsnap,psit_e,csit_e,savedsnap,e_temp_file)
+      call plot_band_occupatin_withtime(neband,nktotf,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,band_e_file)
+      call plot_eh_temp(neband,nktotf,Enk_e,xkf,nsnap,psit_e,csit_e,savedsnap,e_temp_file)
       deallocate(pes_e,pes_one_e,csit_e,wsit_e,psit_e)
       
     endif
     
     if(lholesh) then
       write(stdout,"(/,A)") "Plotting hole non-adiabatic dynamica Information."
-      call plot_pes(nhfre,nhfre_sh,nsnap,pes_one_h,pes_h,wsit_h,pes_h_file)
+      call plot_pes(nhfre,nsnap,pes_one_h,pes_h,wsit_h,pes_h_file)
       call plot_csit(nhfre,nsnap,naver,csit_h,csit_h_file)
-      call plot_wsit(nhfre,nhfre_sh,nsnap,naver,wsit_h,wsit_h_file)
+      call plot_wsit(nhfre,nsnap,naver,wsit_h,wsit_h_file)
       call plot_psit(nhfre,nsnap,naver,psit_h,psit_h_file)
-      call plot_band_occupatin_withtime(nhband,nk_sub,Enk_h,nsnap,psit_h,csit_h,savedsnap,band_h_file)
-      call plot_eh_temp(nhband,nk_sub,Enk_h,nsnap,psit_h,csit_h,savedsnap,h_temp_file)
+      call plot_band_occupatin_withtime(nhband,nktotf,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,band_h_file)
+      call plot_eh_temp(nhband,nktotf,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,h_temp_file)
       deallocate(pes_h,pes_one_h,csit_h,wsit_h,psit_h)
     endif
     
