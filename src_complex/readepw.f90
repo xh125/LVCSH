@@ -126,7 +126,7 @@ module readepw
     !logical :: eig_read,epbread,epbwrite,efermi_read
     LOGICAL :: already_skipped
     !! Skipping band during the Wannierization
-    integer :: nbndskip
+    integer :: nbndskip = 0
     logical :: wannierize
 		
     integer :: itmp,count_piv_spin
@@ -802,8 +802,8 @@ module readepw
     !read(unitepwout,"(27X,3i4)") nqf1,nqf2,nqf3
     !!! qx,qy,qz sizes of the uniform phonon fine mesh to be used
     !nqtotf = nqf1 * nqf2 * nqf3
-    write(stdout,"(5X,A,I12)") "Total number of the uniform phonon fine mesh to be used(nqtotf) = ",&
-                               nqtotf
+    write(stdout,"(5X,A,I12)") & 
+    "Total number of the uniform phonon fine mesh to be used(nqtotf) = ",nqtotf
     
     !  total number of q points (fine grid)
     if(.not. allocated(xqf)) then 
@@ -887,8 +887,8 @@ module readepw
 		endif
     
     !read(unitepwout,"(27X,3i4)") nkf1,nkf2,nkf3
-    write(stdout,"(5X,A,I12)") "Total number of K-point in fine mesh to be used(nktotf)         = ",&
-                               nktotf    
+    write(stdout,"(5X,A,I12)") &
+    "Total number of K-point in fine mesh to be used(nktotf)         = ",nktotf    
     
     
     if(allocated(xkf)) deallocate(xkf) 
@@ -981,10 +981,6 @@ module readepw
     ef = ef /ryd2ev
 		WRITE(stdout,'(/5x,a,f10.6,a)') 'Fermi energy coarse grid = ', ef * ryd2ev, ' eV'    
 		
-    !if(nelec == 0.0 .and. ieband_max==0 .and. ihband_min==0) then
-    !  write(stdout,"(5X,A,F8.4,A)") "WARNING! The nelec =",nelec,"and ieband_max=0 ihband_min=0"
-    !  write(stdout,"(5X,A)") "Need to set nelec right in LVCSH.in .OR. set lreadscfout= .true."
-    !endif
     
     !IF (efermi_read) THEN
     read(unitepwout,"(/5X,A)") ctmp
@@ -1015,7 +1011,7 @@ module readepw
         ENDIF
       ENDIF
     !elseif(band_plot) then
-    elseif(ctmp(1:)=="Fermi energy corresponds to the coarse k-mesh") then
+    elseif(ctmp(1:45)=="Fermi energy corresponds to the coarse k-mesh") then
       read(unitepwout,"(/5X,A)") ctmp
     else
       backspace(unitepwout)
