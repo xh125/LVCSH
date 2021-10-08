@@ -27,12 +27,11 @@ module dynamics
     
   end subroutine
   
-  subroutine get_dEa_dQ(nmodes,nq,nband,nk,P_nk,gmnvkq,lit_gmnvkq,isurface,dEa_dQ)
+  subroutine get_dEa_dQ(nmodes,nq,nband,nk,P_nk,gmnvkq,isurface,dEa_dQ)
     use elph2,only : iminusq
     implicit none
     integer,intent(in) :: nmodes,nq,nband,nk
     integer,intent(in) :: isurface
-    real(kind=dp),intent(in)      :: lit_gmnvkq
     complex(kind=dpc),intent(in)  :: P_nk(nband,nk,nband*nk)
     complex(kind=dpc),intent(in)  :: gmnvkq(nband,nband,nmodes,nk,nq)
     complex(kind=dpc),intent(out) :: dEa_dQ(nmodes,nq)
@@ -48,33 +47,18 @@ module dynamics
       do imode=1,nmodes
         do ik=1,nk
           ikq = kqmap(ik,iq)
-          do iband1=1,nband
-            do iband2=1,nband
+          do iband1=1,nband ! m
+            do iband2=1,nband  ! n
               epc = gmnvkq(iband1,iband2,imode,ik,iq)
               if(epc /= czero) then
                 dEa_dQ(imode,iminusq(iq)) = dEa_dQ(imode,iminusq(iq)) + &
-                epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)                 
-                !dEa_dQ(imode,iq) = dEa_dQ(imode,iq) + &
-                !epc*CONJG(P_nk(iband1,ik,isurface))*P_nk(iband2,ikq,isurface)       
+                epc*CONJG(P_nk(iband1,ikq,isurface))*P_nk(iband2,ik,isurface)                      
               endif
             enddo
           enddo
         enddo
       enddo
     enddo
-    
-    !!testing if dEa_dQ(nu,q)=dEa_dQ(nu,-q)*
-    !do iq=1,nq
-    !  do imode =1,nmodes
-    !    cmp_tmp1 = dEa_dQ(imode,iq)
-    !    cmp_tmp2 = dEa_dQ(imode,iminusq(iq))
-    !    if (cmp_tmp1 /= CONJG(cmp_tmp2)) then
-    !      ltmp = .false.
-    !    endif
-    !  enddo
-    !enddo
-          
-    
     
   end subroutine get_dEa_dQ
   
@@ -235,7 +219,7 @@ module dynamics
     integer,intent(in) :: nmodes,nq,nfre,nfre_sh
     integer,intent(in) :: isurface
     real(kind=dp),intent(in)  :: EE(nfre)
-    complex(kind=dpc),intent(in)  :: dd(nfre_sh,nfre_sh,nmodes,nq)
+    complex(kind=dpc),intent(in)  :: dd(nfre_sh,nmodes,nq)
     real(kind=dp),intent(out) :: dEa2_dQ2(nmodes,nq)
     
     integer :: iq,imode,ifre
@@ -246,13 +230,9 @@ module dynamics
     do iq=1,nq
       do imode=1,nmodes
         do ifre=1,nfre_sh
-          if(ifre /= isurface) then
-            !dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + &
-            !(EE(isurface)-EE(ifre))*(DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iq)+&
-            !                        (DD(isurface,ifre,imode,iq)*DD(ifre,isurface,imode,iq)))            
+          if(ifre /= isurface) then         
             dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + &
-            (EE(isurface)-EE(ifre))*(DD(ifre,isurface,imode,iq)*DD(isurface,ifre,imode,iminusq(iq))+&
-                                    (DD(isurface,ifre,imode,iq)*DD(ifre,isurface,imode,iminusq(iq))))
+            (EE(isurface)-EE(ifre))*(DD(ifre,imode,iq)*CONJG(DD(ifre,imode,iq)))*2.0
           endif
         enddo
       enddo

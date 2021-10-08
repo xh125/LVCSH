@@ -351,6 +351,7 @@ make epw
      tr2_ph   = 1.0d-16,
      prefix   = 'carbyne',
      outdir   = './'
+     lraman   = .true.
    ! epsil    = .true. !use for insulators
      ldisp    = .true.
      nq1      = 40

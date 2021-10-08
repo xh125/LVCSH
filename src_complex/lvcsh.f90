@@ -16,11 +16,11 @@ program lvcsh
   !============================================================================!
   != materials interaction with environment by system-bath interactions       =!     
   !============================================================================!
-  != Last updata 2021-09.13 Version:0.6.6                                     =!   
+  != Last updata 2021-10.08 Version:0.8.1                                     =!   
   != Developed by XieHua at department of physic, USTC;xh125@mail.ustc.edu.cn =!
   !============================================================================!
   !! Author: HuaXie                                                           =!
-  !! Version: v0.6.6                                                          =!
+  !! Version: v0.8.1                                                          =!
   !! License: GNU                                                             =!
   !!===========================================================================!
   use mkl_service
@@ -182,7 +182,7 @@ program lvcsh
         call convert_adiabatic_diabatic(nefre,P_e,w_e,c_e)
         c_e_nk = reshape(c_e,(/ neband,nktotf /))
   
-        call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,E_e,P_e_nk,gmnvkq_e,lit_gmnvkq,nefre_sh,d_e)
+        call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,E_e,P_e_nk,gmnvkq_e,nefre_sh,iesurface,d_e)
         E0_e = E_e;P0_e=P_e;P0_e_nk=P_e_nk;d0_e=d_e;w0_e=w_e
       endif
       
@@ -195,10 +195,10 @@ program lvcsh
         call init_stat_adiabatic(nhfre,E_h,nhfre_sh,init_h_en,ihsurface)
         w_h = czero
         w_h(ihsurface) = cone
-        call convert_adiabatic_diabatic(nefre,P_h,w_h,c_h)      
+        call convert_adiabatic_diabatic(nhfre,P_h,w_h,c_h)      
         c_h_nk = reshape(c_h,(/ nhband,nktotf /))
         
-        call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,E_h,P_h_nk,gmnvkq_h,lit_gmnvkq,nhfre_sh,d_h)
+        call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,E_h,P_h_nk,gmnvkq_h,nhfre_sh,ihsurface,d_h)
         E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
       endif
   
@@ -224,11 +224,11 @@ program lvcsh
           !dEa_dQ in time t0
           if(l_dEa_dQ) then
             if(lelecsh) then
-              call get_dEa_dQ(nmodes,nqtotf,neband,nktotf,P0_e_nk,gmnvkq_e,lit_gmnvkq,iesurface,dEa_dQ_e)
+              call get_dEa_dQ(nmodes,nqtotf,neband,nktotf,P0_e_nk,gmnvkq_e,iesurface,dEa_dQ_e)
               dEa_dQ = dEa_dQ + dEa_dQ_e
             endif
             if(lholesh) then
-              call get_dEa_dQ(nmodes,nqtotf,nhband,nktotf,P0_h_nk,gmnvkq_h,lit_gmnvkq,ihsurface,dEa_dQ_h)
+              call get_dEa_dQ(nmodes,nqtotf,nhband,nktotf,P0_h_nk,gmnvkq_h,ihsurface,dEa_dQ_h)
               dEa_dQ = dEa_dQ + dEa_dQ_h
             endif
           endif
@@ -265,7 +265,7 @@ program lvcsh
             
             ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
             ! update d_e in time t0+dt
-            call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,E_e,p_e,gmnvkq_e,lit_gmnvkq,nefre_sh,d_e)
+            call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,E_e,p_e,gmnvkq_e,nefre_sh,iesurface,d_e)
             
     
             ! use p_e in time t0+dt, to convert c_e(t0+dt) to w_e(t0+dt) 
@@ -325,7 +325,7 @@ program lvcsh
             
             ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
             ! update d_h in time t0+dt
-            call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,E_h,p_h,gmnvkq_h,lit_gmnvkq,nhfre_sh,d_h)          
+            call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,E_h,p_h,gmnvkq_h,nhfre_sh,ihsurface,d_h)          
   
             
             ! use p_h in time t0+dt, to convert c_h(t0+dt) to w_h(t0+dt) 

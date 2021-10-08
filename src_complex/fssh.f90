@@ -13,7 +13,7 @@ module fssh
     integer , intent(inout)  :: isurface
     real(kind=dp),intent(in) :: EE(nfre)
     complex(kind=dpc),intent(in) :: P(nfre,nfre)
-    complex(kind=dpc),intent(in) :: DD(nfre_sh,nfre_sh,nmodes,nq)
+    complex(kind=dpc),intent(in) :: DD(nfre_sh,nmodes,nq)
     real(kind=dp),intent(in) :: GG(nfre_sh)
     complex(kind=dp),intent(inout) :: VV(nmodes,nq)
     
@@ -37,8 +37,8 @@ module fssh
           sumdd = 0.0
           do iq=1,nq
             do imode=1,nmodes
-              sumvd = sumvd + REAL(CONJG(VV(imode,iq))*DD(isurface,ifre,imode,iq)) ! A
-              sumdd = sumdd + ABS(DD(isurface,ifre,imode,iq))**2  ! B                   
+              sumvd = sumvd + REAL(CONJG(VV(imode,iq))*DD(ifre,imode,iq)) ! A
+              sumdd = sumdd + ABS(DD(ifre,imode,iq))**2  ! B                   
             enddo
           enddo
           detaE = EE(isurface)-EE(ifre) !C
@@ -51,7 +51,7 @@ module fssh
             flagd = (sumvd/sumdd)*(-1.0+dsqrt(flagd))  ! effective scratting time
             do iq=1,nq
               do imode=1,nmodes
-                if(lfeedback) VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
+                if(lfeedback) VV(imode,iq) = VV(imode,iq) + flagd*dd(ifre,imode,iq)
               enddo
             enddo
             isurface = ifre          

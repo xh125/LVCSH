@@ -89,9 +89,9 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e_nk',1)
       allocate(P0_e_nk(neband,nktotf,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_e_nk',1)			
-      allocate(d_e(nefre_sh,nefre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ijk
+      allocate(d_e(nefre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ajk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_e',1)
-			ram=real_size*nmodes*nq*nefre_sh*nefre_sh
+			ram=real_size*nmodes*nq*nefre_sh
 			call print_memory("d_e",ram)
       allocate(dEa_dQ_e(nmodes,nq))
       allocate(dEa2_dQ2_e(nmodes,nq))
@@ -147,7 +147,7 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating E0_e',1)
       allocate(P0_e(nefre,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_e',1)
-      allocate(d0_e(nefre_sh,nefre_sh,nmodes,nq),stat=ierr,errmsg=msg)
+      allocate(d0_e(nefre_sh,nmodes,nq),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating d0_e',1)
       
       if(methodsh == "CC-FSSH") then
@@ -166,9 +166,9 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h_nk',1)
       allocate(P0_h_nk(nhband,nktotf,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h_nk',1)			
-      allocate(d_h(nhfre_sh,nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ijk
+      allocate(d_h(nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ajk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_h',1)
-			ram=real_size*nmodes*nq*nhfre_sh*nhfre_sh
+			ram=real_size*nmodes*nq*nhfre_sh
 			call print_memory("d_h",ram)
       allocate(dEa_dQ_h(nmodes,nq))
       allocate(dEa2_dQ2_h(nmodes,nq))
@@ -223,7 +223,7 @@ module surfacehopping
       
       allocate(P0_h(nhfre,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h',1)
-      allocate(d0_h(nhfre_sh,nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg)
+      allocate(d0_h(nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating d0_h',1)
       
       if(methodsh == "CC-FSSH") then
@@ -347,18 +347,17 @@ module surfacehopping
   !==================================================================!
   ! ref : PPT-91
   ! The most time-consuming part of the program
-  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,ee,p_nk,gmnvkq,lit_gmnvkq,nfre_sh,dd)
+  subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,ee,p_nk,gmnvkq,nfre_sh,isurface,dd)
     use kinds,only :  dp
     implicit none
-    integer, intent(in)          :: nmodes,nq,nband,nk,nfre_sh
+    integer, intent(in)          :: nmodes,nq,nband,nk,nfre_sh,isurface
     real(kind=dp),intent(in)     :: ee(nband*nk)
     complex(kind=dpc),intent(in) :: p_nk(nband,nk,nband*nk)
-		real(kind=dp),intent(in)     :: lit_gmnvkq
     complex(kind=dpc),intent(in) :: gmnvkq(nband,nband,nmodes,nk,nq)    
-    complex(kind=dpc),intent(out):: dd(nfre_sh,nfre_sh,nmodes,nq)
+    complex(kind=dpc),intent(out):: dd(nfre_sh,nmodes,nq)
     
-		integer :: nfre,ifre,jfre,iq,imode ,igfre
-    integer :: ik,ikq,iband1,iband2
+		integer :: nfre,ifre,iq,imode
+    integer :: ik,ikq,m,n
 		complex(kind=dpc) :: epc
     
     !nfre = nband*nk
@@ -369,15 +368,12 @@ module surfacehopping
       do ik =1 ,nk
         ikq = kqmap(ik,iq)
         do imode=1,nmodes
-          do iband1=1,nband
-            do iband2=1,nband
-              epc = gmnvkq(iband1,iband2,imode,ik,iq)
+          do m=1,nband ! m
+            do n=1,nband ! n
+              epc = gmnvkq(m,n,imode,ik,iq)
               if(epc /= czero) then
-                do ifre=1,nfre
-                  do jfre=1,nfre                    
-                    dd(ifre,jfre,imode,iq) = dd(ifre,jfre,imode,iq)+&
-                    &epc*CONJG(p_nk(iband1,ik,ifre))*p_nk(iband2,ikq,jfre)
-                  enddo
+                do ifre=1,nfre                   
+                  dd(ifre,imode,iq) = dd(ifre,imode,iq)+epc*CONJG(p_nk(m,ikq,isurface))*p_nk(n,ik,ifre)
                 enddo
               endif
             enddo
@@ -387,15 +383,11 @@ module surfacehopping
     enddo
     
 		do ifre=1,nfre
-			do jfre=1,nfre
-        if(jfre/= ifre) then
-          dd(ifre,jfre,:,:) = dd(ifre,jfre,:,:)/(ee(jfre)-ee(ifre))
-        else
-          !dd(ifre,jfre,:,:) = czero
-        endif
-			enddo
+      if(ifre/= isurface) then
+        dd(ifre,:,:) = dd(ifre,:,:)/(ee(ifre)-ee(isurface))
+      endif
 		enddo
-    
+
   end subroutine calculate_nonadiabatic_coupling
   
   
@@ -422,7 +414,7 @@ module surfacehopping
     integer,intent(in)           :: isurface,nfre,nfre_sh,nmodes,nq
     complex(kind=dpc),intent(in) :: WW(nfre)
     complex(kind=dpc),intent(in) :: VV(nmodes,nq)
-    complex(kind=dpc),intent(in) :: dd(nfre_sh,nfre_sh,nmodes,nq)
+    complex(kind=dpc),intent(in) :: dd(nfre_sh,nmodes,nq)
     real(kind=dp),intent(in)     :: tt
     real(kind=dp),intent(out)    :: gg(nfre_sh)
     real(kind=dp),intent(out)    :: gg1(nfre_sh)
@@ -439,7 +431,7 @@ module surfacehopping
         sumvd = czero
         do iq=1,nq
           do imode=1,nmodes
-            sumvd = sumvd+VV(imode,iq)*dd(isurface,ifre,imode,iq)
+            sumvd = sumvd+VV(imode,iq)*dd(ifre,imode,iq)
           enddo
         enddo
         ! in adiabatic representation：the switching probabilities from the active surface isurface to another surface iefre 

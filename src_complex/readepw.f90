@@ -1082,17 +1082,9 @@ module readepw
     !WRITE(stdout, '(5x,"Applying a scissor shift of ",f9.5," eV to the CB ",i6)' ) scissor * ryd2ev, icbm
     if(ctmp(1:27)=="Applying a scissor shift of") then
       read(unitepwout,"(5X,28X,f9.5,14X,i6)") scissor,icbm
-      scissor = scissor/ryd2eV
-    else
-      IF (noncolin) THEN
-        icbm = FLOOR(nelec / 1.0d0) + 1
-      ELSE
-        icbm = FLOOR(nelec / 2.0d0) + 1
-      ENDIF      
+      scissor = scissor/ryd2eV   
     endif
-    
-    WRITE(stdout, '(/5x," icbm(conductor band mim) = ",i6)' ) icbm
-    WRITE(stdout, '(5x," ivbm(valence   band max) = ",i6)' ) icbm-1
+
     
     
     !
@@ -1320,7 +1312,8 @@ module readepw
     ecbmin = Minval(etf(ncbmin,:))
     WRITE(stdout,'(/14x,a,i5,2x,a,f9.3,a)') 'Valence band max   = ', nvbmax, 'evbmax = ', evbmax , ' eV'
     WRITE(stdout,'(14x,a,i5,2x,a,f9.3,a/)') 'Conductor band min = ', ncbmin, 'ecbmin = ', ecbmin , ' eV'    
-    if(icbm /= ncbmin) write(stdout,"(5X,A)") "Warning! The nelec need to be set right."
+    icbm = ncbmin
+    !if(icbm /= ncbmin) write(stdout,"(5X,A)") "Warning! The nelec need to be set right."
     
 		etf = etf/ryd2eV
     evbmax = evbmax/ryd2eV
