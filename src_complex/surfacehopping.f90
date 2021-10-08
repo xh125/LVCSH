@@ -9,7 +9,7 @@ module surfacehopping
   use parameters, only : nsnap,naver,ncore,nnode
   use surfacecom, only : iesurface,ihsurface,esurface_type,hsurface_type,&
                          phQ,phP,phQ0,phP0,phK,phU,SUM_phU,SUM_phK,SUM_phK0,SUM_phE,&
-                         phQsit,phPsit,phKsit,phUsit,ld_gamma,&
+                         phQsit,phPsit,phKsit,phUsit,ld_gamma,nqv,&
                          dEa_dQ,dEa_dQ_e,dEa_dQ_h,dEa2_dQ2,dEa2_dQ2_e,dEa2_dQ2_h,&
                          d_e,g_e,g1_e,c_e,c_e_nk,w_e,w0_e,d0_e,nefre_sh,&
                          d_h,g_h,g1_h,c_h,c_h_nk,w_h,w0_h,d0_h,nhfre_sh,&
@@ -37,6 +37,8 @@ module surfacehopping
     
     allocate(ld_gamma(nmodes,nq))
     ld_gamma = 0.0
+    allocate(nqv(nmodes,nq))
+    nqv = 0.0
     allocate(phQ(nmodes,nq),stat=ierr,errmsg=msg)  ! x(1:nphfre)
     if(ierr /=0) then
 			call errore('surfacehopping','Error allocating phQ',1)

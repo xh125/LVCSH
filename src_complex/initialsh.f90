@@ -255,7 +255,6 @@ module initialsh
     real(kind=dp) :: E_ph_class,E_ph_quantum
     integer :: iq,imode
     
-    allocate(nqv(nmodes,nq))
     nqv = 0.0
 
     do iq=1,nq
