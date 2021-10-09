@@ -91,9 +91,9 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating P_e_nk',1)
       allocate(P0_e_nk(neband,nktotf,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_e_nk',1)			
-      allocate(d_e(nefre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ajk
+      allocate(d_e(2,nefre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ajk,d_jak
       if(ierr /=0) call errore('surfacehopping','Error allocating d_e',1)
-			ram=real_size*nmodes*nq*nefre_sh
+			ram=real_size*nmodes*nq*nefre_sh*2
 			call print_memory("d_e",ram)
       allocate(dEa_dQ_e(nmodes,nq))
       allocate(dEa2_dQ2_e(nmodes,nq))
@@ -149,7 +149,7 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating E0_e',1)
       allocate(P0_e(nefre,nefre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_e',1)
-      allocate(d0_e(nefre_sh,nmodes,nq),stat=ierr,errmsg=msg)
+      allocate(d0_e(2,nefre_sh,nmodes,nq),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating d0_e',1)
       
       if(methodsh == "CC-FSSH") then
@@ -168,7 +168,7 @@ module surfacehopping
       if(ierr /=0) call errore('surfacehopping','Error allocating P_h_nk',1)
       allocate(P0_h_nk(nhband,nktotf,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h_nk',1)			
-      allocate(d_h(nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ajk
+      allocate(d_h(2,nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg) !d_ajk
       if(ierr /=0) call errore('surfacehopping','Error allocating d_h',1)
 			ram=real_size*nmodes*nq*nhfre_sh
 			call print_memory("d_h",ram)
@@ -225,7 +225,7 @@ module surfacehopping
       
       allocate(P0_h(nhfre,nhfre),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating P0_h',1)
-      allocate(d0_h(nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg)
+      allocate(d0_h(2,nhfre_sh,nmodes,nq),stat=ierr,errmsg=msg)
       if(ierr /=0) call errore('surfacehopping','Error allocating d0_h',1)
       
       if(methodsh == "CC-FSSH") then
@@ -356,7 +356,7 @@ module surfacehopping
     real(kind=dp),intent(in)     :: ee(nband*nk)
     complex(kind=dpc),intent(in) :: p_nk(nband,nk,nband*nk)
     complex(kind=dpc),intent(in) :: gmnvkq(nband,nband,nmodes,nk,nq)    
-    complex(kind=dpc),intent(out):: dd(nfre_sh,nmodes,nq)
+    complex(kind=dpc),intent(out):: dd(2,nfre_sh,nmodes,nq)
     
 		integer :: nfre,ifre,iq,imode
     integer :: ik,ikq,m,n
@@ -374,8 +374,11 @@ module surfacehopping
             do n=1,nband ! n
               epc = gmnvkq(m,n,imode,ik,iq)
               if(epc /= czero) then
-                do ifre=1,nfre                   
-                  dd(ifre,imode,iq) = dd(ifre,imode,iq)+epc*CONJG(p_nk(m,ikq,isurface))*p_nk(n,ik,ifre)
+                do ifre=1,nfre
+                  ! d_ajk
+                  dd(1,ifre,imode,iq) = dd(1,ifre,imode,iq)+epc*CONJG(p_nk(m,ikq,isurface))*p_nk(n,ik,ifre)
+                  ! d_jak
+                  dd(2,ifre,imode,iq) = dd(2,ifre,imode,iq)+epc*CONJG(p_nk(m,ikq,ifre))*p_nk(n,ik,isurface)
                 enddo
               endif
             enddo
@@ -386,7 +389,8 @@ module surfacehopping
     
 		do ifre=1,nfre
       if(ifre/= isurface) then
-        dd(ifre,:,:) = dd(ifre,:,:)/(ee(ifre)-ee(isurface))
+        dd(1,ifre,:,:) = dd(1,ifre,:,:)/(ee(ifre)-ee(isurface))
+        dd(2,ifre,:,:) = dd(2,ifre,:,:)/(ee(isurface)-ee(ifre))
       endif
 		enddo
 
@@ -416,7 +420,7 @@ module surfacehopping
     integer,intent(in)           :: isurface,nfre,nfre_sh,nmodes,nq
     complex(kind=dpc),intent(in) :: WW(nfre)
     complex(kind=dpc),intent(in) :: VV(nmodes,nq)
-    complex(kind=dpc),intent(in) :: dd(nfre_sh,nmodes,nq)
+    complex(kind=dpc),intent(in) :: dd(2,nfre_sh,nmodes,nq)
     real(kind=dp),intent(in)     :: tt
     real(kind=dp),intent(out)    :: gg(nfre_sh)
     real(kind=dp),intent(out)    :: gg1(nfre_sh)
@@ -433,7 +437,7 @@ module surfacehopping
         sumvd = czero
         do iq=1,nq
           do imode=1,nmodes
-            sumvd = sumvd+VV(imode,iq)*dd(ifre,imode,iq)
+            sumvd = sumvd+VV(imode,iq)*dd(1,ifre,imode,iq)
           enddo
         enddo
         ! in adiabatic representation：the switching probabilities from the active surface isurface to another surface iefre 

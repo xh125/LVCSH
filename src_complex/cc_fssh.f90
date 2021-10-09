@@ -87,7 +87,7 @@ module cc_fssh
     integer , intent(out)    :: surface_type
     real(kind=dp),intent(in) :: EE(nfre)
     complex(kind=dpc),intent(in) :: P(nfre,nfre),P0(nfre,nfre)
-    complex(kind=dpc),intent(in) :: DD(nfre_sh,nfre_sh,nmodes,nq)
+    complex(kind=dpc),intent(in) :: DD(2,nfre_sh,nmodes,nq)
     real(kind=dp),intent(out):: S_bi(nfre_sh)
     real(kind=dp),intent(in) :: GG(nfre_sh)
     complex(kind=dpc),intent(inout) :: VV(nmodes,nq)
@@ -138,8 +138,8 @@ module cc_fssh
           sumdd = 0.0
           do iq=1,nq
             do imode=1,nmodes
-              sumvd = sumvd + REAL(CONJG(VV(imode,iq))*DD(isurface,ifre,imode,iq)) ! A
-              sumdd = sumdd + ABS(DD(isurface,ifre,imode,iq))**2  ! B      
+              sumvd = sumvd + REAL(CONJG(VV(imode,iq))*DD(1,ifre,imode,iq)) ! A
+              sumdd = sumdd + ABS(DD(1,ifre,imode,iq))**2  ! B      
             enddo
           enddo
           detaE = EE(isurface_a)-EE(ifre) ! C
@@ -152,7 +152,7 @@ module cc_fssh
               flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
               do iq=1,nq
                 do imode=1,nmodes
-                  if(lfeedback) VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
+                  if(lfeedback) VV(imode,iq) = VV(imode,iq) + flagd*dd(1,ifre,imode,iq)
                 enddo
               enddo
               isurface = isurface_k
@@ -176,7 +176,7 @@ module cc_fssh
                 flagd = sumvd/sumdd*(-1.0+dsqrt(flagd))
                 do iq=1,nq
                   do imode=1,nmodes
-                    if(lfeedback) VV(imode,iq) = VV(imode,iq) + flagd*dd(isurface,ifre,imode,iq)
+                    if(lfeedback) VV(imode,iq) = VV(imode,iq) + flagd*dd(1,ifre,imode,iq)
                   enddo
                 enddo
                 isurface = isurface_k

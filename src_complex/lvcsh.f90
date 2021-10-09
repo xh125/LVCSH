@@ -80,7 +80,7 @@ program lvcsh
   use cell_base,only      : bg
   use date_and_times,only : get_date_and_time
   use io      ,only       : stdout,io_time,time1,time2,time_,msg,io_error
-  use dynamics,only       : set_gamma,get_dEa_dQ,get_dEa2_dQ2,rk4_nuclei,&
+  use dynamics,only       : set_gamma,get_dEa2_dQ2,rk4_nuclei,&
                             rk4_electron_diabatic,ADD_BATH_EFFECT,pre_md
   use memory_report,only  : MB,GB,complex_size,real_size,int_size,ram,&
                             print_memory  
@@ -183,6 +183,7 @@ program lvcsh
         c_e_nk = reshape(c_e,(/ neband,nktotf /))
   
         call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,E_e,P_e_nk,gmnvkq_e,nefre_sh,iesurface,d_e)
+        dEa_dQ_e = d_e(1,iesurface,:,:)
         E0_e = E_e;P0_e=P_e;P0_e_nk=P_e_nk;d0_e=d_e;w0_e=w_e
       endif
       
@@ -199,6 +200,7 @@ program lvcsh
         c_h_nk = reshape(c_h,(/ nhband,nktotf /))
         
         call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,E_h,P_h_nk,gmnvkq_h,nhfre_sh,ihsurface,d_h)
+        dEa_dQ_h = d_h(1,ihsurface,:,:)
         E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
       endif
   
@@ -222,22 +224,15 @@ program lvcsh
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
           dEa_dQ = 0.0
           !dEa_dQ in time t0
-          if(l_dEa_dQ) then
-            if(lelecsh) then
-              call get_dEa_dQ(nmodes,nqtotf,neband,nktotf,P0_e_nk,gmnvkq_e,iesurface,dEa_dQ_e)
-              dEa_dQ = dEa_dQ + dEa_dQ_e
-            endif
-            if(lholesh) then
-              call get_dEa_dQ(nmodes,nqtotf,nhband,nktotf,P0_h_nk,gmnvkq_h,ihsurface,dEa_dQ_h)
-              dEa_dQ = dEa_dQ + dEa_dQ_h
-            endif
-          endif
+          if(lelecsh) dEa_dQ = dEa_dQ + dEa_dQ_e
+          if(lholesh) dEa_dQ = dEa_dQ + dEa_dQ_h
           
           !==============================!
           != update phQ,phP             =!
           !==============================!        
           !use rk4 to calculate the dynamical of phonon normal modes
           !update phQ,phP to time t0+dt
+          if(.not. l_dEa_dQ) dEa_dQ = 0.0
           call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,dt)
           
           
@@ -266,7 +261,7 @@ program lvcsh
             ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
             ! update d_e in time t0+dt
             call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,E_e,p_e,gmnvkq_e,nefre_sh,iesurface,d_e)
-            
+            dEa_dQ_e = d_e(1,iesurface,:,:)
     
             ! use p_e in time t0+dt, to convert c_e(t0+dt) to w_e(t0+dt) 
             call convert_diabatic_adiabatic(nefre,p_e,c_e,w_e)
@@ -326,7 +321,7 @@ program lvcsh
             ! Calculate non-adiabatic coupling vectors with the Hellmann-Feynman theorem.
             ! update d_h in time t0+dt
             call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,E_h,p_h,gmnvkq_h,nhfre_sh,ihsurface,d_h)          
-  
+            dEa_dQ_h = d_h(1,ihsurface,:,:)
             
             ! use p_h in time t0+dt, to convert c_h(t0+dt) to w_h(t0+dt) 
             call convert_diabatic_adiabatic(nhfre,p_h,c_h,w_h)
@@ -368,20 +363,19 @@ program lvcsh
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
           dEa2_dQ2 = 0.0
           !dEa2_dQ2 in time t0
-          if(l_dEa2_dQ2) then
-            if(lelecsh) then
-              call get_dEa2_dQ2(nmodes,nqtotf,nefre,nefre_sh,iesurface,E0_e,d0_e,dEa2_dQ2_e)
-              dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_e
-            endif
-            if(lholesh) then
-              call get_dEa2_dQ2(nmodes,nqtotf,nhfre,nhfre_sh,ihsurface,E0_h,d0_h,dEa2_dQ2_h)
-              dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_h
-            endif
+          if(lelecsh) then
+            call get_dEa2_dQ2(nmodes,nqtotf,nefre,nefre_sh,iesurface,E0_e,d0_e,dEa2_dQ2_e)
+            dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_e
+          endif
+          if(lholesh) then
+            call get_dEa2_dQ2(nmodes,nqtotf,nhfre,nhfre_sh,ihsurface,E0_h,d0_h,dEa2_dQ2_h)
+            dEa2_dQ2 = dEa2_dQ2 + dEa2_dQ2_h
           endif
   
           !===================!
           != add bath effect =!
-          !===================!  
+          !===================!
+          if(.not. l_dEa2_dQ2) dEa2_dQ2 = 0.0
           call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,dt,l_ph_quantum,phQ,phP)
   
   

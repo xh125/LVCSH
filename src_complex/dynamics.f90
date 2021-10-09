@@ -27,40 +27,6 @@ module dynamics
     
   end subroutine
   
-  subroutine get_dEa_dQ(nmodes,nq,nband,nk,P_nk,gmnvkq,isurface,dEa_dQ)
-    use elph2,only : iminusq
-    implicit none
-    integer,intent(in) :: nmodes,nq,nband,nk
-    integer,intent(in) :: isurface
-    complex(kind=dpc),intent(in)  :: P_nk(nband,nk,nband*nk)
-    complex(kind=dpc),intent(in)  :: gmnvkq(nband,nband,nmodes,nk,nq)
-    complex(kind=dpc),intent(out) :: dEa_dQ(nmodes,nq)
-    
-    integer :: iq,imode,ik,ikq,iband1,iband2
-    complex(kind=dpc) :: epc
-    complex(kind=dpc) :: cmp_tmp1,cmp_tmp2
-    logical :: ltmp = .true.
-    
-    ! F_qv = -dEa_dQ_-qv  (2.60)
-    dEa_dQ = czero
-    do iq=1,nq   
-      do imode=1,nmodes
-        do ik=1,nk
-          ikq = kqmap(ik,iq)
-          do iband1=1,nband ! m
-            do iband2=1,nband  ! n
-              epc = gmnvkq(iband1,iband2,imode,ik,iq)
-              if(epc /= czero) then
-                dEa_dQ(imode,iminusq(iq)) = dEa_dQ(imode,iminusq(iq)) + &
-                epc*CONJG(P_nk(iband1,ikq,isurface))*P_nk(iband2,ik,isurface)                      
-              endif
-            enddo
-          enddo
-        enddo
-      enddo
-    enddo
-    
-  end subroutine get_dEa_dQ
   
   !=======================================================================!
   != rk4 method to obtain coordinate and velocitie after a time interval =!
@@ -134,14 +100,6 @@ module dynamics
     dx = vv    ! (2.55) (2.59)
     dv = -wf**2*xx - dEa_dQ - ld_gamma*vv
     !(2.60) PPT-94
-    
-    ! F_qv = -dEa_dQ_-qv
-    !do iq=1,nq
-    !  do imode=1,nmodes
-    !    dx(imode,iq) = vv(imode,iq)
-    !    dv(imode,iq) = -wf(imode,iq)**2*xx(imode,iq)-dEa_dQ(imode,iq)-ld_gamma(imode,iq)*vv(imode,iq)
-    !  enddo
-    !enddo
     
   endsubroutine derivs_nuclei
   
@@ -219,12 +177,11 @@ module dynamics
     integer,intent(in) :: nmodes,nq,nfre,nfre_sh
     integer,intent(in) :: isurface
     real(kind=dp),intent(in)  :: EE(nfre)
-    complex(kind=dpc),intent(in)  :: dd(nfre_sh,nmodes,nq)
+    complex(kind=dpc),intent(in)  :: dd(2,nfre_sh,nmodes,nq)
     real(kind=dp),intent(out) :: dEa2_dQ2(nmodes,nq)
     
     integer :: iq,imode,ifre
     
-    ! dEa2_dQ2 = dEa2/d(Q_qv*)d(Q_qv)
     ! ref : (2.60) PPT-95
     dEa2_dQ2 = 0.0
     do iq=1,nq
@@ -232,7 +189,7 @@ module dynamics
         do ifre=1,nfre_sh
           if(ifre /= isurface) then         
             dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + &
-            (EE(isurface)-EE(ifre))*(DD(ifre,imode,iq)*CONJG(DD(ifre,imode,iq)))*2.0
+            (EE(isurface)-EE(ifre))*REAL((DD(1,ifre,imode,iq)*DD(2,ifre,imode,iq)))*2.0
           endif
         enddo
       enddo
