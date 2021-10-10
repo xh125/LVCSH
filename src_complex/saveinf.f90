@@ -339,7 +339,6 @@ module saveinf
     allocate(phKsit_ave(1:nmodes,1:nq,0:nsnap))     
     phKsit_ave = 0.0
 		
-    allocate(nqv(nmodes,nq))
     nqv = 0.0
 
     do iq=1,nq

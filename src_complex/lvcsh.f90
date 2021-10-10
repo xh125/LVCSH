@@ -432,7 +432,6 @@ program lvcsh
             endif
           endif        
         
-        
         enddo
         
         !=====================!
@@ -440,8 +439,8 @@ program lvcsh
         !=====================!    
         do iq=1,nqtotf
           do imode=1,nmodes
-            phQsit(imode,iq,isnap) = phQsit(imode,iq,isnap)+phQ(imode,iq)
-            phPsit(imode,iq,isnap) = phPsit(imode,iq,isnap)+phP(imode,iq)
+            !phQsit(imode,iq,isnap) = phQsit(imode,iq,isnap)+phQ(imode,iq)
+            !phPsit(imode,iq,isnap) = phPsit(imode,iq,isnap)+phP(imode,iq)
             phKsit(imode,iq,isnap) = phKsit(imode,iq,isnap)+phK(imode,iq)
             phUsit(imode,iq,isnap) = phUsit(imode,iq,isnap)+phU(imode,iq)
           enddo
@@ -482,8 +481,8 @@ program lvcsh
       
     enddo
     
-    phQsit = phQsit / naver
-    phPsit = phPsit / naver
+    !phQsit = phQsit / naver
+    !phPsit = phPsit / naver
     phKsit = phKsit / naver
     phUsit = phUsit / naver
     if(lelecsh) then
@@ -504,8 +503,8 @@ program lvcsh
     !====================!
     != save information =!
     !====================!
-    call save_phQ(nmodes,nqtotf,nsnap,phQsit)
-    call save_phP(nmodes,nqtotf,nsnap,phPsit)
+    !call save_phQ(nmodes,nqtotf,nsnap,phQsit)
+    !call save_phP(nmodes,nqtotf,nsnap,phPsit)
     call save_phK(nmodes,nqtotf,nsnap,phKsit)
     call save_phU(nmodes,nqtotf,nsnap,phUsit)
     
@@ -531,16 +530,16 @@ program lvcsh
     write(stdout,"(A,I4)") "Number of nodes for non-adiabatic calculation:",nnode
     write(stdout,"(A,I4)") "Number of samples for each node:",ncore    
     naver_sum = naver*nnode*ncore
-    phQsit = czero
-    phPsit = czero
+    !phQsit = czero
+    !phPsit = czero
     phKsit = 0.0
     phUsit = 0.0
     
     do inode=1,nnode
       write(stdout,"(A,I4)") "Read information in node:",inode
       do icore=1,ncore
-        call read_phQ(inode,icore,nmodes,nqtotf,nsnap,phQsit)
-        call read_phP(inode,icore,nmodes,nqtotf,nsnap,phPsit)
+        !call read_phQ(inode,icore,nmodes,nqtotf,nsnap,phQsit)
+        !call read_phP(inode,icore,nmodes,nqtotf,nsnap,phPsit)
         call read_phK(inode,icore,nmodes,nqtotf,nsnap,phKsit)
         call read_phU(inode,icore,nmodes,nqtotf,nsnap,phUsit)
         
@@ -560,11 +559,11 @@ program lvcsh
 
       enddo
     enddo
-    write(stdout,"(A)") "Read all resut in different nodes Success."
+    write(stdout,"(A)") "Read all result in different nodes Success."
 
     
-    phQsit = phQsit /(nnode*ncore)
-    phPsit = phPsit /(nnode*ncore)
+    !phQsit = phQsit /(nnode*ncore)
+    !phPsit = phPsit /(nnode*ncore)
     phKsit = phKsit /(nnode*ncore)
     phUsit = phUsit /(nnode*ncore)    
     if(lelecsh) then
@@ -584,12 +583,12 @@ program lvcsh
   
 
     !!plot !!!!  
-    call plot_phQ(nmodes,nqtotf,nsnap,phQsit)
-    call plot_phP(nmodes,nqtotf,nsnap,phPsit)
+    !call plot_phQ(nmodes,nqtotf,nsnap,phQsit)
+    !call plot_phP(nmodes,nqtotf,nsnap,phPsit)
     call plot_phK(nmodes,nqtotf,nsnap,phKsit)
     call plot_phU(nmodes,nqtotf,nsnap,phUsit)
     call plot_ph_temp(nmodes,nqtotf,nsnap,phKsit,phUsit)
-    deallocate(phPsit,phQsit,phKsit,phUsit)
+    deallocate(phKsit,phUsit)
     
     
     if(lelecsh) then

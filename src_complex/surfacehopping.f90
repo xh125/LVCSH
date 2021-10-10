@@ -46,21 +46,21 @@ module surfacehopping
 		endif
 		phQ = 0.0
     ! phonons normal mode coordinates
-    allocate(phQsit(nmodes,nq,0:nsnap),stat=ierr,errmsg=msg)
-		if(ierr /= 0 ) call io_error(msg)
-    allocate(phPsit(nmodes,nq,0:nsnap),stat=ierr,errmsg=msg)
-		if(ierr /= 0 ) call io_error(msg)
+    !allocate(phQsit(nmodes,nq,0:nsnap),stat=ierr,errmsg=msg)
+		!if(ierr /= 0 ) call io_error(msg)
+    !allocate(phPsit(nmodes,nq,0:nsnap),stat=ierr,errmsg=msg)
+		!if(ierr /= 0 ) call io_error(msg)
     allocate(phKsit(nmodes,nq,0:nsnap),stat=ierr,errmsg=msg)
 		if(ierr /= 0 ) call io_error(msg)
     allocate(phUsit(nmodes,nq,0:nsnap),stat=ierr,errmsg=msg)
 		if(ierr /= 0 ) call io_error(msg)
-    phQsit = 0.0d0
-    phPsit = 0.0d0
+    !phQsit = 0.0d0
+    !phPsit = 0.0d0
     phKsit = 0.0d0
     phUsit = 0.0d0
     ram = real_size*nmodes*nq*(1+nsnap)
-		call print_memory("phQsit",ram)
-		call print_memory("phPsit",ram)
+		!call print_memory("phQsit",ram)
+		!call print_memory("phPsit",ram)
 		call print_memory("phKsit",ram)
 		call print_memory("phUsit",ram)
 		

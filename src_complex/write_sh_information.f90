@@ -88,8 +88,8 @@ module write_sh_information
         isnap = 0
         do iq=1,nqtotf
           do imode=1,nmodes
-            phQsit(imode,iq,isnap) = phQsit(imode,iq,isnap)+phQ(imode,iq)
-            phPsit(imode,iq,isnap) = phPsit(imode,iq,isnap)+phP(imode,iq)
+            !phQsit(imode,iq,isnap) = phQsit(imode,iq,isnap)+phQ(imode,iq)
+            !phPsit(imode,iq,isnap) = phPsit(imode,iq,isnap)+phP(imode,iq)
             phKsit(imode,iq,isnap) = phKsit(imode,iq,isnap)+phK(imode,iq)
             phUsit(imode,iq,isnap) = phUsit(imode,iq,isnap)+phU(imode,iq)
           enddo
