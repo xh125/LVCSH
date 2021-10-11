@@ -16,12 +16,17 @@ module initialsh
                                ieband_max,&
                                ihband_min,&
                                ihband_max
+                               
+    if(ieband_min==0 .and. ieband_max==0) then
+      ieband_min = ncbmin
+      ieband_max = ibndmax
+    endif
+    if(ihband_min==0 .and. ihband_max==0) then
+      ihband_min = ibndmin
+      ihband_max = nvbmax
+    endif
+    
     if(lelecsh) then
-      if(ieband_min==0 .and. ieband_max==0) then
-        ieband_min = ncbmin
-        ieband_max = ibndmax
-      endif
-      
       if(ieband_min < ibndmin) then
         write(stdout,"(A,I9,1X,A3,1X,I9)") "Error! The parameter: ieband_min need to set between ", ibndmin,"and",ibndmax
         stop
@@ -47,10 +52,6 @@ module initialsh
     endif
     
     if(lholesh) then
-      if(ihband_min==0 .and. ihband_max==0) then
-        ihband_min = ibndmin
-        ihband_max = nvbmax
-      endif
 
       if(ihband_min < ibndmin) then
         write(stdout,"(A,I9,A3,I9)") "Error! The parameter: ihband_min need to set between ", ibndmin,"and",ibndmax
