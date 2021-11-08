@@ -16,20 +16,20 @@ program lvcsh
   !============================================================================!
   != materials interaction with environment by system-bath interactions       =!     
   !============================================================================!
-  != Last updata 2021-10.08 Version:0.8.1                                     =!   
+  != Last updata 2021-11.05 Version:0.8.4                                     =!   
   != Developed by XieHua at department of physic, USTC;xh125@mail.ustc.edu.cn =!
   !============================================================================!
   !! Author: HuaXie                                                           =!
-  !! Version: v0.8.1                                                          =!
+  !! Version: v0.8.4                                                          =!
   !! License: GNU                                                             =!
   !!===========================================================================!
   use mkl_service
   use omp_lib
   use f95_precision
   use blas95  
-  use constants,only      : maxlen,ryd2eV,ry_to_fs,ryd2meV,czero,cone
-  use environments,only   : environment_start,mkl_threads,&
-                            set_mkl_threads,lsetthreads
+  use constants,only      : ryd2eV,ry_to_fs,ryd2meV,czero,cone
+  use environments,only   : environment_start,mkl_threads,set_mkl_threads,&
+                            lsetthreads
   use readinput,only      : get_inputfile
   use readscf,only        : readpwscf_out
   use readphout,only      : readph_out
@@ -102,9 +102,9 @@ program lvcsh
   !===============!
   integer :: iq,imode,ifre,igamma,ik,iband,inode,icore,iaver_i,iaver_f,ierr
   real(kind=8) :: t0,t1
-  real(kind=dp) :: flagd,xkg_(3),xk_(3)
+  !real(kind=dp) :: flagd
   character(len=9) :: cdate,ctime
-  character(len=2) :: ctimeunit
+  !character(len=2) :: ctimeunit
   call cpu_time(t0)  
 
   
@@ -437,14 +437,10 @@ program lvcsh
         !=====================!
         != store information =!
         !=====================!    
-        do iq=1,nqtotf
-          do imode=1,nmodes
-            !phQsit(imode,iq,isnap) = phQsit(imode,iq,isnap)+phQ(imode,iq)
-            !phPsit(imode,iq,isnap) = phPsit(imode,iq,isnap)+phP(imode,iq)
-            phKsit(imode,iq,isnap) = phKsit(imode,iq,isnap)+phK(imode,iq)
-            phUsit(imode,iq,isnap) = phUsit(imode,iq,isnap)+phU(imode,iq)
-          enddo
-        enddo
+        !phQsit(:,:,isnap) = phQsit(:,:,isnap)+phQ(:,:)
+        !phPsit(:,:,isnap) = phPsit(:,:,isnap)+phP(:,:)
+        phKsit(:,:,isnap) = phKsit(:,:,isnap)+phK(:,:)
+        phUsit(:,:,isnap) = phUsit(:,:,isnap)+phU(:,:)
         
         if(lelecsh) then
           pes_e(0,isnap) = pes_e(0,isnap)+E_e(iesurface)

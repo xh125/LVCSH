@@ -3,13 +3,13 @@ module environments
   use global_version, only : version_number
   use io,only : stdout,stdout_name,io_file_unit
   use date_and_times,only : get_date_and_time
-  use constants, only : constants_version_str1,constants_version_str2
+  use constants, only : maxlen,constants_version_str1,constants_version_str2
   implicit none
-  character(len=80) :: code_version
+  character(len=maxlen) :: code_version
   integer :: max_threads
   real(kind=dp) :: time0
   real(kind=dp) :: t0
-  character(len=80) :: mkl_version
+  character(len=maxlen) :: mkl_version
   logical :: lsetthreads  ! set mkl_threads by yourself 
   integer :: mkl_threads
   
@@ -20,7 +20,7 @@ module environments
     implicit none
     character(len=*),intent(in) :: code
     
-    code_version = trim(adjustl(code)) // "v." // trim(adjustl(version_number))
+    code_version = trim(adjustl(code)) // " v." // trim(adjustl(version_number))
     stdout = io_file_unit()
     stdout_name = "LVCSH.out"
     open(unit=stdout,file=stdout_name,status='REPLACE')
@@ -38,28 +38,47 @@ module environments
     
     character(len=*),intent(in) :: code_version
     character(len=9) :: cdate,ctime
-    character(len=76) :: ctmp
+    character(len=maxlen) :: ctmp
     
     call get_date_and_time(cdate,ctime)
     
-    write(stdout,"(1X,A77)") repeat("=",77)
-    write(stdout,"(1X,A)") "LVCSH complied with using Intel Fortran and MKL:"
-    write(stdout,"(1X,A)") trim(adjustl(mkl_version))
-    write(stdout,"(1X,A77)") repeat("=",77)
+    ! Display the logo. Use https://www.asciiarts.net/ 
+    write(stdout,'(a)') "  _____  ____   ____   ______   ______   ____  ____  "
+    write(stdout,'(a)') " |_   _||_  _| |_  _|.' ___  |.' ____ \ |_   ||   _| "
+    write(stdout,'(a)') "   | |    \ \   / / / .'   \_|| (___ \_|  | |__| |   "
+    write(stdout,'(a)') "   | |   _ \ \ / /  | |        _.____`.   |  __  |   "
+    write(stdout,'(a)') "  _| |__/ | \ ' /   \ `.___.'\| \____) | _| |  | |_  "
+    write(stdout,'(a)') " |________|  \_/     `.____ .' \______.'|____||____| "    
+    write(stdout,'(a)') "                                                     "
+    write(stdout,'(a)') "                                                     "
+    write(stdout,'(a)') " Developed by XieHua at department of physic, USTC   "    
+    write(stdout,'(a)') "                        Email:xh125@mail.ustc.edu.cn "    
+    write(stdout,'(a)') "                                                     "     
     
-    write(stdout,"(/,1X,A77)") repeat("=",77)
-    write(stdout,'(1X,"Program ",A," startes on ",A9," at ",A9)') &
-                  &trim(code_version),cdate,ctime
+    !write(stdout,"(1X,A77)") repeat("=",77)
+    write(stdout,"(1X,A)") "LVCSH complied with using Intel Fortran Complier and MKL:"
+    !write(stdout,"(1X,A)") trim(adjustl(mkl_version))
+    write(stdout,"(1X,A73)") mkl_version(1:73)
+    write(stdout,"(1X,A)")   mkl_version(74:)
+    !write(stdout,"(1X,A77)") repeat("=",77)
     write(ctmp  ,*) max_threads
     write(stdout,*) "By default, Intel MKL uses "//trim(adjustl(ctmp))//" threads"
     write(stdout,*) "where "//trim(adjustl(ctmp))//" is the number of physical cores on the system"
-    write(stdout,"(1X,A77)") repeat("=",77)
-    
+
+
     call print_kind_info (stdout)
     write(stdout,"(/,1X,A77)") repeat("=",77)
     write(stdout,*) constants_version_str1
     write(stdout,*) constants_version_str2
     write(stdout,"(1X,A77)") repeat("=",77)
+    
+    !write(stdout,"(/,1X,A77)") repeat("=",77)
+    write(stdout,'(/,1X,"Program ",A," startes on ",A9," at ",A9)') &
+                  &trim(code_version),cdate,ctime
+    
+
+    
+
     
     return
   end subroutine openning_message

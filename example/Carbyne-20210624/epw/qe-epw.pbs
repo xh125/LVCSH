@@ -1,0 +1,28 @@
+#!/bin/bash
+#PBS -N epw-carbyne
+#PBS -o ${PBS_JOBID}.out
+#PBS -e ${PBS_JOBID}.err
+#PBS -q share
+#PBS -l nodes=1:ppn=28
+
+# get the number of processors
+NP=`cat $PBS_NODEFILE | wc -l`
+
+# enter job's working directory
+cd $PBS_O_WORKDIR
+
+#export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=1
+export MODULEPATH=/public/software/modules:/public/home/wzhuang/xh/modulefiles
+
+#module load apps/Materials/Quantum_Espresso/6.7.0-EPWv5.4Beta
+module load apps/Materials/Quantum_Espresso/6.7.0
+module load tools/Anaconda3/2019.10 
+
+export prefix=${PBS_JOBNAME#*-}
+
+
+#mpirun -np $NP pw.x -nk $NP <scf.in> scf.out
+#mpirun -np $NP pw.x -nk $NP <nscf.in> nscf.out
+mpirun -np $NP epw.x -nk $NP <carbyne.epw.in> carbyne.epw.out
+

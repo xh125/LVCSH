@@ -23,25 +23,25 @@ module kinds
     write(stdout,'(1X,"=",T5,A,T78,"=")') 'DATA TYPE INFORMATION:'
     write(stdout,"(1X,A77)") repeat("=",77)
 
-    write(stdout,'(/,T2,A,T78,A,2(/,T2,A,T75,I6),3(/,T2,A,T67,E15.8))') &
+    write(stdout,'(/,T2,A,T77,A,2(/,T2,A,T73,I6),3(/,T2,A,T64,E15.8))') &
           'REAL: Data type name:', 'DP', '      Kind value:', kind(0.0_DP), &
           '      Precision:', precision(0.0_DP), &
           '      Smallest nonnegligible quantity relative to 1:', &
           epsilon(0.0_DP), '      Smallest positive number:', tiny(0.0_DP), &
           '      Largest representable number:', huge(0.0_DP)
-    write( stdout,'(/,T2,A,T78,A,2(/,T2,A,T75,I6),3(/,T2,A,T67,E15.8))') &
+    write( stdout,'(/,T2,A,T76,A,2(/,T2,A,T73,I6),3(/,T2,A,T64,E15.8))') &
           '      Data type name:', 'sgl', '      Kind value:', kind(0.0_sgl), &
           '      Precision:', precision(0.0_sgl), &
           '      Smallest nonnegligible quantity relative to 1:', &
           epsilon(0.0_sgl), '      Smallest positive number:', tiny(0.0_sgl), &
           '      Largest representable number:', huge(0.0_sgl)
-    write( stdout,'(/,T2,A,T72,A,4(/,T2,A,T61,I20))') &
+    write( stdout,'(/,T2,A,T70,A,4(/,T2,A,T59,I20))') &
           'INTEGER: Data type name:', '(default)', '         Kind value:', &
           kind(0), '         Bit size:', bit_size(0), &
           '         Largest representable number:', huge(0)
-    write( stdout,'(/,T2,A,T72,A,/,T2,A,T75,I6,/)') 'LOGICAL: Data type name:', &
+    write( stdout,'(/,T2,A,T70,A,/,T2,A,T73,I6,/)') 'LOGICAL: Data type name:', &
           '(default)', '         Kind value:', kind(.TRUE.)
-    write( stdout,'(/,T2,A,T72,A,/,T2,A,T75,I6,/)') &
+    write( stdout,'(/,T2,A,T70,A,/,T2,A,T73,I6,/)') &
           'CHARACTER: Data type name:', '(default)', '           Kind value:', &
           kind('C')
     write(stdout,"(1X,A77)") repeat("=",77)
