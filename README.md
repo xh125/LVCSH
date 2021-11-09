@@ -1,4 +1,4 @@
-# Fewest Switches Surface Hopping in Materials
+# Fewest Switches Surface Hopping in Materials with LVC
 
 A Fortran code to simulation the non-adiabatic Molecular Dynamics in the solid state Materials.
 We using a linear vibroninc coupling model implementation of Tully's Fewest Switches Surface Hopping (FSSH) for model problems including
@@ -233,7 +233,8 @@ make epw
 
    计算完成后使用[bands.x](http://www.quantum-espresso.org/Doc/INPUT_BANDS.html)处理能带数据。在能带计算之后，用[projwfc.x](http://www.quantum-espresso.org/Doc/INPUT_PROJWFC.html)生成的fatband.projwfc_up文件，可以和bands.x生成的文件bands.dat结合，画出各个能带的原子轨道投影，画图脚本如下：[/LVCSH/tools/fatband.f90](https://github.com/xh125/LVCSH/blob/master/tools/bandfat.f90)。  
    计算能带图如下:  
-   ![band.png](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/fatband.png)  
+   ![band.png](https://github.com/xh125/MarkdownImage/raw/main/Image/LVCSH/fatband.png)
+   ![band.png](https://github.com/xh125/xh125.github.io/raw/main/Image/LVCSH/fatband.png)  
 
    2.6 根据fatband中的结果，进行[wannier90](http://www.wannier.org/)计算  
 

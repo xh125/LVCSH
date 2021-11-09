@@ -75,11 +75,6 @@ module environments
     !write(stdout,"(/,1X,A77)") repeat("=",77)
     write(stdout,'(/,1X,"Program ",A," startes on ",A9," at ",A9)') &
                   &trim(code_version),cdate,ctime
-    
-
-    
-
-    
     return
   end subroutine openning_message
   
