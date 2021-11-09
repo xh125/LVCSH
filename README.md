@@ -191,7 +191,7 @@ make epw
    ```
 
    对计算出来的态密度采用OriginPro进行作图，(采用较密kpoint计算的结果)如下所示。  
-   ![dos](https://github.com/xh125/xh125.github.io/raw/main/images/LVCSH/dos.png)  
+   ![dos](https://xh125.github.io/images/LVCSH/dos.png)  
   
    采用 [projwfc.x](http://www.quantum-espresso.org/Doc/INPUT_PROJWFC.html) 对态密度进行分波态密度计算，用于bandfat分析，后面进行Wannier计算，需要根据分波态密度来选取初始猜测的wannier函数。  
 
@@ -213,7 +213,7 @@ make epw
 
    处理分波态密度得到的结果如下:  
 
-   ![Pdos](https://github.com/xh125/xh125.github.io/raw/main/images/LVCSH/Pdos.png)  
+   ![Pdos](https://xh125.github.io/images/LVCSH/Pdos.png)  
 
    2.5 计算能带,修改[**`calculation='bands'`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#calculation)，[**`nbnd`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#nbnd) 和[**`K_POINTS crystal_b`**](https://www.quantum-espresso.org/Doc/INPUT_PW.html#K_POINTS)部分进行第一布里渊区高对称kpoint的能带计算。  
 
@@ -233,7 +233,7 @@ make epw
 
    计算完成后使用[bands.x](http://www.quantum-espresso.org/Doc/INPUT_BANDS.html)处理能带数据。在能带计算之后，用[projwfc.x](http://www.quantum-espresso.org/Doc/INPUT_PROJWFC.html)生成的fatband.projwfc_up文件，可以和bands.x生成的文件bands.dat结合，画出各个能带的原子轨道投影，画图脚本如下：[/LVCSH/tools/fatband.f90](https://github.com/xh125/LVCSH/blob/master/tools/bandfat.f90)。  
    计算能带图如下:  
-   ![band.png](https://github.com/xh125/xh125.github.io/raw/main/images/LVCSH/fatband.png)
+   ![band.png](https://xh125.github.io/images/LVCSH/fatband.png)
 
    2.6 根据fatband中的结果，进行[wannier90](http://www.wannier.org/)计算  
 
@@ -398,7 +398,7 @@ make epw
    ```
 
    计算得到的声子谱如下图所示：  
-   ![band-tructure-phonon](https://github.com/xh125/xh125.github.io/raw/main/images/LVCSH/phonon.png)  
+   ![band-tructure-phonon](https://xh125.github.io/images/LVCSH/phonon.png)  
 
    2.7.5 使用matdyn.x计算声子态密度. matdyn-dos.in  
 
@@ -820,4 +820,4 @@ make epw
 
 ## Butterfly of the code
 
-![Alt Butterfly](https://github.com/xh125/xh125.github.io/raw/main/images/LVCSH/Butterfly-lvcsh.png)
+![Alt Butterfly](https://xh125.github.io/images/LVCSH/Butterfly-lvcsh.png)
