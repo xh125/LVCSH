@@ -51,8 +51,8 @@ module environments
     write(stdout,'(a)') " |________|  \_/     `.____ .' \______.'|____||____| "    
     write(stdout,'(a)') "                                                     "
     write(stdout,'(a)') "                                                     "
-    write(stdout,'(a)') " Developed by XieHua at department of physic, USTC   "    
-    write(stdout,'(a)') "                        Email:xh125@mail.ustc.edu.cn "    
+    write(stdout,'(10X,a)') " Developed by XieHua at department of physic, USTC   "    
+    write(stdout,'(10X,a)') "                        Email:xh125@mail.ustc.edu.cn "    
     write(stdout,'(a)') "                                                     "     
     
     !write(stdout,"(1X,A77)") repeat("=",77)
