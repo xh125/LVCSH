@@ -43,16 +43,16 @@ module environments
     call get_date_and_time(cdate,ctime)
     
     ! Display the logo. Use https://www.asciiarts.net/ 
-    write(stdout,'(a)') "  _____  ____   ____   ______   ______   ____  ____  "
-    write(stdout,'(a)') " |_   _||_  _| |_  _|.' ___  |.' ____ \ |_   ||   _| "
-    write(stdout,'(a)') "   | |    \ \   / / / .'   \_|| (___ \_|  | |__| |   "
-    write(stdout,'(a)') "   | |   _ \ \ / /  | |        _.____`.   |  __  |   "
-    write(stdout,'(a)') "  _| |__/ | \ ' /   \ `.___.'\| \____) | _| |  | |_  "
-    write(stdout,'(a)') " |________|  \_/     `.____ .' \______.'|____||____| "    
-    write(stdout,'(a)') "                                                     "
-    write(stdout,'(a)') "                                                     "
-    write(stdout,'(10X,a)') " Developed by XieHua at department of physic, USTC   "    
-    write(stdout,'(10X,a)') "                        Email:xh125@mail.ustc.edu.cn "    
+    write(stdout,'(10X,a)') "  _____  ____   ____   ______   ______   ____  ____  "
+    write(stdout,'(10X,a)') " |_   _||_  _| |_  _|.' ___  |.' ____ \ |_   ||   _| "
+    write(stdout,'(10X,a)') "   | |    \ \   / / / .'   \_|| (___ \_|  | |__| |   "
+    write(stdout,'(10X,a)') "   | |   _ \ \ / /  | |        _.____`.   |  __  |   "
+    write(stdout,'(10X,a)') "  _| |__/ | \ ' /   \ `.___.'\| \____) | _| |  | |_  "
+    write(stdout,'(10X,a)') " |________|  \_/     `.____ .' \______.'|____||____| "    
+    write(stdout,'(10X,a)') "                                                     "
+    write(stdout,'(10X,a)') "                                                     "
+    write(stdout,'(20X,a)') " Developed by XieHua at department of physic, USTC   "    
+    write(stdout,'(20X,a)') "                        Email:xh125@mail.ustc.edu.cn "    
     write(stdout,'(a)') "                                                     "     
     
     !write(stdout,"(1X,A77)") repeat("=",77)
