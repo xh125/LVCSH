@@ -165,30 +165,7 @@ module initialsh
     c_nk(init_band,init_ik) = cone
     
   end subroutine init_stat_diabatic
-
-  subroutine init_stat_adiabatic(nfre,EE,nfre_sh,init_En,isurface)
-    implicit none
-    integer, intent(in) :: nfre,nfre_sh
-    real(kind=dp),intent(in) :: EE(nfre)
-    real(kind=dp),intent(in) :: init_En
-    integer, intent(out)     :: isurface
-    
-    integer :: ifre
-    real(kind=dp),allocatable :: Ptsur(:)
-    integer :: localp(1)
-    
-    allocate(Ptsur(1:nfre_sh))
-    Ptsur = 0.0
-    do ifre = 1,nfre_sh
-      Ptsur(ifre) = (EE(ifre)-init_En)**2
-    enddo
-    
-    localp = MinLOC(Ptsur)
-    isurface = localp(1)
-    
-    deallocate(Ptsur)
-    
-  end subroutine
+	
  
   function get_ik(kx,nkx)
     use kinds,only : dp
@@ -357,7 +334,6 @@ module initialsh
 		do ifre=1,nfre_sh
 			flagsum = flagsum + ww(ifre)*CONJG(ww(ifre))
 		enddo
-	 
 	 
     call random_number(flagr)
 		flagr = flagr * flagsum

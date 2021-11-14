@@ -48,7 +48,7 @@ program lvcsh
   use lasercom,only       : fwhm,w_laser
   use getwcvk,only        : get_Wcvk
   use initialsh,only      : set_subband,init_normalmode_coordinate_velocity,   &
-                            init_eh_KSstat,init_stat_adiabatic,init_surface
+                            init_eh_KSstat,init_surface
   use write_sh_information,only : write_initial_information
   use surfacecom,only     : methodsh,lfeedback,lit_gmnvkq,naver,nsnap,nstep,dt,&
                             pre_nstep,pre_dt,l_ph_quantum,gamma,temp,iaver,    &
@@ -165,22 +165,23 @@ program lvcsh
       !应该先跑平衡后，再做电子空穴动力学计算   
       call pre_md(nmodes,nqtotf,wf,ld_gamma,temp,phQ,phP,l_ph_quantum,pre_dt)     
       
-      
       !!得到初始电子和空穴的初始的KS状态 init_ik,init_eband,init_hband(in the diabatic states)
       call init_eh_KSstat(lelecsh,lholesh,llaser,init_ik,init_eband,init_hband,init_e_en,init_h_en)
-      
-      
+       
       if(lelecsh) then
+				init_eband = init_eband-ieband_min+1
+				c_e_nk = czero
+				c_e_nk(init_eband,init_ik) = cone
+				c_e = reshape(c_e_nk,(/ nefre /))
+				
         call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ,gmnvkq_e,H0_e_nk,H_e_nk)
         H_e = reshape(H_e_nk,(/ nefre,nefre /))
         call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
         P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
         
-        call init_stat_adiabatic(nefre,E_e,nefre_sh,init_e_en,iesurface)
-        w_e = czero
-        w_e(iesurface) = cone
-        call convert_adiabatic_diabatic(nefre,P_e,w_e,c_e)
-        c_e_nk = reshape(c_e,(/ neband,nktotf /))
+				call convert_diabatic_adiabatic(nefre,P_e,c_e,w_e)
+				
+        call init_surface(nefre,nefre_sh,w_e,iesurface)
   
         call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,E_e,P_e_nk,gmnvkq_e,nefre_sh,iesurface,d_e)
         dEa_dQ_e = d_e(1,iesurface,:,:)
@@ -188,16 +189,19 @@ program lvcsh
       endif
       
       if(lholesh) then
+				init_hband = init_hband-ihband_min+1
+				c_h_nk = czero
+				c_h_nk(init_hband,init_ik) = cone
+				c_h = reshape(c_h_nk,(/ nhfre /))			
+			
         call set_H_nk(nhband,nktotf,nmodes,nqtotf,phQ,gmnvkq_h,H0_h_nk,H_h_nk)
         H_h = reshape(H_h_nk,(/ nhfre,nhfre /))    
         call calculate_eigen_energy_state(nhfre,H_h,E_h,P_h)
         P_h_nk = reshape(P_h,(/ nhband,nktotf,nhfre /))
         
-        call init_stat_adiabatic(nhfre,E_h,nhfre_sh,init_h_en,ihsurface)
-        w_h = czero
-        w_h(ihsurface) = cone
-        call convert_adiabatic_diabatic(nhfre,P_h,w_h,c_h)      
-        c_h_nk = reshape(c_h,(/ nhband,nktotf /))
+				call convert_diabatic_adiabatic(nhfre,P_h,c_h,w_h)
+				
+				call init_surface(nhfre,nhfre_sh,w_h,ihsurface)
         
         call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,E_h,P_h_nk,gmnvkq_h,nhfre_sh,ihsurface,d_h)
         dEa_dQ_h = d_h(1,ihsurface,:,:)
