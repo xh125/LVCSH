@@ -382,7 +382,6 @@ program lvcsh
           if(.not. l_dEa2_dQ2) dEa2_dQ2 = 0.0
           call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,dt,l_ph_quantum,phQ,phP)
   
-  
           !============================!
           != reset dynamical variable =!
           !============================!
@@ -393,7 +392,6 @@ program lvcsh
           if(lholesh) then
             E0_h = E_h;P0_h = P_h;P0_h_nk = P_h_nk; d0_h = d_h;w0_h = w_h
           endif
-          
           
           time2   = io_time()
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
@@ -408,29 +406,23 @@ program lvcsh
           time_ = ((isnap-1)*nstep+istep)*dt*ry_to_fs
           if(lholesh) then
             if(lelecsh) then
-              !write(stdout,"(/,A)") "isnap istep runtime iesur ihsur  &
-              !&en_e(eV)  en_h(eV)  en_eh(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)" 
-            if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
-              write(stdout,"(F9.2,F9.2,I5,I5,7(1X,F11.4))") time_,(time2-time1),ihsurface,iesurface,&
-              -e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
-              SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV
-            endif
+							if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
+								write(stdout,"(F9.2,F9.2,I5,I5,7(1X,F11.4))") time_,(time2-time1),ihsurface,iesurface,&
+								-e_h(ihsurface)*ryd2eV,e_e(iesurface)*ryd2eV,(e_e(iesurface)+e_h(ihsurface))*ryd2eV,&
+								SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+E_h(ihsurface)+SUM_phE)*ryd2eV
+							endif
             else 
-              !write(stdout,"(/,A)") "isnap istep runtime ihsur  &
-              !& en_h(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"  
-            if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
-              write(stdout,"(F9.2,F9.2,I5,5(1X,F11.4))") time_,(time2-time1),ihsurface,-e_h(ihsurface)*ryd2eV,&
-              SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV
-            endif
+							if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
+								write(stdout,"(F9.2,F9.2,I5,5(1X,F11.4))") time_,(time2-time1),ihsurface,-e_h(ihsurface)*ryd2eV,&
+								SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_h(ihsurface)+SUM_phE)*ryd2eV
+							endif
             endif
           else
             if(lelecsh) then
-              !write(stdout,"(/,A)") "isnap istep runtime iesur  &
-              !&en_e(eV)  T_ph(eV)  U_ph(eV)  E_ph(eV)  E_tot(eV)"
-            if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
-              write(stdout,"(F9.2,F9.2,I5,5(1X,F11.4))") time_,(time2-time1),iesurface,E_e(iesurface)*ryd2eV,&
-              SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV            
-            endif
+							if(trim(verbosity)=="high" .or. isnap == 1 .or. isnap == nsnap) then
+								write(stdout,"(F9.2,F9.2,I5,5(1X,F11.4))") time_,(time2-time1),iesurface,E_e(iesurface)*ryd2eV,&
+								SUM_phK*ryd2eV,SUM_phU*ryd2eV,SUM_phE*ryd2eV,(E_e(iesurface)+SUM_phE)*ryd2eV            
+							endif
             else
               write(stdout,"(/,A)") "Error!! lelecsh and lholesh must have one need to be set TRUE."
             endif
@@ -441,8 +433,6 @@ program lvcsh
         !=====================!
         != store information =!
         !=====================!    
-        !phQsit(:,:,isnap) = phQsit(:,:,isnap)+phQ(:,:)
-        !phPsit(:,:,isnap) = phPsit(:,:,isnap)+phP(:,:)
         phKsit(:,:,isnap) = phKsit(:,:,isnap)+phK(:,:)
         phUsit(:,:,isnap) = phUsit(:,:,isnap)+phU(:,:)
         
@@ -481,8 +471,6 @@ program lvcsh
       
     enddo
     
-    !phQsit = phQsit / naver
-    !phPsit = phPsit / naver
     phKsit = phKsit / naver
     phUsit = phUsit / naver
     if(lelecsh) then
@@ -499,12 +487,9 @@ program lvcsh
       pes_h  = pes_h  /naver
     endif
   
-  
     !====================!
     != save information =!
     !====================!
-    !call save_phQ(nmodes,nqtotf,nsnap,phQsit)
-    !call save_phP(nmodes,nqtotf,nsnap,phPsit)
     call save_phK(nmodes,nqtotf,nsnap,phKsit)
     call save_phU(nmodes,nqtotf,nsnap,phUsit)
     
@@ -524,22 +509,17 @@ program lvcsh
       call plot_band_occupatin_withtime(nhband,nktotf,Enk_h,xkf,nsnap,psit_h,csit_h,savedsnap,band_h_file)
     endif
   
-  
   elseif(trim(calculation)=="plot") then
     write(stdout,"(/A)") "Start to write files for plotting!"
     write(stdout,"(A,I4)") "Number of nodes for non-adiabatic calculation:",nnode
     write(stdout,"(A,I4)") "Number of samples for each node:",ncore    
     naver_sum = naver*nnode*ncore
-    !phQsit = czero
-    !phPsit = czero
     phKsit = 0.0
     phUsit = 0.0
     
     do inode=1,nnode
       write(stdout,"(A,I4)") "Read information in node:",inode
       do icore=1,ncore
-        !call read_phQ(inode,icore,nmodes,nqtotf,nsnap,phQsit)
-        !call read_phP(inode,icore,nmodes,nqtotf,nsnap,phPsit)
         call read_phK(inode,icore,nmodes,nqtotf,nsnap,phKsit)
         call read_phU(inode,icore,nmodes,nqtotf,nsnap,phUsit)
         
@@ -561,9 +541,6 @@ program lvcsh
     enddo
     write(stdout,"(A)") "Read all result in different nodes Success."
 
-    
-    !phQsit = phQsit /(nnode*ncore)
-    !phPsit = phPsit /(nnode*ncore)
     phKsit = phKsit /(nnode*ncore)
     phUsit = phUsit /(nnode*ncore)    
     if(lelecsh) then
@@ -581,10 +558,7 @@ program lvcsh
       pes_h  = pes_h  /(nnode*ncore)
     endif    
   
-
     !!plot !!!!  
-    !call plot_phQ(nmodes,nqtotf,nsnap,phQsit)
-    !call plot_phP(nmodes,nqtotf,nsnap,phPsit)
     call plot_phK(nmodes,nqtotf,nsnap,phKsit)
     call plot_phU(nmodes,nqtotf,nsnap,phUsit)
     call plot_ph_temp(nmodes,nqtotf,nsnap,phKsit,phUsit)
@@ -616,21 +590,17 @@ program lvcsh
     
   endif
   
-  
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   !% Write End information          %!
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
   call get_date_and_time(cdate,ctime)
   write(stdout,"(/,1X,A77)") repeat("=",77)
   write(stdout,'(1X,"Program LVCSH stoped on ",A9," at ",A9)') cdate,ctime  
-  
   call cpu_time(t1)
   write(stdout,'(a,f9.2,a)') 'total time is',(t1-t0)/3600,'hours'  
-  
   close(stdout)
   
   stop
-  
   
 end program lvcsh
 
