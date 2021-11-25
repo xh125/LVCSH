@@ -100,7 +100,7 @@ program lvcsh
   !===============!
   != preparation =!
   !===============!
-  integer :: iq,imode,ifre,igamma,ik,iband,inode,icore,iaver_i,iaver_f,ierr
+  integer :: iq,imode,ifre,igamma,ik,iband,inode,icore,ierr
   real(kind=8) :: t0,t1
   !real(kind=dp) :: flagd
   character(len=9) :: cdate,ctime
@@ -208,9 +208,7 @@ program lvcsh
         E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
       endif
   
-      
       phQ0=phQ; phP0=phP 
-      
       
       call write_initial_information(iaver,nmodes,nqtotf,wf,phQ,phP)
       
