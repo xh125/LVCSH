@@ -1,5 +1,7 @@
 # Fewest Switches Surface Hopping in Materials with LVC
 
+[中文 Chinese](README_zh.md)
+
 A Fortran code to simulation the non-adiabatic Molecular Dynamics in the solid state Materials.
 We using a linear vibroninc coupling model implementation of Tully's Fewest Switches Surface Hopping (FSSH) for model problems including
 a propagator and an implementation of Tully's model problems described in Tully, [J.C. _J. Chem. Phys._ (1990) **93** 1061](https://aip.scitation.org/doi/abs/10.1063/1.459170).
