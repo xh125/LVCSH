@@ -1,0 +1,154 @@
+﻿
+
+[General Information]
+Function Name = ElecStretchedExp
+Brief Description = Stretched exponential function for relaxation data
+Function Source = StretchedExp.StretchedExp
+Number Of Parameters = 4
+Function Type = External DLL
+Function Form = Expression
+Path = 
+Number Of Independent Variables = 1
+Number Of Dependent Variables = 1
+Category = Exponential
+FunctionPrev = NewFunction
+Function Model = Explicit
+
+
+[Fitting Parameters]
+Names = y0,A,t0,b
+Initial Values = 0.5(V),1(V),100(V),1(V)
+Meanings = Equilibrium stress,Peak beyond equilibrium,Relaxation time,Stretching parameter
+Lower Bounds = --(I, Off),0(X, On),0(X, On),0(X, On)
+Upper Bounds = --(I, Off),--(I, Off),--(I, Off),--(I, Off)
+Naming Method = User-Defined
+Number Of Significant Digits = 0,0,0,0
+Unit = ,,,
+Format = --,--,--,--
+CustomDisplay = --,--,--,--
+
+
+[Independent Variables]
+x = 
+
+
+[Dependent Variables]
+y = 
+
+
+[Formula]
+y = y0+A*exp(-(x/t0)^b)
+
+
+[Initializations]
+
+
+[After Fitting]
+
+
+[Controls]
+General Linear Constraints = 0
+Initialization Scripts = 0
+Scripts After Fitting = 0
+Number Of Duplicates = N/A
+Duplicate Offset = N/A
+Duplicate Unit = N/A
+Generate Curves After Fitting = 1
+Curve Point Spacing = Uniform on X-Axis Scale
+Generate Peaks After Fitting = 1
+Generate Peaks During Fitting = 1
+Generate Peaks with Baseline = 1
+Paste Parameters to Plot After Fitting = 1
+Paste Parameters to Notes Window After Fitting = 1
+Generate Residuals After Fitting = 0
+Keep Parameters = 0
+Compile On Param Change Script = 0
+Enable Parameters Initialization = 0
+Treat All Numbers As Double = 1
+Use Initial Formula = 0
+AllowInitializingFixedParameters = 0
+
+
+[Compile Function]
+Compile = 0
+Compile Parameters Initialization = 1
+OnParamChangeScriptsEnabled = 0
+
+
+[Parameters Initialization]
+//Code to be executed to initialize parameters
+
+double dy1, dy2;
+y_data.GetMinMax( dy1, dy2 );
+
+y0 = dy1;
+A = dy2 - dy1;
+
+vector vYn;
+vYn = ( y_data - y0 )/A;
+
+vector vXt, vYt;
+vXt = ln( x_data );
+vYt = ln( -ln(vYn) );
+
+vector vCoeff( 2 );
+fitlinear( vXt, vYt, vCoeff );
+
+b = vCoeff[ 1 ];
+t0 = exp( - vCoeff[ 0 ]/b );
+
+//Integrate, area = t0/b*Gamma(1/b)
+
+
+[Origin C Function Header]
+
+
+[Origin C Parameter Initialization Header]
+#pragma numlittype(push, TRUE)
+#include <origin.h>
+
+// Add your special include files here.
+// For example, if you want to use functions from the NAG library, 
+// add the header file for the NAG functions here.
+
+// Add code here for other Origin C functions that you want to define in this file,
+// and access in your parameter initialization.
+
+// You can access C functions defined in other files, if those files are loaded and compiled 
+// in your workspace, and the functions have been prototyped in a header file that you have 
+// included above. 
+	
+// You can access NLSF object methods and properties directly in your function code.
+// You should follow C-language syntax in defining your function. 
+// For instance, if your parameter name is P1, you cannot use p1 in your function code. 
+// When using fractions, remember that integer division such as 1/2 is equal to 0, and not 0.5
+// Use 0.5 or 1/2.0 to get the correct value.
+
+// For more information and examples, please refer to the "User-Defined Fitting Function" 
+// section of the Origin Help file.
+
+
+[Derived Parameter Settings]
+Unit = 
+Names = 
+Meanings = 
+
+
+[References]
+
+
+[LabTalk Functions Definition and Initializations]
+
+
+[Constants]
+
+
+[Constraints]
+
+
+[QuickCheck]
+x=1
+y0=1
+A=-1
+t0=100
+b=1.5

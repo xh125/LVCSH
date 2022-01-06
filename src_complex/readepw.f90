@@ -164,9 +164,6 @@ module readepw
        &     'number of atomic types    = ',i12,/,5x, &
        &     'kinetic-energy cut-off    = ',f12.4,'  Ry',/,5x, &
        &     'charge density cut-off    = ',f12.4,'  Ry')
-    if(nat /= 0) then
-			nmodes = 3*nat
-    endif
     
     !call write_dft_name ( ) 
     read(unitepwout,"(27X,A)") dft
@@ -221,47 +218,48 @@ module readepw
 
     !
     ! Description of the atoms inside the unit cell
-    !    
-    if(.not. allocated(iatm)) then 
-      allocate(iatm(nat),stat=ierr,errmsg=msg)
-      if(ierr /=0) then
-				call errore('readepw','Error allocating iatm',1)    
-				call io_error(msg)
+    !
+		if( nat /= 0) then
+			if(.not. allocated(iatm)) then 
+				allocate(iatm(nat),stat=ierr,errmsg=msg)
+				if(ierr /=0) then
+					call errore('readepw','Error allocating iatm',1)    
+					call io_error(msg)
+				endif
+				iatm = ' '
 			endif
-			iatm = ' '
-    endif
-    if(.not. allocated(iamass)) then 
-      allocate(iamass(nat),stat=ierr,errmsg=msg)
-      if(ierr /=0) then
-				call errore('readepw','Error allocating iamass',1)    
-				call io_error(msg)
-			endif
-			iamass = 0.0
-    endif  
-    if(.not. allocated(tau)) then 
-      allocate(tau(3,nat),stat=ierr,errmsg=msg)
-      if(ierr /=0) then
-				call errore('readepw','Error allocating tau',1)    
-				call io_error(msg)
-			endif
-			tau = 0.0
-    endif    
-    do iat =1 ,nat
-      read(unitepwout,"(7X,2x,5x,1X,A3,2X,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
-    enddo
-    ! atoms mass in "Rydberg" atomic units
-    iamass = iamass * amu_ry
-
-		WRITE(stdout, '(/, 5x,"Atoms inside the unit cell: ")')
-		WRITE(stdout, '(/,3x,"Cartesian axes")')
-		WRITE(stdout, '(/,5x,"site n.  atom      mass ", &
-				&                "          positions (a_0 units)")')
+			if(.not. allocated(iamass)) then 
+				allocate(iamass(nat),stat=ierr,errmsg=msg)
+				if(ierr /=0) then
+					call errore('readepw','Error allocating iamass',1)    
+					call io_error(msg)
+				endif
+				iamass = 0.0
+			endif  
+			if(.not. allocated(tau)) then 
+				allocate(tau(3,nat),stat=ierr,errmsg=msg)
+				if(ierr /=0) then
+					call errore('readepw','Error allocating tau',1)    
+					call io_error(msg)
+				endif
+				tau = 0.0
+			endif    
+			do iat =1 ,nat
+				read(unitepwout,"(7X,2x,5x,1X,A3,2X,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
+			enddo
+			! atoms mass in "Rydberg" atomic units
+			iamass = iamass * amu_ry
 	
-		WRITE(stdout, '(7x,i2,5x,a6,f8.4,"   tau(",i2, &
-				&                              ") = (",3f11.5,"  )")')  &
-				& (iat,iatm(iat), amass(iat)/amu_ry, iat,  &
-				& (tau(ipol,iat), ipol = 1, 3), iat = 1, nat)
-
+			WRITE(stdout, '(/, 5x,"Atoms inside the unit cell: ")')
+			WRITE(stdout, '(/,3x,"Cartesian axes")')
+			WRITE(stdout, '(/,5x,"site n.  atom      mass ", &
+					&                "          positions (a_0 units)")')
+		
+			WRITE(stdout, '(7x,i2,5x,a6,f8.4,"   tau(",i2, &
+					&                              ") = (",3f11.5,"  )")')  &
+					& (iat,iatm(iat), amass(iat)/amu_ry, iat,  &
+					& (tau(ipol,iat), ipol = 1, 3), iat = 1, nat)
+		endif
     
     !
     ! Description of symmetries
