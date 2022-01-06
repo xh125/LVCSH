@@ -207,11 +207,15 @@ module hamiltonian
     complex(kind=dpc),intent(out) :: pp(nfre,nfre) 
 		
     pp = H
-    call heevd(pp,ee,'V','U')
-    !call syev(pp,ee,'V','U')	
+		
+		!Computes all eigenvalues and, optionally, eigenvectors of a Hermitian matrix.
+		call heev(pp,ee,'V','U')
+    
+		!Computes all eigenvalues and, optionally, eigenvectors of a real symmetric matrix.
+		!call syev(pp,ee,'V','U')	
+		
     !!USE MKL lib could have a high speed in dgeev , sgeev   !in page 1131 and 1241
     !!On exit, hh array is overwritten
-    !call heev(pp,ee,'V','U')    !P1143 MKL
     
   end subroutine calculate_eigen_energy_state
   
