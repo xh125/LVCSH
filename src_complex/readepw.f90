@@ -174,7 +174,7 @@ module readepw
       read(unitepwout,"(33X,1PE12.1)") exx_fraction
     endif               
     
-    !  !  Here add a message if this is a noncollinear or a spin_orbit calculation
+    !Here add a message if this is a noncollinear or a spin_orbit calculation
     !epw_summary.f90 line 79
     !IF (noncolin) THEN
     !  IF (lspinorb) THEN
@@ -195,15 +195,14 @@ module readepw
     else
       noncolin = .false.
     endif    
-
+		read(unitepwout,*)
+		
     !
     ! Description of the unit cell
     !    
-    read(unitepwout,*)
     read(unitepwout,"(2(3X,3(12X,F11.5),/))") (celldm(i),i=1,6)
     read(unitepwout,"(/,3(23X,3F8.4,/))") ((at(ipol,apol),ipol=1,3),apol=1,3)
     read(unitepwout,"(/,3(23X,3F8.4,/))") ((bg(ipol,apol),ipol=1,3),apol=1,3)
-    read(unitepwout,"(/////)")
 
 		WRITE(stdout, '(/,2(3x,3(2x,"celldm(",i1,")=",f11.5),/))') &
 				(i, celldm(i), i = 1, 6)
@@ -219,6 +218,9 @@ module readepw
     !
     ! Description of the atoms inside the unit cell
     !
+		read(unitepwout,"(/,A)") ctmp
+		read(unitepwout,"(/,A)") ctmp
+		read(unitepwout,"(/,A)") ctmp
 		if( nat /= 0) then
 			if(.not. allocated(iatm)) then 
 				allocate(iatm(nat),stat=ierr,errmsg=msg)
@@ -243,7 +245,8 @@ module readepw
 					call io_error(msg)
 				endif
 				tau = 0.0
-			endif    
+			endif
+			
 			do iat =1 ,nat
 				read(unitepwout,"(7X,2x,5x,1X,A3,2X,F8.4,14X,3f11.5)") iatm(iat),iamass(iat),(tau(ipol,iat),ipol=1,3)
 			enddo
@@ -259,6 +262,8 @@ module readepw
 					&                              ") = (",3f11.5,"  )")')  &
 					& (iat,iatm(iat), amass(iat)/amu_ry, iat,  &
 					& (tau(ipol,iat), ipol = 1, 3), iat = 1, nat)
+		else
+			read(unitepwout,*)
 		endif
     
     !
