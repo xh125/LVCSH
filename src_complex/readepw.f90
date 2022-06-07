@@ -1330,6 +1330,8 @@ module readepw
 			enddo
 		enddo
 		
+    call test_epmatq_conjg(ibndmin,ibndmax,nmodes,nktotf,nqtotf,epmatq)
+    
 		gmnvkq = ABS(epmatq)
     
 
@@ -1363,5 +1365,40 @@ module readepw
     
   end subroutine readepwout
   
+  subroutine test_epmatq_conjg(imin,imax,nmodes,nk,nq,epmatq_eh)
+    use kinds,only : dpc
+    use epwcom,only  : kqmap
+    use elph2,only : iminusq
+    implicit none
+    integer ,intent(in) :: imin,imax,nmodes,nk,nq
+    complex(kind=dpc) , intent(in) :: epmatq_eh(imin:imax,imin:imax,nmodes,nq,nk)
+    
+    integer :: ik,iq,iband,jband,imode
+    integer :: ikq,iq_
+    complex(kind=dpc) :: A,B
+    
+    do ik=1,nk
+      do iq=1,nq
+        iq_ = iminusq(iq)
+        ikq = kqmap(ik,iq)
+        do imode=1,nmodes
+          do iband=imin,imax
+            do jband=imin,imax
+              A = epmatq_eh(iband,jband,imode,ik,iq)
+              B = epmatq_eh(jband,iband,imode,ikq,iq_)
+              if(epmatq_eh(iband,jband,imode,ik,iq) /= CONJG(epmatq_eh(jband,iband,imode,ikq,iq_))) then
+                write(*,*) "gmnvkq /= gnmv(k+q)(-q)"
+                write(*,*) "gmnvkq(",",",iband,",",jband,",",imode,",",ik,",",iq,")=",A
+                write(*,*) "gmnvkq(",",",jband,",",iband,",",imode,",",ikq,",",iq_,")=",B
+                !gmnvkq_eh(iband,jband,imode,ik,iq) = (A + B)/2.0
+                !gmnvkq_eh(jband,iband,imode,ikq,iq_)= (A + B)/2.0
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+    enddo
+    
+  end subroutine test_epmatq_conjg  
 
 end module readepw
