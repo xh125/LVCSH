@@ -33,7 +33,7 @@ module readepw
               jbnd     ,           &! Band index
               pbnd     ,           &! Band index
               mu       ,           &! Mode index
-              nu       ,           &! Mode index
+              nu,imode ,           &! Mode index
               totq     ,           &! Total number of q-points within the fsthick window.
               iq,iq_                ! Current q-point index
   INTEGER :: i,j,k,iw,i_,j_,k_
@@ -129,6 +129,8 @@ module readepw
     integer :: nbndskip = 0
     logical :: wannierize
 		
+    real(kind=dp) :: A,B
+    
     integer :: itmp,count_piv_spin
     
 		INTEGER :: valueRSS(2)
@@ -830,26 +832,27 @@ module readepw
     wqf = 1.0d0/(dble(nqtotf))
     
     allocate(iminusq(nqtotf))
+    iminusq = 0
     
-    
-    do i = 1 ,nqf1
-      i_ = nqf1 + 2 - i
-      if(i_ > nqf1) i_ = i_ - nqf1
+    ! get the index of q -> -q+G
+    do i = 0 ,nqf1-1
+      i_ = - i
+      if(i_ < 0) i_ = i_ + nqf1
       
-      do j = 1 ,nqf2
-        j_ = nqf2 + 2 - j
-        if(j_ > nqf2) j_ = j_ - nqf2
-        
-        do k=1,nqf3
-          k_ = nqf3 + 2 - k
-          if(k_ > nqf3) k_ = k_ - nqf3
+      do j = 0 ,nqf2-1
+        j_ = - j
+        if(j_ < 0) j_ = j_ + nqf2
+       
+        do k = 0 , nqf3-1
+          k_ = - k
+          if(k_ < 0) k_ = k_ + nqf3
           
-          iq = (i - 1) * nqf2 * nqf3 + (j - 1) * nqf3 + k
-          xqf(1, iq) = DBLE(i - 1) / DBLE(nqf1)
-          xqf(2, iq) = DBLE(j - 1) / DBLE(nqf2)
-          xqf(3, iq) = DBLE(k - 1) / DBLE(nqf3)          
+          iq = i * nqf2 * nqf3 + j * nqf3 + k + 1
+          xqf(1, iq) = DBLE(i) / DBLE(nqf1)
+          xqf(2, iq) = DBLE(j) / DBLE(nqf2)
+          xqf(3, iq) = DBLE(k) / DBLE(nqf3)          
           
-          iminusq(iq) = (i_ - 1) * nqf2 * nqf3 + (j_ - 1) * nqf3 + k_
+          iminusq(iq) = i_ * nqf2 * nqf3 + j_ * nqf3 + k_ + 1
         enddo
       enddo
     enddo  
@@ -1112,8 +1115,6 @@ module readepw
 		endif
 		etf = 0.0d0
     
-
-
     if(allocated(kqmap)) deallocate(kqmap) 
     allocate(kqmap(nktotf,nqtotf),stat=ierr,errmsg=msg)
     if(ierr /=0) then
@@ -1157,16 +1158,7 @@ module readepw
 			call io_error(msg)
 		endif
 		ram = real_size*(ibndmax-ibndmin+1)**2*nmodes*nktotf*nqtotf
-		call print_memory("gmnvkq",ram)
-
-    allocate(epmatq(ibndmin:ibndmax,ibndmin:ibndmax,1:nmodes,1:nktotf,1:nqtotf),stat=ierr,errmsg=msg)
-    if(ierr /=0) then
-			call errore('readepw','Error allocating epmatq',1)
-			call io_error(msg)
-		endif
-		ram = complex_size*(ibndmax-ibndmin+1)**2*nmodes*nktotf*nqtotf
-		call print_memory("epmatq",ram)		
-		
+		call print_memory("gmnvkq",ram)		
 		
     !!
     !! wf are the interpolated eigenfrequencies
@@ -1220,7 +1212,8 @@ module readepw
               !ekk = etf_all(ibndmin - 1 + ibnd, ikk)
               !WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 1e20.10)') ibndmin - 1 + ibnd, ibndmin - 1 + jbnd, &
               !nu, ryd2ev * ekk, ryd2ev * ekq, ryd2mev * wf(nu, iq), ryd2mev * epc(ibnd, jbnd, nu, ik)
-              read(unitepwout,'(3i9, 2f12.4, 1f20.10, 3e20.10)') ibnd_,jbnd_,nu_,ekk,ekq,wf(nu,iq_),gmnvkq(ibnd,jbnd,nu,ik_,iq_),epmatq(ibnd,jbnd,nu,ik_,iq_)
+              read(unitepwout,'(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd_,jbnd_,nu_,ekk,ekq,wf(nu,iq_),&
+                & gmnvkq(ibnd,jbnd,nu,ik_,iq_)
               !ekk = ekk /ryd2eV
               !ekq = ekq /ryd2eV
               
@@ -1250,9 +1243,9 @@ module readepw
 					do ibnd = ibndmin,ibndmax ! ibnd = 1,nbndfst
 						do jbnd = ibndmin,ibndmax !jbnd= 1,nbndfst
 							do nu = 1, nmodes		
-								WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 2e20.10)') ibnd, jbnd, &
-                   nu, etf(ibnd,ik), etf(ibnd,kqmap(ik,calgmnvkq_q(iq))), wf(nu, calgmnvkq_q(iq)),gmnvkq(ibnd, jbnd, nu, ik,calgmnvkq_q(iq)),&
-									 ABS(epmatq(ibnd, jbnd, nu, ik,calgmnvkq_q(iq)))
+								WRITE(stdout, '(3i9, 2f12.4, 1f20.10, 1e20.10)') ibnd, jbnd,nu, etf(ibnd,ik), &
+                   &  etf(ibnd,kqmap(ik,calgmnvkq_q(iq))), wf(nu, calgmnvkq_q(iq)),&
+                   &  gmnvkq(ibnd, jbnd, nu, ik,calgmnvkq_q(iq))
 							enddo
 					  enddo
 					enddo
@@ -1269,7 +1262,6 @@ module readepw
     do nu=1,3
 			wf(nu,1) = 0.0
       gmnvkq(:,:,nu,:,1) = 0.0
-			epmatq(:,:,nu,:,1) = czero
     enddo
 		
     
@@ -1291,7 +1283,6 @@ module readepw
 					!for the phonon with energy little than lit_ephonon meV, set the g-matrices to 0.
 					wf(nu,iq) = 0.0
           gmnvkq(:,:,nu,:,iq) = 0.0
-					epmatq(:,:,nu,:,iq) = czero
 				endif
 				
       enddo
@@ -1299,9 +1290,10 @@ module readepw
 
 
     ! use fermi energy to find vbm and cbm.
+    !ef = Real(INT(ef*ryd2eV*10000)/10000.0)/ryd2eV
     do ibnd= ibndmin,ibndmax
       enbmax = Maxval(etf(ibnd,:))
-      if(enbmax>ef*ryd2eV) then
+      if(enbmax > Real(INT(ef*ryd2eV*10000))/10000.0 ) then
         ncbmin = ibnd
         EXIT
       endif
@@ -1309,8 +1301,8 @@ module readepw
     nvbmax = ncbmin - 1
     evbmax = Maxval(etf(nvbmax,:))
     ecbmin = Minval(etf(ncbmin,:))
-    WRITE(stdout,'(/14x,a,i5,2x,a,f9.3,a)') 'Valence band max   = ', nvbmax, 'evbmax = ', evbmax , ' eV'
-    WRITE(stdout,'(14x,a,i5,2x,a,f9.3,a/)') 'Conductor band min = ', ncbmin, 'ecbmin = ', ecbmin , ' eV'    
+    WRITE(stdout,'(/14x,a,i5,2x,a,f9.4,a)') 'Valence band max   = ', nvbmax, 'evbmax = ', evbmax , ' eV'
+    WRITE(stdout,'(14x,a,i5,2x,a,f9.4,a/)') 'Conductor band min = ', ncbmin, 'ecbmin = ', ecbmin , ' eV'    
     icbm = ncbmin
     !if(icbm /= ncbmin) write(stdout,"(5X,A)") "Warning! The nelec need to be set right."
     
@@ -1320,19 +1312,36 @@ module readepw
     etf = etf - evbmax
     wf = wf/ryd2mev
 		gmnvkq = gmnvkq/ryd2mev
-		epmatq = epmatq/ryd2mev
     eps_acustic = eps_acustic/ryd2mev
     
 		do iq=1,nqtotf
 			do nu = 1,nmodes
 				gmnvkq(:,:,nu,:,iq)=sqrt(2.0*wf(nu,iq)/nqtotf)*gmnvkq(:,:,nu,:,iq)
-				epmatq(:,:,nu,:,iq)=sqrt(2.0*wf(nu,iq)/nqtotf)*epmatq(:,:,nu,:,iq)
 			enddo
 		enddo
-		
-    call test_epmatq_conjg(ibndmin,ibndmax,nmodes,nktotf,nqtotf,epmatq)
     
-		gmnvkq = ABS(epmatq)
+    !! g(m,n,v,k,q)= g(n,m,v,k+q,-q)*
+    do ik=1,nktotf
+      do iq=1,nqtotf
+        iq_ = iminusq(iq)
+        ikq = kqmap(ik,iq)
+        do imode=1,nmodes
+          do ibnd=ibndmin,ibndmax
+            do jbnd=ibndmin,ibndmax
+              A = gmnvkq(ibnd,jbnd,imode,ik,iq)
+              B = gmnvkq(jbnd,ibnd,imode,ikq,iq_)
+              if(gmnvkq(ibnd,jbnd,imode,ik,iq) /= gmnvkq(jbnd,ibnd,imode,ikq,iq_)) then
+                !write(*,*) "gmnvkq /= gnmv(k+q)(-q)"
+                !write(*,*) "gmnvkq(",ibnd,",",jbnd,",",imode,",",ik,",",iq,")=",A
+                !write(*,*) "gmnvkq(",jbnd,",",ibnd,",",imode,",",ikq,",",iq_,")=",B
+                gmnvkq(ibnd,jbnd,imode,ik,iq) = (A + B)/2.0
+                gmnvkq(jbnd,ibnd,imode,ikq,iq_)= (A + B)/2.0
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+    enddo    
     
 
     !ref : https://journals.aps.org/prb/pdf/10.1103/PhysRevB.72.045314
@@ -1365,40 +1374,5 @@ module readepw
     
   end subroutine readepwout
   
-  subroutine test_epmatq_conjg(imin,imax,nmodes,nk,nq,epmatq_eh)
-    use kinds,only : dpc
-    use epwcom,only  : kqmap
-    use elph2,only : iminusq
-    implicit none
-    integer ,intent(in) :: imin,imax,nmodes,nk,nq
-    complex(kind=dpc) , intent(in) :: epmatq_eh(imin:imax,imin:imax,nmodes,nq,nk)
-    
-    integer :: ik,iq,iband,jband,imode
-    integer :: ikq,iq_
-    complex(kind=dpc) :: A,B
-    
-    do ik=1,nk
-      do iq=1,nq
-        iq_ = iminusq(iq)
-        ikq = kqmap(ik,iq)
-        do imode=1,nmodes
-          do iband=imin,imax
-            do jband=imin,imax
-              A = epmatq_eh(iband,jband,imode,ik,iq)
-              B = epmatq_eh(jband,iband,imode,ikq,iq_)
-              if(epmatq_eh(iband,jband,imode,ik,iq) /= CONJG(epmatq_eh(jband,iband,imode,ikq,iq_))) then
-                write(*,*) "gmnvkq /= gnmv(k+q)(-q)"
-                write(*,*) "gmnvkq(",",",iband,",",jband,",",imode,",",ik,",",iq,")=",A
-                write(*,*) "gmnvkq(",",",jband,",",iband,",",imode,",",ikq,",",iq_,")=",B
-                !gmnvkq_eh(iband,jband,imode,ik,iq) = (A + B)/2.0
-                !gmnvkq_eh(jband,iband,imode,ikq,iq_)= (A + B)/2.0
-              endif
-            enddo
-          enddo
-        enddo
-      enddo
-    enddo
-    
-  end subroutine test_epmatq_conjg  
 
 end module readepw

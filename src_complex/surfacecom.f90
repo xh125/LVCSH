@@ -80,6 +80,10 @@ module surfacecom
   ! averager crystal energy and temperature T,in classical and quantum . 
   
   complex(kind=dpc),allocatable :: d_e(:,:,:,:),d_h(:,:,:,:),d0_e(:,:,:,:),d0_h(:,:,:,:)
+  complex(kind=dpc),allocatable :: dajqv_e(:,:,:),dajqv_h(:,:,:)
+  complex(kind=dpc),allocatable :: djaqv_e(:,:,:),djaqv_h(:,:,:)
+  complex(kind=dpc),allocatable :: dajqv0_e(:,:,:),dajqv0_h(:,:,:)
+  complex(kind=dpc),allocatable :: djaqv0_e(:,:,:),djaqv0_h(:,:,:)  
   real(kind=dp),allocatable :: g_e(:) ,g_h(:)
   real(kind=dp),allocatable :: g1_e(:),g1_h(:)  
                                

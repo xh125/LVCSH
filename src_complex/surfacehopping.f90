@@ -1,6 +1,6 @@
 module surfacehopping
   use kinds, only : dp,dpc
-  use constants,only : cone,czero
+  use constants,only : cone,czero,ci
   use epwcom,only : nkf1,nkf2,nkf3,nqf1,nqf2,nqf3,kqmap
   use elph2,only  : wf,nktotf,nbndfst,ibndmin,ibndmax
   use hamiltonian,only : nphfre,neband,nhband,nefre,nhfre,&
@@ -350,17 +350,20 @@ module surfacehopping
   ! ref : PPT-91
   ! The most time-consuming part of the program
   subroutine calculate_nonadiabatic_coupling(nmodes,nq,nband,nk,ee,p_nk,gmnvkq,nfre_sh,isurface,dd)
-    use kinds,only :  dp
+    use kinds,only : dp
+    use elph2,only : iminusq
     implicit none
     integer, intent(in)          :: nmodes,nq,nband,nk,nfre_sh,isurface
     real(kind=dp),intent(in)     :: ee(nband*nk)
     complex(kind=dpc),intent(in) :: p_nk(nband,nk,nband*nk)
-    complex(kind=dpc),intent(in) :: gmnvkq(nband,nband,nmodes,nk,nq)    
+    real(kind=dp),intent(in)     :: gmnvkq(nband,nband,nmodes,nk,nq)    
     complex(kind=dpc),intent(out):: dd(2,nfre_sh,nmodes,nq)
     
 		integer :: nfre,ifre,iq,imode
-    integer :: ik,ikq,m,n
-		complex(kind=dpc) :: epc
+    integer :: ik,ikq,m,n,iq_
+		real(kind=dp) :: epc
+    complex(kind=dpc) :: A,B
+    real(kind=dp) :: C,D
     
     !nfre = nband*nk
     nfre = nfre_sh
@@ -373,12 +376,12 @@ module surfacehopping
           do m=1,nband ! m
             do n=1,nband ! n
               epc = gmnvkq(m,n,imode,ik,iq)
-              if(epc /= czero) then
+              if(epc /= 0.0 ) then
                 do ifre=1,nfre
-                  ! d_ajk
+                  ! dajqv
                   dd(1,ifre,imode,iq) = dd(1,ifre,imode,iq)+epc*CONJG(p_nk(m,ikq,isurface))*p_nk(n,ik,ifre)
-                  ! d_jak
-                  dd(2,ifre,imode,iq) = dd(2,ifre,imode,iq)+epc*CONJG(p_nk(m,ikq,ifre))*p_nk(n,ik,isurface)
+                  ! djaqv
+                  !dd(2,ifre,imode,iq) = dd(2,ifre,imode,iq)+epc*CONJG(p_nk(m,ikq,ifre))*p_nk(n,ik,isurface)
                 enddo
               endif
             enddo
@@ -387,13 +390,66 @@ module surfacehopping
       enddo
     enddo
     
-		do ifre=1,nfre
-      if(ifre/= isurface) then
-        dd(1,ifre,:,:) = dd(1,ifre,:,:)/(ee(ifre)-ee(isurface))
-        dd(2,ifre,:,:) = dd(2,ifre,:,:)/(ee(isurface)-ee(ifre))
-      endif
+    
+    do iq=1,nq
+      iq_ = iminusq(iq)
+      do imode=1,nmodes
+        do ifre=1,nfre
+          if(ifre/= isurface) then
+            dd(1,ifre,imode,iq) = dd(1,ifre,imode,iq)/(ee(ifre)-ee(isurface))
+            !  Let dijqv(i,j,-q,v) = -1.0*CONJG(dijqv(j,i,q,v)) (! i/=j)
+            dd(2,ifre,imode,iq_) = -1.0*CONJG(dd(1,ifre,imode,iq))
+          else
+            dd(2,isurface,imode,iq) = dd(1,isurface,imode,iq)
+          endif
+        enddo
+      enddo
 		enddo
+    
+    
+    ! Let dEa_dQ(imode,iq_) = dEa_dQ(imode,iq)* 
+    ! dijqv(i,i,q,v) = CONJG(dijqv(i,i,-q,v))
+    do iq=1,nq
+      iq_=iminusq(iq)
+      if(iq <= iq_) then
+      do imode=1,nmodes
+        if(iq_ == iq) then
+          A = dd(1,isurface,imode,iq)
+          B = dd(2,isurface,imode,iq)
+          if(ABS(Imag(A)/Real(A)) < 1.0E-7) then
+            dd(1,isurface,imode,iq) = Real(A)
+          endif
+          if(ABS(Imag(B)/Real(B)) < 1.0E-7) then
+            dd(2,isurface,imode,iq) = Real(B)
+          endif          
+        else
+          
+          A = dd(1,isurface,imode,iq)
+          B = dd(1,isurface,imode,iq_)
+          if(ABS(Real(A)/REAL(B) - 1.0) < 1.0E-7 .and. ABS(Imag(A)/Imag(B) + 1.0) < 1.0E-7) then
+            C = (Real(A) + Real(B))/2.0
+            D = (Imag(A) - Imag(B))/2.0
+            dd(1,isurface,imode,iq) = C*cone +D*ci
+            dd(1,isurface,imode,iq_)= C*cone -D*ci
+          endif
+          
+          A = dd(2,isurface,imode,iq)
+          B = dd(2,isurface,imode,iq_)
+          if(ABS(Real(A)/REAL(B) - 1.0) < 1.0E-7 .and. ABS(Imag(A)/Imag(B) + 1.0) < 1.0E-7) then
+            C = (Real(A) + Real(B))/2.0
+            D = (Imag(A) - Imag(B))/2.0
+            dd(2,isurface,imode,iq) = C*cone +D*ci
+            dd(2,isurface,imode,iq_)= C*cone -D*ci          
+          endif
+        
+        endif
+      enddo
+      endif
+    enddo
 
+    ! Let dijqv(i,j,-q,v) = dijqv(j,i,q,v)*
+    call test_dijqv(isurface,nfre,nmodes,nq,dd)
+    
   end subroutine calculate_nonadiabatic_coupling
   
   
@@ -450,6 +506,116 @@ module surfacehopping
       
   end subroutine calculate_hopping_probability
 
+  subroutine test_deadqv(nmodes,nq,dEadQ)
+    use elph2,only :  iminusq
+    implicit none
+    integer , intent(in) :: nmodes,nq
+    complex(kind=dpc),intent(in) :: dEadQ(nmodes,nq)
+    
+    complex(kind=dpc) :: A,B
+    integer :: imode,iq,iq_
+    do iq=1,nq
+      iq_=iminusq(iq)
+      do imode=1,nmodes
+        A = dEadQ(imode,iq)
+        B = dEadQ(imode,iq_)
+        if(dEadQ(imode,iq) /= CONJG(dEadQ(imode,iq_))) then
+          !if(iq_ == iq) then
+            !if(ABS(Imag(A)/Real(A)) > 1.0E-7) then
+              !write(*,*) "dEadQ(",imode,",",iq,") is not Real."
+            !endif
+          !else
+            !if(ABS(Real(A)/REAL(B) - 1.0) > 1.0E-7 .and. ABS(Imag(A)/Imag(B) + 1.0) > 1.0E-7) then
+              write(*,*) "dEadQ(",imode,",",iq,")/=CONJG(dEadQ(",imode,",",iq_,"))"
+              write(*,*) "dEadQ(",imode,",",iq,")=",dEadQ(imode,iq)
+              write(*,*) "dEadQ(",imode,",",iq_,")=",dEadQ(imode,iq_)
+            !endif
+          !endif
+        endif
+      enddo
+    enddo
+     
+  end subroutine test_deadqv
 
+  subroutine test_dijqv(isurface,nfre,nmodes,nq,dd)
+    use elph2,only : iminusq
+    implicit none
+    integer , intent(in) :: isurface,nfre,nmodes,nq
+    complex(kind=dpc), intent(in) :: dd(2,nfre,nmodes,nq)
+    
+    integer :: ifre,imode,iq,iq_
+    
+    ! dijqv(a,i,q,v) = dijqv(i,a,q,v)
+    !do iq=1,nq
+    !  do imode=1,nmodes
+    !    do ifre=1,nfre
+    !      if(ifre /= isurface) then
+    !        if(dd(1,ifre,imode,iq) /= dd(2,ifre,imode,iq)) then
+    !          write(*,*) "dajqv(",ifre,",",imode,",",iq,") /= dajqv(",ifre,",",imode,",",iq,")"
+    !          write(*,*) "dajqv(",ifre,",",imode,",",iq,") =",dd(1,ifre,imode,iq)
+    !          write(*,*) "djaqv(",ifre,",",imode,",",iq,") =",dd(2,ifre,imode,iq)
+    !        endif
+    !      endif
+    !    enddo
+    !  enddo
+    !enddo
+    
+    ! dijqv(a,j,-q,v)=dijqv(a,j,q,v)*
+    !do iq=1,nq
+    !  iq_ = iminusq(iq)
+    !  do imode=1,nmodes
+    !    do ifre=1,nfre
+    !      if(ifre /= isurface) then
+    !        if(dd(1,ifre,imode,iq_) /= CONJG(dd(1,ifre,imode,iq))) then
+    !          write(*,*) "dajqv(",ifre,",",imode,",",iq,") /= CONJG(dajqv(",ifre,",",imode,",",iq_,"))"
+    !          write(*,*) "dajqv(",ifre,",",imode,",",iq,") =",dd(1,ifre,imode,iq),ABS(dd(1,ifre,imode,iq))
+    !          write(*,*) "dajqv(",ifre,",",imode,",",iq_,") =",dd(1,ifre,imode,iq_),ABS(dd(1,ifre,imode,iq_))
+    !        endif
+    !      endif
+    !    enddo
+    !  enddo
+    !enddo
+    
+    ! dijqv(i,j,q,v) = -1.0*CONJG(dijqv(j,i,-q,v)) (if i/=j)
+    ! dijqv(i,i,q,v) = Real (i==j .and. -q=q+G)
+    ! dijqv(i,i,q,v) = CONJG(dijqv(i,i,-q,v)) (i==j .and. -q/=q+G)
+    ! 验证成功
+     do iq=1,nq
+      iq_ = iminusq(iq)
+      do imode=1,nmodes
+        do ifre=1,nfre
+          if(ifre /= isurface) then
+            if(dd(2,ifre,imode,iq_) /= -1.0*CONJG(dd(1,ifre,imode,iq))) then
+              write(*,*) "dajqv(",ifre,",",imode,",",iq,") /= -1.0*CONJG(djaqv(",ifre,",",imode,",",iq_,"))"
+              write(*,*) "dajqv(",ifre,",",imode,",",iq,") =",dd(1,ifre,imode,iq)
+              write(*,*) "djaqv(",ifre,",",imode,",",iq_,") =",dd(2,ifre,imode,iq_)
+            endif
+          else
+            if(dd(2,isurface,imode,iq_) /= CONJG(dd(1,isurface,imode,iq))) then
+              write(*,*) "daaqv(",ifre,",",imode,",",iq,") /= CONJG(daaqv(",ifre,",",imode,",",iq_,"))"
+              write(*,*) "daaqv(",ifre,",",imode,",",iq,") =",dd(1,ifre,imode,iq)
+              write(*,*) "daaqv(",ifre,",",imode,",",iq_,") =",dd(2,ifre,imode,iq_)
+            endif            
+          endif
+        enddo
+      enddo
+    enddo   
+    
+    
+    ! Theta(dijqv) 
+    !do iq=1,nq
+    !  iq_ = iminusq(iq)
+    !  if(iq == iq_) then
+    !    do ifre=1,nfre
+    !      if(ifre /= isurface) then
+    !        do imode=1,nmodes
+    !          write(*,*) "Theta(dajqv(",ifre,",",imode,",",iq,"))",dd(1,ifre,imode,iq)/ABS(dd(1,ifre,imode,iq))
+    !        enddo
+    !      endif
+    !    enddo
+    !  end if
+    !enddo
+    
+  end subroutine test_dijqv
 
 end module surfacehopping

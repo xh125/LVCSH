@@ -296,5 +296,31 @@ module grid
               
   end subroutine kq2k_map
   
+  subroutine mq2q_map()
+    use kinds,only : dp
+    use epwcom, only : mqmap,nqf1,nqf2,nqf3
+    implicit none
+    integer :: iqx,iqy,iqz,iqx_,iqy_,iqz_
+    integer :: iq,imq
+    if(.not. allocated(mqmap)) allocate(mqmap(nqf1*nqf2*nqf3))
+    do iqx = 0,nqf1-1
+      iqx_ = -1 * iqx
+      if(iqx_<0) iqx_ = iqx_ + nqf1
+      do iqy = 0,nqf2-1
+        iqy_= -1 * iqy
+        if(iqy_<0) iqy_ = iqy_ + nqf2
+        do iqz = 0,nqf3-1
+          iqz_ = -1*iqz
+          if(iqz_<0) iqz_ = iqz_ + nqf3
+          iq=iqx*nqf2*nqf3+iqy*nqf3+iqz+1
+          imq=iqx_*nqf2*nqf3+iqy_*nqf3+iqz_+1
+          mqmap(iq)=imq
+        enddo
+      enddo
+    enddo
+    
+  end subroutine mq2q_map
+  
+  
 end module grid
     

@@ -214,6 +214,7 @@ module initialsh
     !use parameters,only : lit_ephonon
     use surfacecom,only : nqv,E_ph_CA_sum,E_ph_QA_sum,eps_acustic
     use elph2,only : iminusq
+    use dynamics,only : test_xv
     use io,only : stdout
     use constants,only : ryd2eV
     implicit none
@@ -248,7 +249,7 @@ module initialsh
     E_ph_QA_sum   = 0.0
         
     do iq=1,nq
-      if(iminusq(iq)>=iq) then
+      if( iq <= iminusq(iq) ) then
         ! ph_Q(v,-q)=ph_Q(v,q)*
         ! ph_P(v,-q)=ph_P(v,q)*
         ! Ph_P(v,q) = d(ph_Q(v,q))/dt 
@@ -256,15 +257,16 @@ module initialsh
           womiga = w(imode,iq)
           
           call random_number(theta1)
-          call random_number(theta2)
           if(iq==iminusq(iq)) then
+            ! for ph_Q and ph_P is real
             theta1 = 0.0
             theta2 = 0.0
+          else
+            theta1 = theta1 * tpi
+            theta2 = theta1 - tpi/4.0
           endif
-          ! for q=gamma
-          theta1 = theta1 * tpi
+          
           cplx_tmp1 = cos(theta1)*cone+sin(theta1)*ci
-          theta2 = theta2 * tpi
           cplx_tmp2 = cos(theta2)*cone+sin(theta2)*ci
           
           if(womiga < eps_acustic) then
@@ -287,11 +289,14 @@ module initialsh
           endif
           
         enddo
-      else !  ph_Q(v,-q)=ph_Q(v,q)*   ! ph_P(v,-q)=ph_P(v,q)*
+      else 
+      !  ph_Q(v,-q)=ph_Q(v,q)*   ! ph_P(v,-q)=ph_P(v,q)*
         ph_Q(:,iq) = CONJG(ph_Q(:,iminusq(iq)))
         ph_P(:,iq) = CONJG(ph_P(:,iminusq(iq)))
       endif
     enddo
+    
+    !call test_xv(nmodes,nq,ph_Q,ph_P)
     
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     !% Write phonon energy information         %!

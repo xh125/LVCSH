@@ -1,8 +1,8 @@
 module dynamics
   use kinds,only     : dp,dpc
   use constants,only : cone,czero
-  use parameters,only : temp
-  use epwcom,only         : kqmap
+  use parameters,only: temp
+  use epwcom,only    : kqmap
   
   implicit none
   
@@ -73,7 +73,9 @@ module dynamics
     ! ph_Q(v,-q)=ph_Q(v,q)*    (2.48)
     ! ph_P(v,-q)=ph_P(v,q)*    (2.57)
     
-  endsubroutine
+    call test_xv(nmodes,nq,xx,vv) 
+   
+  end subroutine rk4_nuclei
   
   !====================================================!
   != calculate derivative of coordinate and velocitie =!
@@ -180,16 +182,17 @@ module dynamics
     complex(kind=dpc),intent(in)  :: dd(2,nfre_sh,nmodes,nq)
     real(kind=dp),intent(out) :: dEa2_dQ2(nmodes,nq)
     
-    integer :: iq,imode,ifre
+    integer :: iq,imode,ifre,iq_
     
     ! ref : (2.60) PPT-95
     dEa2_dQ2 = 0.0
     do iq=1,nq
+      iq_ = iminusq(iq)
       do imode=1,nmodes
         do ifre=1,nfre_sh
           if(ifre /= isurface) then         
             dEa2_dQ2(imode,iq) = dEa2_dQ2(imode,iq) + &
-            (EE(isurface)-EE(ifre))*REAL((DD(1,ifre,imode,iq)*DD(2,ifre,imode,iq)))*2.0
+            & 2.0*(EE(isurface)-EE(ifre))*REAL((DD(1,ifre,imode,iq)*CONJG(DD(2,ifre,imode,iq))))
           endif
         enddo
       enddo
@@ -221,19 +224,33 @@ module dynamics
     logical,intent(in)        :: l_ph_quantum
     complex(kind=dpc), intent(inout) :: XX(nmodes,nq),VV(nmodes,nq)
     
-    integer :: imode,iq,i
+    integer :: imode,iq,i,iq_
     real(kind=dp) :: SIGMAR
     complex(kind=dpc) :: R1,R2,R3,R4,Z1,Z2,Z3,Z4
-    complex(kind=dpc) :: cplx_tmp
-    real(kind=dp) :: wwf2
+    complex(kind=dpc) :: cplx_tmp,cplx_tmp_
+    real(kind=dp) :: wwf2,wwf2_
     real(kind=dp) :: gamma,womiga,aver_E_T
+    real(kind=dp) :: gamma_,womiga_,aver_E_T_
     
+    
+    call test_xv(nmodes,nq,xx,vv)
+    !  ph_Q(v,q)=ph_Q(v,-q)*
+    !  ph_P(v,q)=ph_P(v,-q)*
     DO iq=1,nq
-      !if(iminusq(iq)>=iq) then
+      iq_ = iminusq(iq)
+      if( iq <= iq_ ) then
       ! ph_Q(v,q)=ph_Q(v,-q)*
         do imode=1,nmodes
           womiga = wf(imode,iq)
+          womiga_= wf(imode,iq_)
           gamma = ld_gamma(imode,iq)
+          gamma_= ld_gamma(imode,iq_)
+          if(womiga /= womiga_) then
+            write(*,*) "wf(",imode,",",iq,") /= wf(",imode,",",iq_,")"
+          endif
+          if(gamma /= gamma_) then
+            write(*,*) "ld_gamma(",imode,",",iq,") /= ld_gamma(",imode,",",iq_,")"
+          endif
           if(womiga > eps_acustic ) then
             if(l_ph_quantum) then
               aver_E_T = (bolziman(womiga,temp)+0.5)*womiga
@@ -243,8 +260,15 @@ module dynamics
 
             SIGMAR=DSQRT(2.0*gamma*aver_E_T*TT)
             wwf2 = wf(imode,iq)**2+dEa2_dQ2(imode,iq)
-          
+            wwf2_= wf(imode,iq_)**2+dEa2_dQ2(imode,iq_)
+            
             cplx_tmp = VV(imode,iq)/ABS(VV(imode,iq))            
+            cplx_tmp_= VV(imode,iq_)/ABS(VV(imode,iq_))
+            if(cplx_tmp_ /= CONJG(cplx_tmp)) then
+              write(*,*) "phP(",imode,",",iq,") /= CONJG:phP(",imode,",",iq_,")"
+              write(*,*) "phP(",imode,",",iq,") =",VV(imode,iq)
+              write(*,*) "phP(",imode,",",iq_,") =",VV(imode,iq_)
+            endif
           
             R1=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)*cplx_tmp
             R2=GAUSSIAN_RANDOM_NUMBER_FAST(0.0D0,SIGMAR)*cplx_tmp
@@ -257,15 +281,30 @@ module dynamics
             XX(imode,iq)=XX(imode,iq)+(Z2-GAMMA*Z3+(-wwf2+GAMMA**2)*Z4)
             VV(imode,iq)=VV(imode,iq)+(Z1-GAMMA*Z2+(-wwf2+GAMMA**2)*Z3+(2.0*gamma*wwf2-GAMMA**3)*Z4)
             
+            if(iq< iq_) then
+              R1= CONJG(R1)
+              R2= CONJG(R2)
+              R3= CONJG(R3)
+              R4= CONJG(R4)
+              Z1=R1    ! V=phP
+              Z2=TT*(R1/2.0D0+R2/SQRT3/2.0D0)  !V*T
+              Z3=TT**2*(R1/6.0D0+R2*SQRT3/12.0D0+R3/SQRT5/12.0D0) ! V*T**2
+              Z4=TT**3*(R1/24.0D0+R2*SQRT3/40.0D0+R3/SQRT5/24.0D0+R4/SQRT7/120.0D0) ! V*T**3
+              XX(imode,iq_)=XX(imode,iq_)+(Z2-GAMMA_*Z3+(-wwf2_+GAMMA_**2)*Z4)
+              VV(imode,iq_)=VV(imode,iq_)+(Z1-GAMMA_*Z2+(-wwf2_+GAMMA_**2)*Z3+(2.0*gamma_*wwf2_-GAMMA_**3)*Z4)            
+            
+            endif
             !XX(imode,iminusq(iq)) = CONJG(XX(imode,iq)) 
             !VV(imode,iminusq(iq)) = CONJG(VV(imode,iq))
           
           endif
         enddo
-      !endif
+      endif
     enddo
     
-  ENDSUBROUTINE  
+    call test_xv(nmodes,nq,xx,vv)
+    
+  end subroutine add_bath_effect
 
   
   subroutine pre_md(nmodes,nqtotf,wf,ld_gamma,temp,phQ,phP,l_ph_quantum,pre_dt)
@@ -284,12 +323,18 @@ module dynamics
     real(kind=dp) :: time
     character(len=2) :: ctimeunit
     
+    !call test_wqv(nmodes,nqtotf,wf)
+    
+    call test_xv(nmodes,nqtotf,phQ,phP)
+    
     dEa_dQ = 0.0
     dEa2_dQ2 = 0.0
     do istep=1,pre_nstep
       call rk4_nuclei(nmodes,nqtotf,dEa_dQ,ld_gamma,wf,phQ,phP,pre_dt)
       call add_bath_effect(nmodes,nqtotf,wf,ld_gamma,temp,dEa2_dQ2,pre_dt,l_ph_quantum,phQ,phP)
     enddo
+  
+    call test_xv(nmodes,nqtotf,phQ,phP)
   
     time = pre_nstep*pre_dt*ry_to_fs
     if(time<1.0E3) then
@@ -328,4 +373,76 @@ module dynamics
     !<nb>=1/(exp{hbar*w/kbT}-1)
   end function     
   
+  subroutine test_wqv(nmodes,nq,wf)
+    use elph2,only : iminusq
+    implicit none
+    integer ,intent(in) :: nmodes,nq
+    real(kind=dp),intent(in) :: wf(nmodes,nq)
+    
+    integer :: iq,iq_
+    integer :: imode
+    
+    do iq=1,nq
+      iq_= iminusq(iq)
+      do imode=1,nmodes
+        if(wf(imode,iq_) /= wf(imode,iq)) then
+          write(*,*) "Omiga(n,-q) /= Omiga(n,k)"
+        endif
+      enddo
+    enddo
+      
+  end subroutine test_wqv
+  
+  subroutine test_xv(nmodes,nq,phQ,phP)
+    use elph2,only :  iminusq
+    implicit none
+    integer, intent(in) :: nmodes,nq
+    complex(kind=dpc), intent(in) :: phQ(nmodes,nq),phP(nmodes,nq)
+    
+    logical :: lQP_CONJG
+    integer :: imode,iq,iq_
+    
+    lQP_CONJG = .true.
+    do iq=1,nq
+      iq_ = iminusq(iq)
+      do imode=1,nmodes
+        if(phQ(imode,iq_) /= CONJG(phQ(imode,iq))) then
+          write(*,*) "phQ(",imode,",",iq,") /= CONJG(phQ(",imode,",",iq_,"))"
+          write(*,*) "phQ(",imode,",",iq,") =",phQ(imode,iq)
+          write(*,*) "phQ(",imode,",",iq_,") =",phQ(imode,iq_)
+        endif
+        if(phP(imode,iq_) /= CONJG(phP(imode,iq))) then
+          write(*,*) "phP(",imode,",",iq,") /= CONJG(phP(",imode,",",iq_,"))"
+          write(*,*) "phP(",imode,",",iq,") =",phP(imode,iq)
+          write(*,*) "phP(",imode,",",iq_,") =",phP(imode,iq_)
+        endif        
+      enddo
+    enddo
+    
+  end subroutine test_xv
+
+  subroutine test_v(nmodes,nq,phP)
+    use elph2,only :  iminusq
+    implicit none
+    integer, intent(in) :: nmodes,nq
+    complex(kind=dpc), intent(in) ::phP(nmodes,nq)
+    
+    logical :: lQP_CONJG
+    integer :: imode,iq,iq_
+    
+    lQP_CONJG = .true.
+    do iq=1,nq
+      iq_ = iminusq(iq)
+      do imode=1,nmodes
+        if(phP(imode,iq_) /= CONJG(phP(imode,iq))) then
+          write(*,*) "phP(",imode,",",iq,") /= CONJG(phP(",imode,",",iq_,"))"
+          write(*,*) "phP(",imode,",",iq,") =",phP(imode,iq)
+          write(*,*) "phP(",imode,",",iq_,") =",phP(imode,iq_)
+        endif        
+      enddo
+    enddo
+    
+  end subroutine test_v
+
+ 
 end module dynamics

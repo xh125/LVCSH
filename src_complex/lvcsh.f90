@@ -42,7 +42,7 @@ program lvcsh
                             gmnvkq_e,Enk_e,H0_e_nk,E0_e,P0_e,nhfre,nhband,H_h, &
                             H_h_nk,E_h,P_h,P_h_nk,P0_h_nk,gmnvkq_h,Enk_h,      &
                             H0_h_nk,E0_h,P0_h,allocate_hamiltonian,set_H_nk,   &
-                            set_H0_nk,calculate_eigen_energy_state    
+                            set_H0_nk,calculate_eigen_energy_state,test_H_conjg    
   use sortting,only       : resort_eigen_energy_stat
   use randoms,only        : init_random_seed
   use lasercom,only       : fwhm,w_laser
@@ -73,7 +73,7 @@ program lvcsh
                             w_h,w0_h,g_h,g1_h,hsurface_type,cc0_h,dc1_h,dc2_h, &
                             dc3_h,dc4_h,allocatesh,convert_diabatic_adiabatic, &
                             calculate_nonadiabatic_coupling,                   &
-                            calculate_hopping_probability,                     &
+                            calculate_hopping_probability, test_deadqv,        &
                             convert_adiabatic_diabatic,add_decoherence     
   use elph2,only          : wf,xkf,nqtotf,nktotf,nbndfst,gmnvkq,etf
   use modes,only          : nmodes
@@ -107,12 +107,11 @@ program lvcsh
   !character(len=2) :: ctimeunit
   call cpu_time(t0)  
 
-  
   call environment_start( 'LVCSH' )
   call get_inputfile(inputfilename)
+  call readepwout(epwoutname)
   if(lreadscfout) call readpwscf_out(scfoutname)
   if(lreadphout)  call readph_out(phoutname)
-  call readepwout(epwoutname)
   call set_subband(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
   !get ieband_min,ieband_max,ihband_min,ihband_max
   call allocate_hamiltonian(lelecsh,lholesh,ieband_min,ieband_max,ihband_min,ihband_max)
@@ -162,6 +161,7 @@ program lvcsh
       !!Get the initial normal mode coordinate phQ and versity phP
       call init_normalmode_coordinate_velocity(nmodes,nqtotf,wf,temp,l_ph_quantum,phQ,phP)
       
+      
       !应该先跑平衡后，再做电子空穴动力学计算   
       call pre_md(nmodes,nqtotf,wf,ld_gamma,temp,phQ,phP,l_ph_quantum,pre_dt)     
       
@@ -176,6 +176,7 @@ program lvcsh
 				
         call set_H_nk(neband,nktotf,nmodes,nqtotf,phQ,gmnvkq_e,H0_e_nk,H_e_nk)
         H_e = reshape(H_e_nk,(/ nefre,nefre /))
+        call test_H_conjg(nefre,H_e)
         call calculate_eigen_energy_state(nefre,H_e,E_e,P_e)
         P_e_nk = reshape(P_e,(/ neband,nktotf,nefre /))
         
@@ -185,6 +186,7 @@ program lvcsh
   
         call calculate_nonadiabatic_coupling(nmodes,nqtotf,neband,nktotf,E_e,P_e_nk,gmnvkq_e,nefre_sh,iesurface,d_e)
         dEa_dQ_e = d_e(1,iesurface,:,:)
+        call test_deadqv(nmodes,nqtotf,dEa_dQ_e)
         E0_e = E_e;P0_e=P_e;P0_e_nk=P_e_nk;d0_e=d_e;w0_e=w_e
       endif
       
@@ -205,6 +207,7 @@ program lvcsh
         
         call calculate_nonadiabatic_coupling(nmodes,nqtotf,nhband,nktotf,E_h,P_h_nk,gmnvkq_h,nhfre_sh,ihsurface,d_h)
         dEa_dQ_h = d_h(1,ihsurface,:,:)
+        call test_deadqv(nmodes,nqtotf,dEa_dQ_h)
         E0_h = E_h;P0_h=P_h;P0_h_nk=P_h_nk;d0_h=d_h;w0_h=w_h
       endif
   
@@ -228,7 +231,7 @@ program lvcsh
           !dEa_dQ in time t0
           if(lelecsh) dEa_dQ = dEa_dQ + dEa_dQ_e
           if(lholesh) dEa_dQ = dEa_dQ + dEa_dQ_h
-          
+          call test_deadqv(nmodes,nqtotf,dEa_dQ)
           !==============================!
           != update phQ,phP             =!
           !==============================!        
